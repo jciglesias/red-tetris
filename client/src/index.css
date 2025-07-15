@@ -1,0 +1,205 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tetris game styles */
+.tetris-cell {
+  width: 25px;
+  height: 25px;
+  border: 1px solid #334155;
+  display: inline-block;
+}
+
+.tetris-cell.filled {
+  border-color: #64748b;
+}
+
+.tetris-cell.I { background-color: #06b6d4; }
+.tetris-cell.O { background-color: #eab308; }
+.tetris-cell.T { background-color: #a855f7; }
+.tetris-cell.S { background-color: #22c55e; }
+.tetris-cell.Z { background-color: #ef4444; }
+.tetris-cell.J { background-color: #3b82f6; }
+.tetris-cell.L { background-color: #f97316; }
+.tetris-cell.penalty { background-color: #71717a; }
+
+.tetris-board {
+  display: grid;
+  grid-template-columns: repeat(10, 25px);
+  gap: 1px;
+  background-color: #1e293b;
+  padding: 10px;
+  border: 2px solid #475569;
+  border-radius: 8px;
+}
+
+.game-container {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+  flex-wrap: wrap;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  min-width: 200px;
+}
+
+.next-piece-container {
+  background-color: #1e293b;
+  border: 2px solid #475569;
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+}
+
+.players-list {
+  background-color: #1e293b;
+  border: 2px solid #475569;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.player-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid #334155;
+}
+
+.player-item:last-child {
+  border-bottom: none;
+}
+
+.spectrum-view {
+  display: flex;
+  align-items: flex-end;
+  height: 60px;
+  gap: 2px;
+  margin-top: 5px;
+}
+
+.spectrum-bar {
+  width: 8px;
+  background-color: #64748b;
+  min-height: 2px;
+}
+
+.btn {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.btn:hover {
+  background-color: #2563eb;
+}
+
+.btn:disabled {
+  background-color: #64748b;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: #64748b;
+}
+
+.btn-secondary:hover {
+  background-color: #475569;
+}
+
+.btn-danger {
+  background-color: #ef4444;
+}
+
+.btn-danger:hover {
+  background-color: #dc2626;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: #cbd5e1;
+}
+
+.form-group input {
+  padding: 10px 12px;
+  border: 2px solid #475569;
+  border-radius: 6px;
+  background-color: #1e293b;
+  color: #f8fafc;
+  font-size: 14px;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.error-message {
+  color: #ef4444;
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+.success-message {
+  color: #22c55e;
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+.header {
+  background-color: #1e293b;
+  border-bottom: 2px solid #475569;
+  padding: 20px;
+  text-align: center;
+}
+
+.footer {
+  background-color: #1e293b;
+  border-top: 2px solid #475569;
+  padding: 15px;
+  text-align: center;
+  margin-top: auto;
+  font-size: 14px;
+  color: #94a3b8;
+}

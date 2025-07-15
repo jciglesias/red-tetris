@@ -1,0 +1,33 @@
+{
+  "name": "red-tetris",
+  "version": "1.0.0",
+  "description": "Networked multiplayer Tetris game using Full Stack JavaScript",
+  "scripts": {
+    "build": "npm run build:server && npm run build:client",
+    "build:server": "cd server && npm run build",
+    "build:client": "cd client && npm run build",
+    "start": "npm run start:server",
+    "start:server": "cd server && npm run start:prod",
+    "start:dev": "concurrently \"npm run start:server:dev\" \"npm run start:client:dev\"",
+    "start:server:dev": "cd server && npm run start:dev",
+    "start:client:dev": "cd client && npm run start",
+    "test": "npm run test:server && npm run test:client",
+    "test:server": "cd server && npm run test",
+    "test:client": "cd client && npm run test",
+    "test:coverage": "npm run test:server:coverage && npm run test:client:coverage",
+    "test:server:coverage": "cd server && npm run test:cov",
+    "test:client:coverage": "cd client && npm run test:coverage",
+    "lint": "npm run lint:server && npm run lint:client",
+    "lint:server": "cd server && npm run lint",
+    "lint:client": "cd client && npm run lint",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  },
+  "workspaces": [
+    "server",
+    "client",
+    "shared"
+  ]
+}
