@@ -1,12 +1,7 @@
-import React, { useState }  from 'react';
-import { Routes, Route } from 'react-router-dom';
-import './App.css';
-import Home from './components/Home';
-
-
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const App: React.FC = () => {
+const Home: React.FC = () => {
   const [roomName, setRoomName] = useState('');
   const [playerName, setPlayerName] = useState('');
   const navigate = useNavigate();
@@ -39,4 +34,4 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
+export default Home;
