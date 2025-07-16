@@ -2,6 +2,7 @@ import React, { useState }  from 'react';
 import { Routes, Route } from 'react-router-dom';
 import './App.css';
 import Home from './components/Home';
+import GameRoom from './components/GameRoom';
 
 
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +12,7 @@ const App: React.FC = () => {
     <div className="App">
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/room/:roomName" element={<GameRoom />} />
       </Routes>
     </div>
   );
