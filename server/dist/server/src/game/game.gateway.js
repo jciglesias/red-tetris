@@ -17,7 +17,7 @@ exports.GameGateway = void 0;
 const websockets_1 = require("@nestjs/websockets");
 const socket_io_1 = require("socket.io");
 const common_1 = require("@nestjs/common");
-const src_1 = require("../../../shared/src");
+const shared_1 = require("@red-tetris/shared");
 const game_service_1 = require("./game.service");
 const room_service_1 = require("./room.service");
 const player_service_1 = require("./player.service");
@@ -82,8 +82,8 @@ let GameGateway = GameGateway_1 = class GameGateway {
                 room,
                 playerId: player.id,
             };
-            client.emit(src_1.SocketEvents.ROOM_JOINED, roomJoinedPayload);
-            this.server.to(roomName).emit(src_1.SocketEvents.ROOM_UPDATE, room);
+            client.emit(shared_1.SocketEvents.ROOM_JOINED, roomJoinedPayload);
+            this.server.to(roomName).emit(shared_1.SocketEvents.ROOM_UPDATE, room);
             this.logger.log(`Player ${playerName} joined room ${roomName}`);
         }
         catch (error) {
@@ -114,7 +114,7 @@ let GameGateway = GameGateway_1 = class GameGateway {
             this.emitError(client, 'Only host can start the game');
             return;
         }
-        if (room.state !== src_1.GameState.WAITING) {
+        if (room.state !== shared_1.GameState.WAITING) {
             this.emitError(client, 'Game already started');
             return;
         }
@@ -133,7 +133,7 @@ let GameGateway = GameGateway_1 = class GameGateway {
                 this.roomService.updatePlayerInRoom(roomName, finalPlayer);
             }
         });
-        this.server.to(roomName).emit(src_1.SocketEvents.GAME_STARTED, updatedRoom);
+        this.server.to(roomName).emit(shared_1.SocketEvents.GAME_STARTED, updatedRoom);
         this.logger.log(`Game started in room ${roomName}`);
     }
     handleMovePiece(client, payload) {
@@ -147,20 +147,20 @@ let GameGateway = GameGateway_1 = class GameGateway {
         if (this.gameService.canMovePiece(player.board, player.currentPiece, payload.direction)) {
             let dx = 0, dy = 0;
             switch (payload.direction) {
-                case src_1.MoveDirection.LEFT:
+                case shared_1.MoveDirection.LEFT:
                     dx = -1;
                     break;
-                case src_1.MoveDirection.RIGHT:
+                case shared_1.MoveDirection.RIGHT:
                     dx = 1;
                     break;
-                case src_1.MoveDirection.DOWN:
+                case shared_1.MoveDirection.DOWN:
                     dy = 1;
                     break;
             }
             const movedPiece = this.pieceService.movePiece(player.currentPiece, dx, dy);
             const updatedPlayer = this.playerService.setCurrentPiece(player, movedPiece);
             this.roomService.updatePlayerInRoom(roomName, updatedPlayer);
-            if (payload.direction === src_1.MoveDirection.DOWN &&
+            if (payload.direction === shared_1.MoveDirection.DOWN &&
                 this.gameService.isPieceAtBottom(player.board, movedPiece)) {
                 this.placePiece(roomName, updatedPlayer);
             }
@@ -177,7 +177,7 @@ let GameGateway = GameGateway_1 = class GameGateway {
         const { room, player } = this.getRoomAndPlayer(roomName, playerId);
         if (!room || !player || !player.currentPiece)
             return;
-        const clockwise = payload.direction === src_1.RotationDirection.CLOCKWISE;
+        const clockwise = payload.direction === shared_1.RotationDirection.CLOCKWISE;
         if (this.gameService.canRotatePiece(player.board, player.currentPiece, clockwise)) {
             const rotatedPiece = this.pieceService.rotatePiece(player.currentPiece, clockwise);
             const updatedPlayer = this.playerService.setCurrentPiece(player, rotatedPiece);
@@ -204,7 +204,7 @@ let GameGateway = GameGateway_1 = class GameGateway {
             return false;
         }
         const room = this.roomService.getRoom(roomName);
-        if (!room || room.state !== src_1.GameState.PLAYING) {
+        if (!room || room.state !== shared_1.GameState.PLAYING) {
             this.emitError(client, 'Game is not active');
             return false;
         }
@@ -228,7 +228,7 @@ let GameGateway = GameGateway_1 = class GameGateway {
             if (room && result.linesCleared > 1) {
                 const penaltyLines = result.linesCleared - 1;
                 room.players.forEach(otherPlayer => {
-                    if (otherPlayer.id !== player.id && otherPlayer.state === src_1.PlayerState.PLAYING) {
+                    if (otherPlayer.id !== player.id && otherPlayer.state === shared_1.PlayerState.PLAYING) {
                         const penalizedPlayer = this.playerService.addPenaltyLines(otherPlayer, penaltyLines);
                         this.roomService.updatePlayerInRoom(roomName, penalizedPlayer);
                         this.emitPlayerUpdate(roomName, penalizedPlayer);
@@ -244,7 +244,7 @@ let GameGateway = GameGateway_1 = class GameGateway {
             updatedPlayer = this.playerService.setNextPiece(updatedPlayer, nextNextPieceType);
         }
         if (this.playerService.checkGameOver(updatedPlayer)) {
-            updatedPlayer = this.playerService.updatePlayerState(updatedPlayer, src_1.PlayerState.GAME_OVER);
+            updatedPlayer = this.playerService.updatePlayerState(updatedPlayer, shared_1.PlayerState.GAME_OVER);
             this.checkGameEnd(roomName);
         }
         this.roomService.updatePlayerInRoom(roomName, updatedPlayer);
@@ -254,34 +254,34 @@ let GameGateway = GameGateway_1 = class GameGateway {
         const room = this.roomService.getRoom(roomName);
         if (!room)
             return;
-        const playingPlayers = room.players.filter(p => p.state === src_1.PlayerState.PLAYING);
+        const playingPlayers = room.players.filter(p => p.state === shared_1.PlayerState.PLAYING);
         if (playingPlayers.length <= 1) {
             this.roomService.endGame(roomName);
-            this.server.to(roomName).emit(src_1.SocketEvents.GAME_OVER, room);
+            this.server.to(roomName).emit(shared_1.SocketEvents.GAME_OVER, room);
         }
     }
     handlePlayerLeaveRoom(client, roomName, playerId) {
         const room = this.roomService.removePlayerFromRoom(roomName, playerId);
         client.leave(roomName);
-        client.emit(src_1.SocketEvents.ROOM_LEFT);
+        client.emit(shared_1.SocketEvents.ROOM_LEFT);
         if (room) {
-            this.server.to(roomName).emit(src_1.SocketEvents.ROOM_UPDATE, room);
-            if (room.state === src_1.GameState.PLAYING) {
+            this.server.to(roomName).emit(shared_1.SocketEvents.ROOM_UPDATE, room);
+            if (room.state === shared_1.GameState.PLAYING) {
                 this.checkGameEnd(roomName);
             }
         }
         this.logger.log(`Player left room ${roomName}`);
     }
     emitPlayerUpdate(roomName, player) {
-        this.server.to(roomName).emit(src_1.SocketEvents.PLAYER_UPDATE, { player });
-        this.server.to(roomName).emit(src_1.SocketEvents.SPECTRUM_UPDATE, {
+        this.server.to(roomName).emit(shared_1.SocketEvents.PLAYER_UPDATE, { player });
+        this.server.to(roomName).emit(shared_1.SocketEvents.SPECTRUM_UPDATE, {
             playerId: player.id,
             spectrum: player.spectrum,
         });
     }
     emitError(client, message, code) {
         const errorPayload = { message, code };
-        client.emit(src_1.SocketEvents.ERROR, errorPayload);
+        client.emit(shared_1.SocketEvents.ERROR, errorPayload);
     }
 };
 exports.GameGateway = GameGateway;
@@ -290,7 +290,7 @@ __decorate([
     __metadata("design:type", socket_io_1.Server)
 ], GameGateway.prototype, "server", void 0);
 __decorate([
-    (0, websockets_1.SubscribeMessage)(src_1.SocketEvents.JOIN_ROOM),
+    (0, websockets_1.SubscribeMessage)(shared_1.SocketEvents.JOIN_ROOM),
     __param(0, (0, websockets_1.ConnectedSocket)()),
     __param(1, (0, websockets_1.MessageBody)()),
     __metadata("design:type", Function),
@@ -298,21 +298,21 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], GameGateway.prototype, "handleJoinRoom", null);
 __decorate([
-    (0, websockets_1.SubscribeMessage)(src_1.SocketEvents.LEAVE_ROOM),
+    (0, websockets_1.SubscribeMessage)(shared_1.SocketEvents.LEAVE_ROOM),
     __param(0, (0, websockets_1.ConnectedSocket)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [socket_io_1.Socket]),
     __metadata("design:returntype", void 0)
 ], GameGateway.prototype, "handleLeaveRoom", null);
 __decorate([
-    (0, websockets_1.SubscribeMessage)(src_1.SocketEvents.START_GAME),
+    (0, websockets_1.SubscribeMessage)(shared_1.SocketEvents.START_GAME),
     __param(0, (0, websockets_1.ConnectedSocket)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [socket_io_1.Socket]),
     __metadata("design:returntype", void 0)
 ], GameGateway.prototype, "handleStartGame", null);
 __decorate([
-    (0, websockets_1.SubscribeMessage)(src_1.SocketEvents.MOVE_PIECE),
+    (0, websockets_1.SubscribeMessage)(shared_1.SocketEvents.MOVE_PIECE),
     __param(0, (0, websockets_1.ConnectedSocket)()),
     __param(1, (0, websockets_1.MessageBody)()),
     __metadata("design:type", Function),
@@ -320,7 +320,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], GameGateway.prototype, "handleMovePiece", null);
 __decorate([
-    (0, websockets_1.SubscribeMessage)(src_1.SocketEvents.ROTATE_PIECE),
+    (0, websockets_1.SubscribeMessage)(shared_1.SocketEvents.ROTATE_PIECE),
     __param(0, (0, websockets_1.ConnectedSocket)()),
     __param(1, (0, websockets_1.MessageBody)()),
     __metadata("design:type", Function),
@@ -328,7 +328,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], GameGateway.prototype, "handleRotatePiece", null);
 __decorate([
-    (0, websockets_1.SubscribeMessage)(src_1.SocketEvents.HARD_DROP),
+    (0, websockets_1.SubscribeMessage)(shared_1.SocketEvents.HARD_DROP),
     __param(0, (0, websockets_1.ConnectedSocket)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [socket_io_1.Socket]),

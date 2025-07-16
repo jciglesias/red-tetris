@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { GameState } from '../../../shared/src';
-import type { Room, Player, PieceType } from '../../../shared/src';
+import { GameState } from '@red-tetris/shared';
+import type { Room, Player, PieceType } from '@red-tetris/shared';
 import { PieceService } from './piece.service';
 
 @Injectable()

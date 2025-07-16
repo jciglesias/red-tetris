@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Player } from '../../../../shared/src/types';
+import { Player } from '../../types/index.ts';
 
 interface PlayerSliceState {
   currentPlayer: Player | null;

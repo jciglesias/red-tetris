@@ -11,7 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GameService = void 0;
 const common_1 = require("@nestjs/common");
-const src_1 = require("../../../shared/src");
+const shared_1 = require("@red-tetris/shared");
 const piece_service_1 = require("./piece.service");
 const player_service_1 = require("./player.service");
 let GameService = class GameService {
@@ -24,13 +24,13 @@ let GameService = class GameService {
     canMovePiece(board, piece, direction) {
         let dx = 0, dy = 0;
         switch (direction) {
-            case src_1.MoveDirection.LEFT:
+            case shared_1.MoveDirection.LEFT:
                 dx = -1;
                 break;
-            case src_1.MoveDirection.RIGHT:
+            case shared_1.MoveDirection.RIGHT:
                 dx = 1;
                 break;
-            case src_1.MoveDirection.DOWN:
+            case shared_1.MoveDirection.DOWN:
                 dy = 1;
                 break;
         }
@@ -38,15 +38,15 @@ let GameService = class GameService {
             x: piece.position.x + dx,
             y: piece.position.y + dy,
         };
-        return (0, src_1.isValidPosition)(board, piece.shape, newPosition);
+        return (0, shared_1.isValidPosition)(board, piece.shape, newPosition);
     }
     canRotatePiece(board, piece, clockwise = true) {
         const rotatedPiece = this.pieceService.rotatePiece(piece, clockwise);
-        return (0, src_1.isValidPosition)(board, rotatedPiece.shape, rotatedPiece.position);
+        return (0, shared_1.isValidPosition)(board, rotatedPiece.shape, rotatedPiece.position);
     }
     dropPieceToBottom(board, piece) {
         let droppedPiece = { ...piece };
-        while (this.canMovePiece(board, droppedPiece, src_1.MoveDirection.DOWN)) {
+        while (this.canMovePiece(board, droppedPiece, shared_1.MoveDirection.DOWN)) {
             droppedPiece = this.pieceService.movePiece(droppedPiece, 0, 1);
         }
         return droppedPiece;
@@ -55,7 +55,7 @@ let GameService = class GameService {
         return this.dropPieceToBottom(board, piece);
     }
     isPieceAtBottom(board, piece) {
-        return !this.canMovePiece(board, piece, src_1.MoveDirection.DOWN);
+        return !this.canMovePiece(board, piece, shared_1.MoveDirection.DOWN);
     }
     getGameSpeed(level) {
         const baseSpeed = 1000;
@@ -63,7 +63,7 @@ let GameService = class GameService {
         return Math.max(100, baseSpeed - speedIncrease);
     }
     validatePiecePosition(board, piece) {
-        return (0, src_1.isValidPosition)(board, piece.shape, piece.position);
+        return (0, shared_1.isValidPosition)(board, piece.shape, piece.position);
     }
     checkTopOutCondition(board) {
         return board[0].some(cell => cell !== null) || board[1].some(cell => cell !== null);

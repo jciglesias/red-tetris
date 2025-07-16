@@ -1,5 +1,5 @@
-import { GameState } from '../../../shared/src';
-import type { Room, Player, PieceType } from '../../../shared/src';
+import { GameState } from '@red-tetris/shared';
+import type { Room, Player, PieceType } from '@red-tetris/shared';
 import { PieceService } from './piece.service';
 export declare class RoomService {
     private pieceService;

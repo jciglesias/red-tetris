@@ -1,5 +1,5 @@
-import { PieceType } from '../../../shared/src';
-import type { Piece, Position } from '../../../shared/src';
+import { PieceType } from '@red-tetris/shared';
+import type { Piece, Position } from '@red-tetris/shared';
 export declare class PieceService {
     createPiece(type: PieceType, position?: Position): Piece;
     rotatePiece(piece: Piece, clockwise?: boolean): Piece;

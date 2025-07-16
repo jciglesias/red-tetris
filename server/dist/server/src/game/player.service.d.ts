@@ -1,5 +1,5 @@
-import { PlayerState } from '../../../shared/src';
-import type { Player, Board, Piece, PieceType } from '../../../shared/src';
+import { PlayerState } from '@red-tetris/shared';
+import type { Player, Board, Piece, PieceType } from '@red-tetris/shared';
 export declare class PlayerService {
     createPlayer(name: string, isHost?: boolean): Player;
     updatePlayerBoard(player: Player, board: Board): Player;

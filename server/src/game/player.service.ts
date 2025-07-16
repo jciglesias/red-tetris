@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { PlayerState, createEmptyBoard, calculateSpectrum, BOARD_WIDTH, BOARD_HEIGHT } from '../../../shared/src';
-import type { Player, Board, Spectrum, Piece, PieceType } from '../../../shared/src';
+import { PlayerState, createEmptyBoard, calculateSpectrum, BOARD_WIDTH, BOARD_HEIGHT } from '@red-tetris/shared';
+import type { Player, Board, Spectrum, Piece, PieceType } from '@red-tetris/shared';
 
 @Injectable()
 export class PlayerService {

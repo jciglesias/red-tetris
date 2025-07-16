@@ -8,10 +8,10 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PieceService = void 0;
 const common_1 = require("@nestjs/common");
-const src_1 = require("../../../shared/src");
+const shared_1 = require("@red-tetris/shared");
 let PieceService = class PieceService {
     createPiece(type, position) {
-        const shape = src_1.PIECE_SHAPES[type];
+        const shape = shared_1.PIECE_SHAPES[type];
         return {
             type,
             position: position || { x: 4, y: 0 },
@@ -20,7 +20,7 @@ let PieceService = class PieceService {
         };
     }
     rotatePiece(piece, clockwise = true) {
-        const shape = src_1.PIECE_SHAPES[piece.type];
+        const shape = shared_1.PIECE_SHAPES[piece.type];
         const angle = clockwise ? Math.PI / 2 : -Math.PI / 2;
         const cos = Math.cos(angle);
         const sin = Math.sin(angle);
@@ -48,7 +48,7 @@ let PieceService = class PieceService {
         };
     }
     generatePieceSequence(length) {
-        return (0, src_1.generatePieceSequence)(length);
+        return (0, shared_1.generatePieceSequence)(length);
     }
     getNextPieceFromSequence(sequence, index) {
         return sequence[index] || null;

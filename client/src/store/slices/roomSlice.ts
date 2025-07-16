@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Room } from '../../../../shared/src/types';
+import { Room } from '../../types/index.ts';
 
 interface RoomSliceState {
   currentRoom: Room | null;

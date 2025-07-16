@@ -1,5 +1,5 @@
-import { MoveDirection } from '../../../shared/src';
-import type { Board, Piece } from '../../../shared/src';
+import { MoveDirection } from '@red-tetris/shared';
+import type { Board, Piece } from '@red-tetris/shared';
 import { PieceService } from './piece.service';
 import { PlayerService } from './player.service';
 export declare class GameService {

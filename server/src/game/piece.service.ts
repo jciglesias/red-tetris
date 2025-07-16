@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { PieceType, PIECE_SHAPES, generatePieceSequence, createEmptyBoard, calculateSpectrum } from '../../../shared/src';
-import type { Piece, Position } from '../../../shared/src';
+import { PieceType, PIECE_SHAPES, generatePieceSequence, createEmptyBoard, calculateSpectrum } from '@red-tetris/shared';
+import type { Piece, Position } from '@red-tetris/shared';
 
 @Injectable()
 export class PieceService {

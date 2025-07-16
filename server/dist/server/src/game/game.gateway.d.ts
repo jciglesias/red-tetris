@@ -1,6 +1,6 @@
 import { OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import type { JoinRoomPayload, MovePayload, RotatePayload } from '../../../shared/src';
+import type { JoinRoomPayload, MovePayload, RotatePayload } from '@red-tetris/shared';
 import { GameService } from './game.service';
 import { RoomService } from './room.service';
 import { PlayerService } from './player.service';

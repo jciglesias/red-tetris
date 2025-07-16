@@ -12,7 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RoomService = void 0;
 const common_1 = require("@nestjs/common");
 const uuid_1 = require("uuid");
-const src_1 = require("../../../shared/src");
+const shared_1 = require("@red-tetris/shared");
 const piece_service_1 = require("./piece.service");
 let RoomService = class RoomService {
     pieceService;
@@ -24,7 +24,7 @@ let RoomService = class RoomService {
         const room = {
             id: (0, uuid_1.v4)(),
             name,
-            state: src_1.GameState.WAITING,
+            state: shared_1.GameState.WAITING,
             players: [hostPlayer],
             hostId: hostPlayer.id,
             maxPlayers: 4,
@@ -47,7 +47,7 @@ let RoomService = class RoomService {
         if (room.players.length >= room.maxPlayers) {
             return null;
         }
-        if (room.state === src_1.GameState.PLAYING) {
+        if (room.state === shared_1.GameState.PLAYING) {
             return null;
         }
         if (room.players.some(p => p.name === player.name)) {
@@ -86,9 +86,9 @@ let RoomService = class RoomService {
     }
     startGame(roomName) {
         const room = this.rooms.get(roomName);
-        if (!room || room.state !== src_1.GameState.WAITING)
+        if (!room || room.state !== shared_1.GameState.WAITING)
             return null;
-        room.state = src_1.GameState.PLAYING;
+        room.state = shared_1.GameState.PLAYING;
         room.currentPieceIndex = 0;
         room.players.forEach(player => {
             player.state = 'PLAYING';
@@ -100,7 +100,7 @@ let RoomService = class RoomService {
         const room = this.rooms.get(roomName);
         if (!room)
             return null;
-        room.state = src_1.GameState.FINISHED;
+        room.state = shared_1.GameState.FINISHED;
         this.rooms.set(roomName, room);
         return room;
     }
@@ -108,7 +108,7 @@ let RoomService = class RoomService {
         const room = this.rooms.get(roomName);
         if (!room)
             return null;
-        room.state = src_1.GameState.WAITING;
+        room.state = shared_1.GameState.WAITING;
         room.currentPieceIndex = 0;
         room.pieceSequence = this.pieceService.generatePieceSequence(1000);
         this.rooms.set(roomName, room);

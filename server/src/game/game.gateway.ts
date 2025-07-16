@@ -15,14 +15,14 @@ import {
   RotationDirection, 
   PlayerState,
   GameState
-} from '../../../shared/src';
+} from '@red-tetris/shared';
 import type {
   JoinRoomPayload,
   MovePayload,
   RotatePayload,
   RoomJoinedPayload,
   ErrorPayload,
-} from '../../../shared/src';
+} from '@red-tetris/shared';
 import { GameService } from './game.service';
 import { RoomService } from './room.service';
 import { PlayerService } from './player.service';

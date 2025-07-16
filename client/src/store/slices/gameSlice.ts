@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Board } from '../../../../shared/src/types';
-import { GameState } from '../../../../shared/src/constants';
+import { GameState, Board } from '../../types/index.ts';
 
 interface GameSliceState {
   board: Board;
