@@ -19,7 +19,7 @@ red-tetris/
 
 ## Start
 
-npx create-react-app client
+npx create-react-app client --template typescript
 
 npx @nestjs/cli new server --package-manager npm --skip-git
 
