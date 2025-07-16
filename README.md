@@ -17,6 +17,12 @@ red-tetris/
 - Node.js 18+
 - npm 8+
 
+## Start
+
+npx create-react-app client
+
+npx @nestjs/cli new server --package-manager npm --skip-git
+
 ## Quick Start
 
 1. Install dependencies:
