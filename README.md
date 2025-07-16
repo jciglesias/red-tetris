@@ -8,7 +8,6 @@ A networked multiplayer Tetris game built with NestJS and React.
 red-tetris/
 ├── server/          # NestJS backend
 ├── client/          # React frontend
-├── shared/          # Shared types and utilities
 ├── docs/           # Documentation
 └── tests/          # Integration tests
 ```
@@ -44,12 +43,6 @@ red-tetris/
 - Framework: React with hooks
 - State management: Redux Toolkit
 - Location: `./client`
-
-### Shared
-- TypeScript interfaces
-- Game constants
-- Utility functions
-- Location: `./shared`
 
 ## Testing
 

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { isValidPosition, MoveDirection } from '@red-tetris/shared';
-import type { Board, Piece, Position } from '@red-tetris/shared';
+import { isValidPosition, MoveDirection } from 'src/types';
+import type { Board, Piece, Position } from 'src/types';
 import { PieceService } from './piece.service';
 import { PlayerService } from './player.service';
 
