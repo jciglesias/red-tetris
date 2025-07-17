@@ -10,7 +10,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Injectable } from '@nestjs/common';
 import { RoomService, Player } from './room.service';
-import { GameService } from '../game/game.service';
+import { GameService, GameState } from '../game/game.service';
 
 interface JoinRoomMessage {
   roomName: string;
@@ -41,6 +41,19 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private roomService: RoomService,
     private gameService: GameService,
   ) {}
+
+  /**
+   * Helper function to serialize GameState for JSON transmission
+   * Converts Map to plain object so it can be properly serialized
+   */
+  private serializeGameState(gameState: GameState | null) {
+    if (!gameState) return null;
+    
+    return {
+      ...gameState,
+      players: gameState.players ? Object.fromEntries(gameState.players) : {}
+    };
+  }
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
@@ -112,7 +125,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
         players: this.roomService.getRoomPlayers(roomName),
         gameState: room?.gameState,
       },
-      gameState, // Include current game state for reconnections
+      gameState: this.serializeGameState(gameState), // Serialize the game state
       isReconnection: !!reconnectionToken,
     });
 
@@ -188,7 +201,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
       
       // Notify all players that game has started
       this.server.to(room.name).emit('game-started', {
-        gameState,
+        gameState: this.serializeGameState(gameState),
         players: this.roomService.getRoomPlayers(room.name),
       });
     }
@@ -219,7 +232,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Broadcast updated game state to all players in room
       const gameState = this.gameService.getGameState(room.name);
       if (gameState) {
-        this.server.to(room.name).emit('game-state-update', gameState);
+        this.server.to(room.name).emit('game-state-update', this.serializeGameState(gameState));
 
         // Check if game ended
         if (gameState.gameOver) {

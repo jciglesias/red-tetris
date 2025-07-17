@@ -276,7 +276,7 @@ describe('RoomGateway', () => {
       
       expect(gameService.processPlayerAction).toHaveBeenCalledWith('test-room', 'player1', 'move-left');
       expect(mockServer.to).toHaveBeenCalledWith('test-room');
-      expect(mockServer.emit).toHaveBeenCalledWith('game-state-update', mockGameState);
+      expect(mockServer.emit).toHaveBeenCalledWith('game-state-update', { gameOver: false, players: {} });
     });
 
     it('should handle game action when game is over', () => {
@@ -588,7 +588,7 @@ describe('RoomGateway', () => {
       
       expect(mockClient.emit).toHaveBeenCalledWith('join-room-success', expect.objectContaining({
         isReconnection: true,
-        gameState: mockGameState
+        gameState: { gameOver: false, players: {} }
       }));
     });
   });
