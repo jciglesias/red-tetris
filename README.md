@@ -17,25 +17,43 @@ red-tetris/
 - Node.js 18+
 - npm 8+
 
-## Start
-
-npx create-react-app client --template typescript
-
-npx @nestjs/cli new server --package-manager npm --skip-git
-
-## Quick Start
+## Quick Start Server
 
 1. Install dependencies:
    ```bash
-   npm run install:all
+   npm install
    ```
 
 2. Start development servers:
    ```bash
-   npm run start:dev
+   npm run start
+   ```
+
+3. Test:
+   ```bash
+   npm run test
+   npm run test:cov
+   ```
+
+## Quick Start Client
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Start development servers:
+   ```bash
+   npm start
+   ```
+
+3. Test:
+   ```bash
+   npm test
    ```
 
 3. Open your browser to `http://localhost:3000`
+
 
 ## Development
 
@@ -50,29 +68,6 @@ npx @nestjs/cli new server --package-manager npm --skip-git
 - State management: Redux Toolkit
 - Location: `./client`
 
-## Testing
-
-Run all tests:
-```bash
-npm run test
-```
-
-Run with coverage:
-```bash
-npm run test:coverage
-```
-
-## Building
-
-Build for production:
-```bash
-npm run build
-```
-
-Start production server:
-```bash
-npm start
-```
 
 ## Game Rules
 
@@ -84,6 +79,12 @@ npm start
 
 ## URL Format
 
-Join a game: `http://localhost:3000/<room>/<player_name>`
+Join a game: `http://localhost:3000/<room>?player=<player_name>`
 
-Example: `http://localhost:3000/room1/alice`
+Example: `http://localhost:3000/room1?player=player1`
+
+
+## Starting scripts
+
+npx create-react-app client --template typescript
+npx @nestjs/cli new server --package-manager npm --skip-git

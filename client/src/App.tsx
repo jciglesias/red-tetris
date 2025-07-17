@@ -1,13 +1,10 @@
-import React, { useState }  from 'react';
+import React, { useEffect }  from 'react';
 import { Routes, Route } from 'react-router-dom';
 import './App.css';
 import Home from './components/Home';
 import GameRoom from './components/GameRoom';
 
-
-import { useNavigate } from 'react-router-dom';
-
-const App: React.FC = () => {
+function App() {
   return (
     <div className="App">
       <Routes>
