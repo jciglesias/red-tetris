@@ -95,8 +95,8 @@ function GameRoom() {
 
   function joinRoom() {
     socket.emit('join-room', {
-        roomName : {roomName},
-        playerName : {playerName}
+        roomName: roomName,
+        playerName: playerName
     });
     console.log('joinRoom')
   }
