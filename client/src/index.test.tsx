@@ -2,6 +2,12 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+
+// Mock des composants pour isoler le test du composant App
+jest.mock('./components/Home', () => () => <div data-testid="home-page">Home Page</div>);
+jest.mock('./components/GameRoom', () => () => <div data-testid="game-room">Game Room</div>);
 
 jest.mock('react-dom/client', () => ({
   createRoot: jest.fn(() => ({
@@ -37,4 +43,24 @@ describe('index.tsx', () => {
     expect(mockCreateRoot).toHaveBeenCalledWith(expect.any(HTMLElement));
   });
 
+});
+
+describe('App', () => {
+  it('renders Home component on default route', () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <App />
+      </MemoryRouter>
+    );
+    expect(screen.getByTestId('home-page')).toBeInTheDocument();
+  });
+
+  it('renders GameRoom component on /:roomName/:playerName route', () => {
+    render(
+      <MemoryRouter initialEntries={["/test-room/test-player"]}>
+        <App />
+      </MemoryRouter>
+    );
+    expect(screen.getByTestId('game-room')).toBeInTheDocument();
+  });
 });
