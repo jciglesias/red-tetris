@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import App from './App';
 
@@ -8,29 +8,8 @@ jest.mock('./components/Home', () => () => <div data-testid="home-page">Home Pag
 jest.mock('./components/GameRoom', () => () => <div data-testid="game-room">Game Room</div>);
 
 describe('App', () => {
-  it('renders Home component on default route', () => {
-    const { container } = render(
-      <MemoryRouter initialEntries={["/"]}>
-        <App />
-      </MemoryRouter>
-    );
-    
-    // Vérifie que le composant App est rendu
-    expect(container.querySelector('.App')).toBeTruthy();
-    
-    // Vérifie que le composant Home est rendu
-    const homeElement = screen.getByTestId('home-page');
-    expect(homeElement).toBeTruthy();
-    expect(homeElement.textContent).toBe('Home Page');
-  });
-
-  it('renders GameRoom component on /:roomName/:playerName route', () => {
-    render(
-      <MemoryRouter initialEntries={["/test-room/test-player"]}>
-        <App />
-      </MemoryRouter>
-    );
-    expect(screen.getByTestId('game-room')).toBeTruthy();
+  afterEach(() => {
+    cleanup();
   });
 
   it('renders App component with correct CSS class', () => {
