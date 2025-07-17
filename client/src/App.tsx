@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState }  from 'react';
 import { Routes, Route } from 'react-router-dom';
 import './App.css';
-import Home from './components/Home.tsx';
-import GameRoom from './components/GameRoom.tsx';
+import Home from './components/Home';
+import GameRoom from './components/GameRoom';
+
+
+import { useNavigate } from 'react-router-dom';
 
 const App: React.FC = () => {
   return (
