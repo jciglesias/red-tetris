@@ -9,12 +9,19 @@ jest.mock('./components/GameRoom', () => () => <div data-testid="game-room">Game
 
 describe('App', () => {
   it('renders Home component on default route', () => {
-    render(
+    const { container } = render(
       <MemoryRouter initialEntries={["/"]}>
         <App />
       </MemoryRouter>
     );
-    expect(screen.getByTestId('home-page')).toBeTruthy();
+    
+    // Vérifie que le composant App est rendu
+    expect(container.querySelector('.App')).toBeTruthy();
+    
+    // Vérifie que le composant Home est rendu
+    const homeElement = screen.getByTestId('home-page');
+    expect(homeElement).toBeTruthy();
+    expect(homeElement.textContent).toBe('Home Page');
   });
 
   it('renders GameRoom component on /:roomName/:playerName route', () => {
