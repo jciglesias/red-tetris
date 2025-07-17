@@ -40,6 +40,8 @@ describe('RoomGateway', () => {
             startGame: jest.fn(),
             endGame: jest.fn(),
             resetRoom: jest.fn(),
+            reconnectPlayer: jest.fn(),
+            markPlayerDisconnected: jest.fn(),
           },
         },
         {
@@ -91,12 +93,12 @@ describe('RoomGateway', () => {
         room: { name: 'test-room', gameState: 'waiting', players: new Map() }
       };
       
-      (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(mockPlayerData);
+      (roomService.markPlayerDisconnected as jest.Mock).mockReturnValue(mockPlayerData);
       (roomService.getRoomPlayers as jest.Mock).mockReturnValue([]);
       
       gateway.handleDisconnect(mockClient as Socket);
       
-      expect(roomService.removePlayerFromRoom).toHaveBeenCalledWith('test-room', 'player1');
+      expect(roomService.markPlayerDisconnected).toHaveBeenCalledWith('test-socket-id');
       expect(mockServer.to).toHaveBeenCalledWith('test-room');
       consoleSpy.mockRestore();
     });
@@ -218,7 +220,7 @@ describe('RoomGateway', () => {
     it('should reject start game when conditions not met', () => {
       const mockPlayerData = {
         player: { id: 'player1', isHost: true },
-        room: { name: 'test-room' }
+        room: { name: 'test-room', maxPlayers: 2, players: new Map() }
       };
       
       (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(mockPlayerData);
@@ -227,7 +229,7 @@ describe('RoomGateway', () => {
       gateway.handleStartGame(mockClient as Socket);
       
       expect(mockClient.emit).toHaveBeenCalledWith('error', expect.objectContaining({
-        message: 'Cannot start game. Make sure all players are ready.'
+        message: 'Waiting for more players (0/2)'
       }));
     });
 
@@ -451,24 +453,166 @@ describe('RoomGateway', () => {
     });
   });
 
+  describe('reconnection functionality', () => {
+    it('should handle heartbeat messages', () => {
+      const mockPlayerData = {
+        player: { id: 'player1', lastSeen: new Date(Date.now() - 1000) },
+        room: { name: 'test-room' }
+      };
+      
+      (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(mockPlayerData);
+      
+      gateway.handleHeartbeat(mockClient as Socket);
+      
+      expect(mockClient.emit).toHaveBeenCalledWith('heartbeat-ack');
+      expect(mockPlayerData.player.lastSeen.getTime()).toBeGreaterThan(Date.now() - 100);
+    });
+
+    it('should handle reconnection requests successfully', () => {
+      const mockRoom = { 
+        name: 'test-room', 
+        gameState: 'waiting' as const,
+        players: new Map([
+          ['player1', { 
+            id: 'player1', 
+            name: 'testPlayer', 
+            isConnected: false,
+            reconnectionToken: 'valid-token'
+          }]
+        ])
+      };
+      const mockReconnectedPlayer = { 
+        id: 'player1', 
+        name: 'testPlayer', 
+        isConnected: true 
+      };
+      
+      (roomService.getRoom as jest.Mock).mockReturnValue(mockRoom);
+      (roomService.reconnectPlayer as jest.Mock).mockReturnValue(mockReconnectedPlayer);
+      (roomService.getRoomPlayers as jest.Mock).mockReturnValue([mockReconnectedPlayer]);
+      
+      gateway.handleReconnectionRequest({
+        roomName: 'test-room',
+        playerName: 'testPlayer',
+        reconnectionToken: 'valid-token'
+      }, mockClient as Socket);
+      
+      expect(mockClient.join).toHaveBeenCalledWith('test-room');
+      expect(mockClient.emit).toHaveBeenCalledWith('reconnection-success', expect.objectContaining({
+        player: mockReconnectedPlayer
+      }));
+      expect(mockServer.to).toHaveBeenCalledWith('test-room');
+    });
+
+    it('should handle reconnection request with invalid token', () => {
+      const mockRoom = { 
+        name: 'test-room', 
+        gameState: 'waiting' as const,
+        players: new Map([
+          ['player1', { 
+            id: 'player1', 
+            name: 'testPlayer', 
+            isConnected: false,
+            reconnectionToken: 'valid-token'
+          }]
+        ])
+      };
+      
+      (roomService.getRoom as jest.Mock).mockReturnValue(mockRoom);
+      
+      gateway.handleReconnectionRequest({
+        roomName: 'test-room',
+        playerName: 'testPlayer',
+        reconnectionToken: 'invalid-token'
+      }, mockClient as Socket);
+      
+      expect(mockClient.emit).toHaveBeenCalledWith('reconnection-error', {
+        message: 'Invalid reconnection token'
+      });
+    });
+
+    it('should handle reconnection request for non-existent room', () => {
+      (roomService.getRoom as jest.Mock).mockReturnValue(null);
+      
+      gateway.handleReconnectionRequest({
+        roomName: 'non-existent-room',
+        playerName: 'testPlayer'
+      }, mockClient as Socket);
+      
+      expect(mockClient.emit).toHaveBeenCalledWith('reconnection-error', {
+        message: 'Room not found'
+      });
+    });
+
+    it('should handle disconnection with reconnection data', () => {
+      const mockDisconnectionData = {
+        player: { id: 'player1', name: 'testPlayer' },
+        room: { name: 'test-room', gameState: 'waiting' }
+      };
+      const mockPlayers = [{ id: 'player2', isConnected: true }];
+      
+      (roomService.markPlayerDisconnected as jest.Mock).mockReturnValue(mockDisconnectionData);
+      (roomService.getRoomPlayers as jest.Mock).mockReturnValue(mockPlayers);
+      
+      gateway.handleDisconnect(mockClient as Socket);
+      
+      expect(roomService.markPlayerDisconnected).toHaveBeenCalledWith(mockClient.id);
+      expect(mockServer.to).toHaveBeenCalledWith('test-room');
+      expect(mockServer.emit).toHaveBeenCalledWith('player-disconnected', expect.objectContaining({
+        playerId: 'player1',
+        playerName: 'testPlayer',
+        canReconnect: true
+      }));
+    });
+
+    it('should detect reconnection in join-room handler', () => {
+      const mockPlayer = { 
+        id: 'player1', 
+        name: 'testPlayer', 
+        isConnected: true,
+        reconnectionToken: 'token123'
+      };
+      const mockRoom = { name: 'test-room', gameState: 'playing' };
+      const mockGameState = { gameOver: false };
+      
+      (roomService.addPlayerToRoom as jest.Mock).mockReturnValue(mockPlayer);
+      (roomService.getRoom as jest.Mock).mockReturnValue(mockRoom);
+      (gameService.getGameState as jest.Mock).mockReturnValue(mockGameState);
+      (roomService.getRoomPlayers as jest.Mock).mockReturnValue([mockPlayer]);
+      
+      gateway.handleJoinRoom({
+        roomName: 'test-room',
+        playerName: 'testPlayer',
+        reconnectionToken: 'token123'
+      }, mockClient as Socket);
+      
+      expect(mockClient.emit).toHaveBeenCalledWith('join-room-success', expect.objectContaining({
+        isReconnection: true,
+        gameState: mockGameState
+      }));
+    });
+  });
+
   describe('error handling and edge cases', () => {
     it('should handle disconnection when last player leaves during game', () => {
       const mockRoom = { 
         name: 'test-room', 
         gameState: 'playing' as const, 
-        players: new Map() // Empty after player removal
+        players: new Map() // Empty after player disconnection
       };
       
-      (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue({
+      (roomService.markPlayerDisconnected as jest.Mock).mockReturnValue({
         player: { id: 'player1' },
         room: mockRoom
       });
-      (roomService.removePlayerFromRoom as jest.Mock).mockReturnValue(true);
       (roomService.getRoomPlayers as jest.Mock).mockReturnValue([]);
       
       gateway.handleDisconnect(mockClient as Socket);
       
-      expect(roomService.endGame).toHaveBeenCalledWith('test-room');
+      expect(mockServer.to).toHaveBeenCalledWith('test-room');
+      expect(mockServer.emit).toHaveBeenCalledWith('game-paused', {
+        reason: 'All players disconnected',
+      });
     });
   });
 });

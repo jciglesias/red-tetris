@@ -15,6 +15,7 @@ import { GameService } from '../game/game.service';
 interface JoinRoomMessage {
   roomName: string;
   playerName: string;
+  reconnectionToken?: string;
 }
 
 interface PlayerReadyMessage {
@@ -48,21 +49,29 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleDisconnect(client: Socket) {
     console.log(`Client disconnected: ${client.id}`);
     
-    const playerData = this.roomService.getPlayerBySocketId(client.id);
-    if (playerData) {
-      const { player, room } = playerData;
-      this.roomService.removePlayerFromRoom(room.name, player.id);
+    const disconnectionData = this.roomService.markPlayerDisconnected(client.id);
+    if (disconnectionData) {
+      const { player, room } = disconnectionData;
       
-      // Notify other players in the room
-      this.server.to(room.name).emit('player-left', {
+      // Notify other players that this player disconnected
+      this.server.to(room.name).emit('player-disconnected', {
         playerId: player.id,
         playerName: player.name,
         players: this.roomService.getRoomPlayers(room.name),
+        canReconnect: true,
       });
 
-      // If game was in progress and this was the last player, end game
-      if (room.gameState === 'playing' && room.players.size === 0) {
-        this.roomService.endGame(room.name);
+      // If game was in progress and all players are disconnected, pause the game
+      if (room.gameState === 'playing') {
+        const connectedPlayers = this.roomService.getRoomPlayers(room.name)
+          .filter(p => p.isConnected);
+        
+        if (connectedPlayers.length === 0) {
+          // Pause the game or handle accordingly
+          this.server.to(room.name).emit('game-paused', {
+            reason: 'All players disconnected',
+          });
+        }
       }
     }
   }
@@ -72,7 +81,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: JoinRoomMessage,
     @ConnectedSocket() client: Socket,
   ) {
-    const { roomName, playerName } = data;
+    const { roomName, playerName, reconnectionToken } = data;
     
     if (!roomName || !playerName) {
       client.emit('join-room-error', { message: 'Room name and player name are required' });
@@ -91,18 +100,25 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Join socket room
     client.join(roomName);
     
+    // Get current game state if game is in progress
+    const room = this.roomService.getRoom(roomName);
+    const gameState = room?.gameState === 'playing' ? this.gameService.getGameState(roomName) : null;
+    
     // Send success response to joining player
     client.emit('join-room-success', {
       player,
       room: {
         name: roomName,
         players: this.roomService.getRoomPlayers(roomName),
-        gameState: this.roomService.getRoom(roomName)?.gameState,
+        gameState: room?.gameState,
       },
+      gameState, // Include current game state for reconnections
+      isReconnection: !!reconnectionToken,
     });
 
     // Notify other players in the room
-    client.to(roomName).emit('player-joined', {
+    const eventName = player.isConnected ? 'player-reconnected' : 'player-joined';
+    client.to(roomName).emit(eventName, {
       player,
       players: this.roomService.getRoomPlayers(roomName),
     });
@@ -148,7 +164,20 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     if (!this.roomService.canStartGame(room.name)) {
-      client.emit('error', { message: 'Cannot start game. Make sure all players are ready.' });
+      // Provide specific feedback about why game can't start
+      const connectedPlayers = room.players ? Array.from(room.players.values()).filter(p => p.isConnected) : [];
+      const readyPlayers = connectedPlayers.filter(p => p.isReady);
+      
+      let message = '';
+      if (connectedPlayers.length < room.maxPlayers) {
+        message = `Waiting for more players (${connectedPlayers.length}/${room.maxPlayers})`;
+      } else if (readyPlayers.length < connectedPlayers.length) {
+        message = `Waiting for all players to be ready (${readyPlayers.length}/${connectedPlayers.length} ready)`;
+      } else {
+        message = 'Cannot start game. Unknown reason.';
+      }
+      
+      client.emit('error', { message });
       return;
     }
 
@@ -247,5 +276,80 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
       },
       gameState,
     });
+  }
+
+  @SubscribeMessage('heartbeat')
+  handleHeartbeat(@ConnectedSocket() client: Socket) {
+    const playerData = this.roomService.getPlayerBySocketId(client.id);
+    if (playerData) {
+      const { player } = playerData;
+      player.lastSeen = new Date();
+      client.emit('heartbeat-ack');
+    }
+  }
+
+  @SubscribeMessage('request-reconnection')
+  handleReconnectionRequest(
+    @MessageBody() data: { roomName: string; playerName: string; reconnectionToken?: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const { roomName, playerName, reconnectionToken } = data;
+    
+    if (!roomName || !playerName) {
+      client.emit('reconnection-error', { message: 'Room name and player name are required' });
+      return;
+    }
+
+    // Try to reconnect the player
+    const room = this.roomService.getRoom(roomName);
+    if (!room) {
+      client.emit('reconnection-error', { message: 'Room not found' });
+      return;
+    }
+
+    // Find disconnected player
+    let targetPlayer: Player | null = null;
+    for (const player of room.players.values()) {
+      if (player.name === playerName && !player.isConnected) {
+        // Verify reconnection token if provided
+        if (reconnectionToken && player.reconnectionToken !== reconnectionToken) {
+          client.emit('reconnection-error', { message: 'Invalid reconnection token' });
+          return;
+        }
+        targetPlayer = player;
+        break;
+      }
+    }
+
+    if (!targetPlayer) {
+      client.emit('reconnection-error', { message: 'No disconnected player found with that name' });
+      return;
+    }
+
+    // Reconnect the player
+    const reconnectedPlayer = this.roomService.reconnectPlayer(roomName, targetPlayer.id, client.id);
+    if (reconnectedPlayer) {
+      client.join(roomName);
+      
+      const gameState = room.gameState === 'playing' ? this.gameService.getGameState(roomName) : null;
+      
+      client.emit('reconnection-success', {
+        player: reconnectedPlayer,
+        room: {
+          name: roomName,
+          players: this.roomService.getRoomPlayers(roomName),
+          gameState: room.gameState,
+        },
+        gameState,
+      });
+
+      // Notify other players
+      this.server.to(roomName).emit('player-reconnected', {
+        player: reconnectedPlayer,
+        players: this.roomService.getRoomPlayers(roomName),
+      });
+    } else {
+      client.emit('reconnection-error', { message: 'Failed to reconnect player' });
+    }
   }
 }

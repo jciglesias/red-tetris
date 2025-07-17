@@ -1,10 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GameLoopService } from './game-loop.service';
 import { GameService } from './game.service';
+import { RoomService } from '../room/room.service';
 
 describe('GameLoopService', () => {
   let service: GameLoopService;
   let gameService: GameService;
+  let roomService: RoomService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -17,19 +19,30 @@ describe('GameLoopService', () => {
             tick: jest.fn(),
           },
         },
+        {
+          provide: RoomService,
+          useValue: {
+            cleanupExpiredDisconnections: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<GameLoopService>(GameLoopService);
     gameService = module.get<GameService>(GameService);
+    roomService = module.get<RoomService>(RoomService);
     
     // Clear any existing intervals
-    service.onModuleDestroy();
+    if (service && service.onModuleDestroy) {
+      service.onModuleDestroy();
+    }
   });
 
   afterEach(() => {
     // Clean up intervals
-    service.onModuleDestroy();
+    if (service && service.onModuleDestroy) {
+      service.onModuleDestroy();
+    }
   });
 
   it('should be defined', () => {

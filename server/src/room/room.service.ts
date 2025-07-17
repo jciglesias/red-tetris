@@ -8,6 +8,9 @@ export interface Player {
   socketId: string;
   isHost: boolean;
   isReady: boolean;
+  isConnected: boolean;
+  lastSeen: Date;
+  reconnectionToken?: string;
 }
 
 export interface Room {
@@ -21,6 +24,9 @@ export interface Room {
 @Injectable()
 export class RoomService {
   private rooms: Map<string, Room> = new Map();
+  private playerSocketMap = new Map<string, { playerId: string; roomName: string }>(); // socketId -> player mapping
+  private disconnectedPlayers = new Map<string, { player: Player; roomName: string; disconnectedAt: Date }>(); // playerId -> disconnected player data
+  private readonly RECONNECTION_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
   constructor(
     private gameService: GameService,
@@ -36,7 +42,7 @@ export class RoomService {
       name: roomName,
       players: new Map(),
       gameState: 'waiting',
-      maxPlayers: 8, // Configurable max players
+      maxPlayers: 2, // Configurable max players
     };
 
     this.rooms.set(roomName, room);
@@ -50,14 +56,25 @@ export class RoomService {
   addPlayerToRoom(roomName: string, playerName: string, socketId: string): Player | null {
     const room = this.getRoom(roomName) || this.createRoom(roomName);
     
-    // Check if room is full or game is in progress
-    if (room.players.size >= room.maxPlayers || room.gameState === 'playing') {
+    // Check for reconnection attempt first
+    const reconnectionResult = this.attemptReconnection(roomName, playerName, socketId);
+    if (reconnectionResult) {
+      return reconnectionResult;
+    }
+
+    // Check if room is full or game is in progress (for new players)
+    if (room.players.size >= room.maxPlayers) {
+      return null;
+    }
+
+    // Allow joining during game if it's a reconnection
+    if (room.gameState === 'playing') {
       return null;
     }
 
     // Check if player name already exists in room
     for (const player of room.players.values()) {
-      if (player.name === playerName) {
+      if (player.name === playerName && player.isConnected) {
         return null;
       }
     }
@@ -68,6 +85,9 @@ export class RoomService {
       socketId,
       isHost: room.players.size === 0, // First player becomes host
       isReady: false,
+      isConnected: true,
+      lastSeen: new Date(),
+      reconnectionToken: this.generateReconnectionToken(),
     };
 
     if (player.isHost) {
@@ -75,6 +95,7 @@ export class RoomService {
     }
 
     room.players.set(player.id, player);
+    this.playerSocketMap.set(socketId, { playerId: player.id, roomName });
     return player;
   }
 
@@ -120,8 +141,15 @@ export class RoomService {
       return false;
     }
 
-    // All players must be ready
-    return Array.from(room.players.values()).every(player => player.isReady);
+    // Room must be full
+    if (room.players.size != room.maxPlayers) {
+      return false;
+    }
+
+    // All players must be ready and connected
+    return Array.from(room.players.values()).every(player => 
+      player.isReady && player.isConnected
+    );
   }
 
   startGame(roomName: string): boolean {
@@ -183,18 +211,123 @@ export class RoomService {
     return room ? Array.from(room.players.values()) : [];
   }
 
-  getPlayerBySocketId(socketId: string): { player: Player; room: Room } | null {
-    for (const room of this.rooms.values()) {
-      for (const player of room.players.values()) {
-        if (player.socketId === socketId) {
-          return { player, room };
+  private generateReconnectionToken(): string {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  }
+
+  private attemptReconnection(roomName: string, playerName: string, socketId: string): Player | null {
+    const room = this.getRoom(roomName);
+    if (!room) return null;
+
+    // Check if there's a disconnected player with this name
+    const disconnectedPlayerData = Array.from(this.disconnectedPlayers.entries())
+      .find(([_, data]) => data.roomName === roomName && data.player.name === playerName);
+
+    if (disconnectedPlayerData) {
+      const [playerId, { player, disconnectedAt }] = disconnectedPlayerData;
+      
+      // Check if reconnection timeout hasn't expired
+      if (Date.now() - disconnectedAt.getTime() < this.RECONNECTION_TIMEOUT) {
+        return this.reconnectPlayer(roomName, playerId, socketId);
+      } else {
+        // Cleanup expired disconnection data
+        this.disconnectedPlayers.delete(playerId);
+      }
+    }
+
+    // Check if player is still in room but marked as disconnected
+    for (const [playerId, player] of room.players.entries()) {
+      if (player.name === playerName && !player.isConnected) {
+        return this.reconnectPlayer(roomName, playerId, socketId);
+      }
+    }
+
+    return null;
+  }
+
+  reconnectPlayer(roomName: string, playerId: string, newSocketId: string): Player | null {
+    const room = this.getRoom(roomName);
+    if (!room) return null;
+
+    const player = room.players.get(playerId);
+    if (!player) return null;
+
+    // Update player connection info
+    const oldSocketId = player.socketId;
+    player.socketId = newSocketId;
+    player.isConnected = true;
+    player.lastSeen = new Date();
+
+    // Update socket mappings
+    this.playerSocketMap.delete(oldSocketId);
+    this.playerSocketMap.set(newSocketId, { playerId, roomName });
+
+    // Remove from disconnected players if present
+    this.disconnectedPlayers.delete(playerId);
+
+    return player;
+  }
+
+  markPlayerDisconnected(socketId: string): { player: Player; room: Room } | null {
+    const playerData = this.playerSocketMap.get(socketId);
+    if (!playerData) return null;
+
+    const { playerId, roomName } = playerData;
+    const room = this.getRoom(roomName);
+    const player = room?.players.get(playerId);
+
+    if (!room || !player) return null;
+
+    // Mark player as disconnected but keep in room
+    player.isConnected = false;
+    player.lastSeen = new Date();
+
+    // Store disconnection data for potential reconnection
+    this.disconnectedPlayers.set(playerId, {
+      player: { ...player },
+      roomName,
+      disconnectedAt: new Date(),
+    });
+
+    // Remove socket mapping
+    this.playerSocketMap.delete(socketId);
+
+    return { player, room };
+  }
+
+  // Clean up disconnected players periodically
+  cleanupExpiredDisconnections(): void {
+    const now = Date.now();
+    for (const [playerId, data] of this.disconnectedPlayers.entries()) {
+      if (now - data.disconnectedAt.getTime() > this.RECONNECTION_TIMEOUT) {
+        this.disconnectedPlayers.delete(playerId);
+        
+        // Remove player from room if still there and disconnected
+        const room = this.getRoom(data.roomName);
+        if (room) {
+          const player = room.players.get(playerId);
+          if (player && !player.isConnected) {
+            this.removePlayerFromRoom(data.roomName, playerId);
+          }
         }
       }
     }
-    return null;
   }
 
   getAllRooms(): Room[] {
     return Array.from(this.rooms.values());
+  }
+
+  getPlayerBySocketId(socketId: string): { player: Player; room: Room } | null {
+    const playerData = this.playerSocketMap.get(socketId);
+    if (!playerData) return null;
+
+    const { playerId, roomName } = playerData;
+    const room = this.getRoom(roomName);
+    const player = room?.players.get(playerId);
+
+    if (!room || !player) return null;
+
+    return { player, room };
   }
 }
