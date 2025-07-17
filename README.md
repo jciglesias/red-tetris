@@ -44,12 +44,12 @@ red-tetris/
 
 2. Start development servers:
    ```bash
-   npm start
+   npm run start
    ```
 
 3. Test:
    ```bash
-   npm test
+   npm test -- --coverage
    ```
 
 3. Open your browser to `http://localhost:3000`
