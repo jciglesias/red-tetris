@@ -1,0 +1,9 @@
+import { Module, forwardRef } from '@nestjs/common';
+import { GameService } from './game.service';
+import { GameLoopService } from './game-loop.service';
+
+@Module({
+  providers: [GameService, GameLoopService],
+  exports: [GameService, GameLoopService],
+})
+export class GameModule {}
