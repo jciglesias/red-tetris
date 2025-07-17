@@ -8,7 +8,7 @@ function Home() {
 
   const handleJoinRoom = () => {
     if (roomName.trim() && playerName.trim()) {
-      navigate(`/room/${roomName}?player=${playerName}`);
+      navigate(`/${roomName}/${playerName}`);
     }
   };
 

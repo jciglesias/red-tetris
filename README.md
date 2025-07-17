@@ -79,9 +79,9 @@ red-tetris/
 
 ## URL Format
 
-Join a game: `http://localhost:3000/<room>?player=<player_name>`
+Join a game: `http://localhost:3000/<room>?/<player_name>`
 
-Example: `http://localhost:3000/room1?player=player1`
+Example: `http://localhost:3000/room1/player1`
 
 
 ## Starting scripts

@@ -7,6 +7,7 @@ const socket = io("http://localhost:3001");
 
 function GameRoom() {
   const { roomName } = useParams<{ roomName: string }>();
+  const { playerName } = useParams<{ playerName: string }>();
 
     useEffect(() => {
   
@@ -103,6 +104,7 @@ function GameRoom() {
   return (
     <div className="game-room">
       <h2>Room: {roomName}</h2>
+      <h2>Player: {playerName}</h2>
       <button onClick={joinRoom}>Join Room</button>
       <div className="game-container">
         {/* Game board and other components will go here */}
