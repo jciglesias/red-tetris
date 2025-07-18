@@ -10,6 +10,9 @@ function GameRoom() {
   const { playerName } = useParams<{ playerName: string }>();
   const [playerReady, setPlayerReady] = useState(false);
   const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
+  const [hasStarted, sethasStarted] = useState(false);
+  const [isError, setIsError] = useState(false);
+  const [contentError, setContentError] = useState("");
 
     useEffect(() => {
   
@@ -49,12 +52,19 @@ function GameRoom() {
 
     socket.on('player-ready-changed', (data) => {
       console.log('Player ready changed: ' + JSON.stringify(data, null, 2));
-      setPlayerReady(data.ready);
+      console.log('Player ready check = ' + roomName + "_" + playerName);
+      console.log('Player ready check = ' + data.playerId );
+      if (data.playerId === roomName + "_" + playerName) {
+        setPlayerReady(data.ready);
+        console.log('Player ready changed! ' + data.ready);
+      }      
     });
 
     // Game events
     socket.on('game-started', (data) => {
       console.log('Game started: ' + JSON.stringify(data, null, 2));
+      sethasStarted(true);
+      setIsError(false);
     });
 
     socket.on('game-state-update', (data) => {
@@ -89,6 +99,8 @@ function GameRoom() {
     // Error events
     socket.on('error', (data) => {
       console.log('Error: ' + JSON.stringify(data, null, 2));
+      setIsError(true);
+      setContentError(JSON.stringify(data, null, 2));
     });
 
     return () => {
@@ -108,10 +120,9 @@ function GameRoom() {
 
   function setReady() {
     socket.emit('player-ready', {
-        ready: true
+        ready: !playerReady
     });
     console.log('player-ready');
-    setPlayerReady(true);
   }
 
   function startGame() {
@@ -124,13 +135,27 @@ function GameRoom() {
       <h2>Player: {playerName}</h2>
       <p>Joined: {hasJoinedRoom ? 'Yes' : 'No'}</p>
       <p>Ready: {playerReady ? 'Yes' : 'No'}</p>
-      <button onClick={joinRoom}>Join Room</button>
-      <button onClick={setReady}>set Ready</button>
-      <button onClick={startGame}>start Game</button>
-      <div className="game-container">
-        {/* Game board and other components will go here */}
-        <p>Game room placeholder</p>
-      </div>
+      {!hasJoinedRoom && (
+        <button onClick={joinRoom}>Join Room</button>
+      )}
+      {!playerReady && hasJoinedRoom && (
+        <button onClick={setReady}>set Ready</button>
+      )}
+      {!hasStarted && playerReady && (
+        <button onClick={startGame}>start Game</button>
+      )}
+      {isError && (
+        <div className="error-container">
+          <p>Error :</p>
+          <p>{contentError}</p>
+        </div>
+      )}
+      {hasStarted && (
+        <div className="game-container">
+          {/* Game board and other components will go here */}
+          <p>Game room placeholder</p>
+        </div>
+      )}
     </div>
   );
 };
