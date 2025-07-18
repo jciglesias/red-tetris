@@ -17,6 +17,7 @@ function GameRoom() {
 
   useEffect(() => {
 
+    initializeNextPiece();
     initializeBoard();
   
     socket.on('connect', () => {
@@ -113,6 +114,23 @@ function GameRoom() {
 
   }, []);
 
+  function initializeNextPiece() {
+      const nextPiece = document.getElementById(`nextPiece${playerName}`);
+    if (!nextPiece) {
+      console.error(`initializeNextPiece: element #nextPiece${playerName} not found`);
+      return;
+    }
+    nextPiece.innerHTML = '';
+    for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 4; col++) {
+            const cell = document.createElement('div');
+            cell.className = 'next-cell';
+            cell.id = `next-${playerName}-${row}-${col}`;
+            nextPiece.appendChild(cell);
+        }
+    }
+  }
+
   function initializeBoard() {
     const board = document.getElementById(`tetrisBoard${playerName}`);
     if (!board) {
@@ -176,6 +194,7 @@ function GameRoom() {
       )}
       <div className="game-container">
         <p>Game room placeholder</p>
+        <div id={`nextPiece${playerName}`} className="next-piece"></div>
         <div id={`tetrisBoard${playerName}`} className="tetris-board"></div>
       </div>
     </div>

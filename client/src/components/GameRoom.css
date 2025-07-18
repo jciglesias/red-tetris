@@ -139,7 +139,17 @@
     padding: 5px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
-
+.next-cell {
+    width: 20px;
+    height: 20px;
+    border: 1px solid #444;
+    background-color: #111;
+}
+.next-cell.filled {
+    background: linear-gradient(145deg, #2196F3, #1976D2);
+    border: 1px solid #42A5F5;
+    box-shadow: inset 1px 1px 2px rgba(255,255,255,0.3);
+}
 .tetris-cell.piece-I { background: linear-gradient(145deg, #00BCD4, #0097A7); border-color: #26C6DA; } /* Cyan */
 .tetris-cell.piece-O { background: linear-gradient(145deg, #FFEB3B, #F57F17); border-color: #FFEE58; } /* Yellow */
 .tetris-cell.piece-T { background: linear-gradient(145deg, #9C27B0, #7B1FA2); border-color: #BA68C8; } /* Purple */
