@@ -239,7 +239,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
           this.roomService.endGame(room.name);
           this.server.to(room.name).emit('game-ended', {
             winner: gameState.winner,
-            finalState: gameState,
+            finalState: this.serializeGameState(gameState),
           });
         }
       }
@@ -287,7 +287,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
         gameState: room.gameState,
         players: this.roomService.getRoomPlayers(room.name),
       },
-      gameState,
+      gameState: this.serializeGameState(gameState),
     });
   }
 
@@ -353,7 +353,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
           players: this.roomService.getRoomPlayers(roomName),
           gameState: room.gameState,
         },
-        gameState,
+        gameState: this.serializeGameState(gameState),
       });
 
       // Notify other players

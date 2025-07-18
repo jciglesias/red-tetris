@@ -172,28 +172,30 @@ For production deployments:
 | `game-action` | `{ action: string }` | Send game action | `{ action: "move-left" }` |
 | `restart-game` | `{}` | Restart current game | `{}` |
 | `get-room-info` | `{}` | Get room information | `{}` |
-| `heartbeat` | `{ timestamp: number }` | Send heartbeat | `{ timestamp: 1234567890 }` |
-| `request-reconnection` | `{ reconnectionToken: string }` | Request reconnection | `{ reconnectionToken: "abc123" }` |
+| `heartbeat` | `{}` | Send heartbeat | `{}` |
+| `request-reconnection` | `{ roomName: string, playerName: string, reconnectionToken?: string }` | Request reconnection | `{ roomName: "room1", playerName: "player1", reconnectionToken: "abc123" }` |
 
 #### Server → Client Events
 
 | Event | Data | Description | Example |
 |-------|------|-------------|---------|
-| `join-room-success` | `{ room: string, player: object, gameState?: object, isReconnection: boolean }` | Successfully joined room | See example below |
-| `join-room-error` | `{ message: string, code: string }` | Failed to join room | `{ message: "Room is full", code: "ROOM_FULL" }` |
+| `join-room-success` | `{ player: object, room: object, gameState?: object, isReconnection: boolean }` | Successfully joined room | See example below |
+| `join-room-error` | `{ message: string }` | Failed to join room | `{ message: "Room name and player name are required" }` |
 | `player-joined` | `{ player: object, players: object[] }` | Player joined room | See example below |
 | `player-left` | `{ player: object, players: object[] }` | Player left room | See example below |
-| `player-ready-changed` | `{ playerId: string, ready: boolean }` | Player ready state changed | `{ playerId: "player1", ready: true }` |
-| `game-started` | `gameState: object` | Game started | See GameState structure |
+| `player-disconnected` | `{ playerId: string, playerName: string, players: object[], canReconnect: boolean }` | Player disconnected | `{ playerId: "room1_player1", playerName: "Player 1", players: [...], canReconnect: true }` |
+| `player-ready-changed` | `{ playerId: string, ready: boolean, players: object[], canStart: boolean }` | Player ready state changed | `{ playerId: "room1_player1", ready: true, players: [...], canStart: true }` |
+| `game-started` | `{ gameState: object, players: object[] }` | Game started | See GameState structure |
 | `game-state-update` | `gameState: object` | Game state updated | See GameState structure |
-| `game-ended` | `{ winner: string, scores: object }` | Game ended | `{ winner: "player1", scores: {...} }` |
-| `game-paused` | `{ reason: string }` | Game paused | `{ reason: "player_disconnected" }` |
-| `game-reset` | `{ reason: string }` | Game reset | `{ reason: "player_request" }` |
-| `player-reconnected` | `{ player: object }` | Player reconnected | See example below |
-| `reconnection-success` | `{ player: object, gameState: object }` | Reconnection successful | See example below |
-| `reconnection-error` | `{ message: string, code: string }` | Reconnection failed | `{ message: "Invalid token", code: "INVALID_TOKEN" }` |
+| `game-ended` | `{ winner: string, finalState: object }` | Game ended | `{ winner: "room1_player1", finalState: {...} }` |
+| `game-paused` | `{ reason: string }` | Game paused | `{ reason: "All players disconnected" }` |
+| `game-reset` | `{ players: object[] }` | Game reset | `{ players: [...] }` |
+| `player-reconnected` | `{ player: object, players: object[] }` | Player reconnected | See example below |
+| `room-info` | `{ room: object, gameState?: object }` | Room information response | See example below |
+| `reconnection-success` | `{ player: object, room: object, gameState?: object }` | Reconnection successful | See example below |
+| `reconnection-error` | `{ message: string }` | Reconnection failed | `{ message: "Invalid reconnection token" }` |
 | `heartbeat-ack` | `{}` | Heartbeat acknowledged | `{}` |
-| `error` | `{ message: string, code?: string }` | Error occurred | `{ message: "Invalid action", code: "INVALID_ACTION" }` |
+| `error` | `{ message: string }` | Error occurred | `{ message: "Player not found in any room" }` |
 
 ### Game Actions
 
@@ -210,13 +212,14 @@ For production deployments:
 #### Player Object
 ```typescript
 interface Player {
-  id: string;
+  id: string;           // Format: "roomName_playerName"
   name: string;
-  ready: boolean;
+  socketId: string;
+  isHost: boolean;
+  isReady: boolean;
+  isConnected: boolean;
+  lastSeen: Date;
   reconnectionToken: string;
-  isAlive: boolean;
-  lines: number;
-  penalties: number;
 }
 ```
 
@@ -253,32 +256,51 @@ interface Piece {
 }
 ```
 
-### Error Codes
+### Error Messages
 
-| Code | Description | Action |
-|------|-------------|---------|
-| `ROOM_FULL` | Room has reached maximum capacity | Try different room |
-| `INVALID_NAME` | Player name is invalid or taken | Choose different name |
-| `GAME_IN_PROGRESS` | Cannot join room with active game | Wait for game to end |
-| `INVALID_ACTION` | Game action is not valid | Check game state |
-| `NOT_READY` | Cannot start game, not all players ready | Wait for all players |
-| `INVALID_TOKEN` | Reconnection token is invalid | Rejoin room |
-| `RATE_LIMITED` | Too many requests | Slow down requests |
+| Message | Description | Action |
+|---------|-------------|---------|
+| `"Room name and player name are required"` | Missing required parameters | Provide both room name and player name |
+| `"Could not join room. Room may be full, game in progress, or name taken."` | Cannot join room | Try different room or wait for game to end |
+| `"Player not found in any room"` | Player not connected to any room | Join a room first |
+| `"Only host can start the game"` | Non-host tried to start game | Wait for host to start |
+| `"Waiting for more players (X/Y)"` | Not enough players to start game | Wait for more players to join |
+| `"Waiting for all players to be ready (X/Y ready)"` | Not all players are ready | Wait for all players to mark themselves ready |
+| `"Cannot start game. Unknown reason."` | Game start failed for unknown reason | Contact support |
+| `"Game is not currently in progress"` | Game action sent when game not playing | Wait for game to start |
+| `"Only host can restart the game"` | Non-host tried to restart game | Wait for host to restart |
+| `"Room not found"` | Reconnection to non-existent room | Check room name |
+| `"Invalid reconnection token"` | Wrong reconnection token | Use correct token |
+| `"No disconnected player found with that name"` | No player to reconnect | Check player name |
+| `"Failed to reconnect player"` | Reconnection failed | Try joining room again |
 
 ### Response Examples
 
 #### join-room-success
 ```json
 {
-  "room": "room1",
   "player": {
-    "id": "player1",
+    "id": "room1_player1",
     "name": "Player 1",
-    "ready": false,
-    "reconnectionToken": "abc123def456",
-    "isAlive": true,
-    "lines": 0,
-    "penalties": 0
+    "socketId": "abc123",
+    "isHost": true,
+    "isReady": false,
+    "isConnected": true,
+    "lastSeen": "2025-07-18T12:00:00.000Z",
+    "reconnectionToken": "abc123def456"
+  },
+  "room": {
+    "name": "room1",
+    "players": [
+      {
+        "id": "room1_player1",
+        "name": "Player 1",
+        "isHost": true,
+        "isReady": false,
+        "isConnected": true
+      }
+    ],
+    "gameState": "waiting"
   },
   "gameState": null,
   "isReconnection": false
@@ -289,22 +311,72 @@ interface Piece {
 ```json
 {
   "player": {
-    "id": "player2",
+    "id": "room1_player2",
     "name": "Player 2",
-    "ready": false
+    "socketId": "def456",
+    "isHost": false,
+    "isReady": false,
+    "isConnected": true
   },
   "players": [
     {
-      "id": "player1",
+      "id": "room1_player1",
       "name": "Player 1",
-      "ready": true
+      "isHost": true,
+      "isReady": true,
+      "isConnected": true
     },
     {
-      "id": "player2",
+      "id": "room1_player2",
       "name": "Player 2",
-      "ready": false
+      "isHost": false,
+      "isReady": false,
+      "isConnected": true
     }
   ]
+}
+```
+
+#### room-info
+```json
+{
+  "room": {
+    "name": "room1",
+    "gameState": "playing",
+    "players": [
+      {
+        "id": "room1_player1",
+        "name": "Player 1",
+        "isHost": true,
+        "isReady": true,
+        "isConnected": true
+      }
+    ]
+  },
+  "gameState": {
+    "roomName": "room1",
+    "players": {
+      "room1_player1": {
+        "playerId": "room1_player1",
+        "board": [[0,0,0,0,0,0,0,0,0,0], ...],
+        "currentPiece": {
+          "type": "I",
+          "x": 4,
+          "y": 0,
+          "rotation": 0,
+          "shape": [[1,1,1,1]]
+        },
+        "nextPieces": [...],
+        "spectrum": [0,0,0,0,0,0,0,0,0,0],
+        "lines": 5,
+        "isAlive": true,
+        "penalties": 0
+      }
+    },
+    "gameOver": false,
+    "winner": null,
+    "startTime": 1234567890
+  }
 }
 ```
 
@@ -313,8 +385,8 @@ interface Piece {
 {
   "roomName": "room1",
   "players": {
-    "player1": {
-      "playerId": "player1",
+    "room1_player1": {
+      "playerId": "room1_player1",
       "board": [[0,0,0,0,0,0,0,0,0,0], ...],
       "currentPiece": {
         "type": "I",
@@ -396,15 +468,15 @@ socket.emit('get-room-info');
 #### `heartbeat`
 Send heartbeat to maintain connection.
 ```javascript
-socket.emit('heartbeat', {
-  timestamp: Date.now()
-});
+socket.emit('heartbeat');
 ```
 
 #### `request-reconnection`
 Request reconnection with a token.
 ```javascript
 socket.emit('request-reconnection', {
+  roomName: 'room1',
+  playerName: 'player1',
   reconnectionToken: 'your-token'
 });
 ```
@@ -453,15 +525,17 @@ Fired when a player's ready state changes.
 ```javascript
 socket.on('player-ready-changed', (data) => {
   console.log('Player ready changed:', data.playerId, data.ready);
+  console.log('All players:', data.players);
+  console.log('Can start game:', data.canStart);
 });
 ```
 
 #### `game-started`
 Fired when the game starts.
 ```javascript
-socket.on('game-started', (gameState) => {
-  console.log('Game started with state:', gameState);
-  // gameState contains full game state including all players' boards
+socket.on('game-started', (data) => {
+  console.log('Game started with state:', data.gameState);
+  console.log('Players:', data.players);
 });
 ```
 
@@ -479,7 +553,7 @@ Fired when the game ends.
 ```javascript
 socket.on('game-ended', (data) => {
   console.log('Game ended. Winner:', data.winner);
-  console.log('Final scores:', data.scores);
+  console.log('Final state:', data.finalState);
 });
 ```
 
@@ -495,7 +569,7 @@ socket.on('game-paused', (data) => {
 Fired when the game is reset.
 ```javascript
 socket.on('game-reset', (data) => {
-  console.log('Game reset:', data.reason);
+  console.log('Game reset. Players:', data.players);
 });
 ```
 
@@ -504,6 +578,24 @@ Fired when a player reconnects.
 ```javascript
 socket.on('player-reconnected', (data) => {
   console.log('Player reconnected:', data.player);
+});
+```
+
+#### `room-info`
+Fired in response to `get-room-info` request.
+```javascript
+socket.on('room-info', (data) => {
+  console.log('Room info:', data.room);
+  console.log('Game state:', data.gameState);
+});
+```
+
+#### `player-disconnected`
+Fired when a player disconnects.
+```javascript
+socket.on('player-disconnected', (data) => {
+  console.log('Player disconnected:', data.playerId, data.playerName);
+  console.log('Can reconnect:', data.canReconnect);
 });
 ```
 

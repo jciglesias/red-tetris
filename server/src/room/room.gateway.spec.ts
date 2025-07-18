@@ -438,7 +438,9 @@ describe('RoomGateway', () => {
         room: expect.objectContaining({
           gameState: 'playing'
         }),
-        gameState: mockGameState
+        gameState: expect.objectContaining({
+          gameOver: false
+        })
       }));
     });
 
