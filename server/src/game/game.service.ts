@@ -313,15 +313,17 @@ export class GameService {
     // Update spectrum
     this.updateSpectrum(player);
 
+    // Give next piece
+    game.currentPieceIndex = (game.currentPieceIndex + 1) % game.pieceSequence.length;
+    const nextPiece = { ...game.pieceSequence[game.currentPieceIndex] };
+
     // Check if player topped out
-    if (!this.canSpawnPiece(player)) {
+    if (!this.canSpawnPiece(player, nextPiece)) {
       player.isAlive = false;
       return;
     }
 
-    // Give next piece
-    game.currentPieceIndex = (game.currentPieceIndex + 1) % game.pieceSequence.length;
-    player.currentPiece = { ...game.pieceSequence[game.currentPieceIndex] };
+    player.currentPiece = nextPiece;
     
     // Update next pieces queue
     player.nextPieces.shift();
@@ -381,10 +383,14 @@ export class GameService {
     }
   }
 
-  private canSpawnPiece(player: PlayerGameState): boolean {
-    if (!player.currentPiece) return false;
-    const spawnPiece = { ...player.currentPiece };
-    return this.isValidPosition(player.board, spawnPiece);
+  private canSpawnPiece(player: PlayerGameState, newPiece: Piece): boolean {
+    // Create a test piece at spawn position
+    const testPiece = {
+      ...newPiece,
+      x: Math.floor(this.BOARD_WIDTH / 2) - 1,
+      y: 0
+    };
+    return this.isValidPosition(player.board, testPiece);
   }
 
   private checkGameOver(game: GameState): void {
