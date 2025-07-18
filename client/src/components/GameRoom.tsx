@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import io from "socket.io-client";
+import './GameRoom.css';
 
 
 const socket = io("http://localhost:3001");
@@ -131,19 +132,23 @@ function GameRoom() {
   }
   return (
     <div className="game-room">
-      <h2>Room: {roomName}</h2>
-      <h2>Player: {playerName}</h2>
-      <p>Joined: {hasJoinedRoom ? 'Yes' : 'No'}</p>
-      <p>Ready: {playerReady ? 'Yes' : 'No'}</p>
-      {!hasJoinedRoom && (
-        <button onClick={joinRoom}>Join Room</button>
-      )}
-      {!playerReady && hasJoinedRoom && (
-        <button onClick={setReady}>set Ready</button>
-      )}
-      {!hasStarted && playerReady && (
-        <button onClick={startGame}>start Game</button>
-      )}
+      <div className="room-header">
+        <h2>Room: {roomName}</h2>
+        <h2>Player: {playerName}</h2>
+      </div>
+      <div className="status-panel">
+        <div className="status-indicator">
+          <p>Joined: {hasJoinedRoom ? 'Yes' : 'No'}</p>
+        </div>
+        <div className="status-indicator">
+          <p>Ready: {playerReady ? 'Yes' : 'No'}</p>
+        </div>
+      </div>
+      <div className="button-group">
+        {!hasJoinedRoom && <button onClick={joinRoom}>Join Room</button>}
+        {hasJoinedRoom && !playerReady && <button onClick={setReady}>Set Ready</button>}
+        {playerReady && !hasStarted && <button onClick={startGame}>Start Game</button>}
+      </div>
       {isError && (
         <div className="error-container">
           <p>Error :</p>
