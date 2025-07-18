@@ -71,3 +71,79 @@
   border-top: 1px solid #ccc;
   padding-top: 20px;
 }
+
+.tetris-board {
+    display: grid;
+    grid-template-columns: repeat(10, 25px);
+    grid-template-rows: repeat(20, 25px);
+    gap: 1px;
+    border: 3px solid #333;
+    background-color: #222;
+    margin: 10px 0;
+    padding: 5px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.tetris-cell {
+    width: 25px;
+    height: 25px;
+    border: 1px solid #444;
+    background-color: #111;
+    transition: all 0.1s ease;
+}
+        
+.tetris-cell {
+    width: 25px;
+    height: 25px;
+    border: 1px solid #444;
+    background-color: #111;
+    transition: all 0.1s ease;
+ }
+
+.tetris-cell.filled {
+    background: linear-gradient(145deg, #4CAF50, #45a049);
+    border: 1px solid #66BB6A;
+    box-shadow: inset 1px 1px 2px rgba(255,255,255,0.3);
+}
+.tetris-cell.current {
+    background: linear-gradient(145deg, #FF9800, #F57C00);
+    border: 1px solid #FFB74D;
+    box-shadow: inset 1px 1px 2px rgba(255,255,255,0.3);
+    animation: pulse 0.5s ease-in-out infinite alternate;
+}
+.tetris-cell.ghost {
+    background-color: rgba(255, 152, 0, 0.3);
+    border: 1px dashed #FF9800;
+}
+.tetris-cell.line-clear {
+    background: linear-gradient(45deg, #FFD700, #FFA000);
+    animation: line-clear 0.5s ease-in-out;
+}
+@keyframes pulse {
+    from { opacity: 0.7; }
+    to { opacity: 1; }
+}
+@keyframes line-clear {
+    0% { background: linear-gradient(45deg, #FFD700, #FFA000); }
+    50% { background: linear-gradient(45deg, #FFEB3B, #FF6F00); }
+    100% { background: linear-gradient(45deg, #FFD700, #FFA000); }
+}
+.next-piece {
+    display: grid;
+    grid-template-columns: repeat(4, 20px);
+    grid-template-rows: repeat(4, 20px);
+    gap: 1px;
+    border: 2px solid #333;
+    background-color: #222;
+    margin: 10px 0;
+    padding: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.tetris-cell.piece-I { background: linear-gradient(145deg, #00BCD4, #0097A7); border-color: #26C6DA; } /* Cyan */
+.tetris-cell.piece-O { background: linear-gradient(145deg, #FFEB3B, #F57F17); border-color: #FFEE58; } /* Yellow */
+.tetris-cell.piece-T { background: linear-gradient(145deg, #9C27B0, #7B1FA2); border-color: #BA68C8; } /* Purple */
+.tetris-cell.piece-S { background: linear-gradient(145deg, #4CAF50, #388E3C); border-color: #66BB6A; } /* Green */
+.tetris-cell.piece-Z { background: linear-gradient(145deg, #F44336, #D32F2F); border-color: #EF5350; } /* Red */
+.tetris-cell.piece-J { background: linear-gradient(145deg, #2196F3, #1976D2); border-color: #42A5F5; } /* Blue */
+.tetris-cell.piece-L { background: linear-gradient(145deg, #FF9800, #F57C00); border-color: #FFB74D; } /* Orange */

@@ -15,7 +15,9 @@ function GameRoom() {
   const [isError, setIsError] = useState(false);
   const [contentError, setContentError] = useState("");
 
-    useEffect(() => {
+  useEffect(() => {
+
+    initializeBoard();
   
     socket.on('connect', () => {
       console.log('connect')
@@ -111,6 +113,23 @@ function GameRoom() {
 
   }, []);
 
+  function initializeBoard() {
+    const board = document.getElementById(`tetrisBoard${playerName}`);
+    if (!board) {
+      console.error(`initializeBoard: element #tetrisBoard${playerName} not found`);
+      return;
+    }
+    board.innerHTML = '';
+    for (let row = 0; row < 20; row++) {
+        for (let col = 0; col < 10; col++) {
+            const cell = document.createElement('div');
+            cell.className = 'tetris-cell';
+            cell.id = `cell-${playerName}-${row}-${col}`;
+            board.appendChild(cell);
+        }
+    }
+  }
+
   function joinRoom() {
     socket.emit('join-room', {
         roomName: roomName,
@@ -155,12 +174,10 @@ function GameRoom() {
           <p>{contentError}</p>
         </div>
       )}
-      {hasStarted && (
-        <div className="game-container">
-          {/* Game board and other components will go here */}
-          <p>Game room placeholder</p>
-        </div>
-      )}
+      <div className="game-container">
+        <p>Game room placeholder</p>
+        <div id={`tetrisBoard${playerName}`} className="tetris-board"></div>
+      </div>
     </div>
   );
 };
