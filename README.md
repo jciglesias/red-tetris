@@ -49,6 +49,7 @@ red-tetris/
 
 3. Test:
    ```bash
+   npm test
    npm test -- --coverage
    ```
 

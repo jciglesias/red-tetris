@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import io from "socket.io-client";
 
@@ -8,6 +8,8 @@ const socket = io("http://localhost:3001");
 function GameRoom() {
   const { roomName } = useParams<{ roomName: string }>();
   const { playerName } = useParams<{ playerName: string }>();
+  const [playerReady, setPlayerReady] = useState(false);
+  const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
 
     useEffect(() => {
   
@@ -21,10 +23,12 @@ function GameRoom() {
 
     socket.on('join-room-success', (data) => {
       console.log('Join room success: ' + JSON.stringify(data, null, 2));
+      setHasJoinedRoom(true);
     });
 
     socket.on('join-room-error', (data) => {
       console.log('Join room error: ' + JSON.stringify(data, null, 2));
+      setHasJoinedRoom(false);
     });
 
     socket.on('player-joined', (data) => {
@@ -45,6 +49,7 @@ function GameRoom() {
 
     socket.on('player-ready-changed', (data) => {
       console.log('Player ready changed: ' + JSON.stringify(data, null, 2));
+      setPlayerReady(data.ready);
     });
 
     // Game events
@@ -86,7 +91,7 @@ function GameRoom() {
       console.log('Error: ' + JSON.stringify(data, null, 2));
     });
 
-  return () => {
+    return () => {
       socket.off('connect');
       socket.off('disconnect');
     };
@@ -101,11 +106,27 @@ function GameRoom() {
     console.log('joinRoom')
   }
 
+  function setReady() {
+    socket.emit('player-ready', {
+        ready: true
+    });
+    console.log('player-ready');
+    setPlayerReady(true);
+  }
+
+  function startGame() {
+    socket.emit('start-game');
+    console.log('start-game')
+  }
   return (
     <div className="game-room">
       <h2>Room: {roomName}</h2>
       <h2>Player: {playerName}</h2>
+      <p>Joined: {hasJoinedRoom ? 'Yes' : 'No'}</p>
+      <p>Ready: {playerReady ? 'Yes' : 'No'}</p>
       <button onClick={joinRoom}>Join Room</button>
+      <button onClick={setReady}>set Ready</button>
+      <button onClick={startGame}>start Game</button>
       <div className="game-container">
         {/* Game board and other components will go here */}
         <p>Game room placeholder</p>
