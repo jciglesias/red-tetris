@@ -16,7 +16,7 @@ export interface PlayerGameState {
   spectrum: number[]; // Height of each column for spectrum view
   lines: number; // Lines cleared
   isAlive: boolean;
-  penalties: number; // Pending penalty lines
+  penalties: number;
 }
 
 export interface GameState {
@@ -406,10 +406,22 @@ export class GameService {
 
   private checkGameOver(game: GameState): void {
     const alivePlayers = Array.from(game.players.values()).filter(p => p.isAlive);
+    const totalPlayers = game.players.size;
     
-    if (alivePlayers.length <= 1) {
+    // Game over conditions:
+    // 1. No players alive (everyone lost)
+    // 2. Multiple players started but only one remains (multiplayer victory)
+    // Note: Single player games continue until the player loses
+    
+    if (alivePlayers.length === 0) {
+      // Everyone lost - no winner
       game.gameOver = true;
-      game.winner = alivePlayers.length === 1 ? alivePlayers[0].playerId : null;
+      game.winner = null;
+    } else if (totalPlayers > 1 && alivePlayers.length === 1) {
+      // Multiplayer game with one survivor - they win
+      game.gameOver = true;
+      game.winner = alivePlayers[0].playerId;
     }
+    // Single player games (totalPlayers === 1) continue until player loses
   }
 }

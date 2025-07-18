@@ -220,7 +220,7 @@ describe('RoomGateway', () => {
     it('should reject start game when conditions not met', () => {
       const mockPlayerData = {
         player: { id: 'player1', isHost: true },
-        room: { name: 'test-room', maxPlayers: 2, players: new Map() }
+        room: { name: 'test-room', maxPlayers: 5, players: new Map() }
       };
       
       (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(mockPlayerData);
@@ -229,7 +229,7 @@ describe('RoomGateway', () => {
       gateway.handleStartGame(mockClient as Socket);
       
       expect(mockClient.emit).toHaveBeenCalledWith('error', expect.objectContaining({
-        message: 'Waiting for more players (0/2)'
+        message: 'Waiting for more players (0/5)'
       }));
     });
 

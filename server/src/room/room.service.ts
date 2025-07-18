@@ -42,7 +42,7 @@ export class RoomService {
       name: roomName,
       players: new Map(),
       gameState: 'waiting',
-      maxPlayers: 2, // Configurable max players
+      maxPlayers: 5, // Configurable max players
     };
 
     this.rooms.set(roomName, room);
@@ -141,12 +141,12 @@ export class RoomService {
       return false;
     }
 
-    // Room must be full
-    if (room.players.size != room.maxPlayers) {
+    // At least 1 player must be in the room
+    if (room.players.size < 1) {
       return false;
     }
 
-    // All players must be ready and connected
+    // All players currently in the room must be ready and connected
     return Array.from(room.players.values()).every(player => 
       player.isReady && player.isConnected
     );
