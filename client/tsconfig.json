@@ -22,5 +22,5 @@
   },
   "include": [
     "src"
-  ]
+, "../old/GameRoom.test.old.tsx", "../old/Home.test.old.tsx"  ]
 }

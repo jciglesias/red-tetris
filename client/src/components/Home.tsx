@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const Home: React.FC = () => {
+function Home() {
   const [roomName, setRoomName] = useState('');
   const [playerName, setPlayerName] = useState('');
   const navigate = useNavigate();
 
   const handleJoinRoom = () => {
     if (roomName.trim() && playerName.trim()) {
-      navigate(`/room/${roomName}?player=${playerName}`);
+      navigate(`/${roomName}/${playerName}`);
     }
   };
 

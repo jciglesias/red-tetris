@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Red Tetris Test Client</title>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Red Tetris Test Client</h1>
+    
+    <div>
+        <h3>Connection</h3>
+        <button onclick="connect()">Connect</button>
+        <button onclick="disconnect()">Disconnect</button>
+        <p>Status: <span id="status">Disconnected</span></p>
+    </div>
+
+    <div>
+        <h3>Join Room</h3>
+        <input type="text" id="roomName" placeholder="Room name" value="test-room">
+        <input type="text" id="playerName" placeholder="Player name" value="player1">
+        <button onclick="joinRoom()">Join Room</button>
+    </div>
+
+    <div>
+        <h3>Game Actions</h3>
+        <button onclick="setReady()">Toggle Ready</button>
+        <button onclick="startGame()">Start Game</button>
+        <button onclick="sendAction('move-left')">Move Left</button>
+        <button onclick="sendAction('move-right')">Move Right</button>
+        <button onclick="sendAction('rotate')">Rotate</button>
+        <button onclick="sendAction('soft-drop')">Soft Drop</button>
+        <button onclick="sendAction('hard-drop')">Hard Drop</button>
+    </div>
+
+    <div>
+        <h3>Reconnection</h3>
+        <input type="text" id="reconnectionToken" placeholder="Reconnection token">
+        <button onclick="requestReconnection()">Reconnect</button>
+        <button onclick="sendHeartbeat()">Send Heartbeat</button>
+    </div>
+
+    <div>
+        <h3>Messages</h3>
+        <div id="messages" style="height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px;"></div>
+    </div>
+
+    <script>
+        let socket = null;
+        let isReady = false;
+
+        function connect() {
+            socket = io('http://localhost:3001');
+            
+            socket.on('connect', () => {
+                document.getElementById('status').textContent = 'Connected';
+                addMessage('Connected to server');
+            });
+
+            socket.on('disconnect', () => {
+                document.getElementById('status').textContent = 'Disconnected';
+                addMessage('Disconnected from server');
+            });
+
+            // Room events
+            socket.on('join-room-success', (data) => {
+                addMessage('Join room success: ' + JSON.stringify(data, null, 2));
+            });
+
+            socket.on('join-room-error', (data) => {
+                addMessage('Join room error: ' + JSON.stringify(data, null, 2));
+            });
+
+            socket.on('player-joined', (data) => {
+                addMessage('Player joined: ' + JSON.stringify(data, null, 2));
+            });
+
+            socket.on('player-left', (data) => {
+                addMessage('Player left: ' + JSON.stringify(data, null, 2));
+            });
+
+            socket.on('player-disconnected', (data) => {
+                addMessage('Player disconnected: ' + JSON.stringify(data, null, 2));
+            });
+
+            socket.on('player-reconnected', (data) => {
+                addMessage('Player reconnected: ' + JSON.stringify(data, null, 2));
+            });
+
+            socket.on('player-ready-changed', (data) => {
+                addMessage('Player ready changed: ' + JSON.stringify(data, null, 2));
+            });
+
+            // Game events
+            socket.on('game-started', (data) => {
+                addMessage('Game started: ' + JSON.stringify(data, null, 2));
+            });
+
+            socket.on('game-state-update', (data) => {
+                addMessage('Game state update: ' + JSON.stringify(data, null, 2));
+            });
+
+            socket.on('game-ended', (data) => {
+                addMessage('Game ended: ' + JSON.stringify(data, null, 2));
+            });
+
+            socket.on('game-paused', (data) => {
+                addMessage('Game paused: ' + JSON.stringify(data, null, 2));
+            });
+
+            socket.on('game-reset', (data) => {
+                addMessage('Game reset: ' + JSON.stringify(data, null, 2));
+            });
+
+            // Reconnection events
+            socket.on('reconnection-success', (data) => {
+                addMessage('Reconnection success: ' + JSON.stringify(data, null, 2));
+            });
+
+            socket.on('reconnection-error', (data) => {
+                addMessage('Reconnection error: ' + JSON.stringify(data, null, 2));
+            });
+
+            socket.on('heartbeat-ack', () => {
+                addMessage('Heartbeat acknowledged');
+            });
+
+            // Error events
+            socket.on('error', (data) => {
+                addMessage('Error: ' + JSON.stringify(data, null, 2));
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+        }
+
+        function joinRoom() {
+            if (!socket) {
+                addMessage('Not connected');
+                return;
+            }
+
+            const roomName = document.getElementById('roomName').value;
+            const playerName = document.getElementById('playerName').value;
+
+            socket.emit('join-room', {
+                roomName,
+                playerName
+            });
+        }
+
+        function setReady() {
+            if (!socket) {
+                addMessage('Not connected');
+                return;
+            }
+
+            isReady = !isReady;
+            socket.emit('player-ready', { ready: isReady });
+            addMessage(`Set ready to: ${isReady}`);
+        }
+
+        function startGame() {
+            if (!socket) {
+                addMessage('Not connected');
+                return;
+            }
+
+            socket.emit('start-game');
+        }
+
+        function sendAction(action) {
+            if (!socket) {
+                addMessage('Not connected');
+                return;
+            }
+
+            socket.emit('game-action', { action });
+            addMessage(`Sent action: ${action}`);
+        }
+
+        function requestReconnection() {
+            if (!socket) {
+                addMessage('Not connected');
+                return;
+            }
+
+            const roomName = document.getElementById('roomName').value;
+            const playerName = document.getElementById('playerName').value;
+            const reconnectionToken = document.getElementById('reconnectionToken').value;
+
+            socket.emit('request-reconnection', {
+                roomName,
+                playerName,
+                reconnectionToken: reconnectionToken || undefined
+            });
+        }
+
+        function sendHeartbeat() {
+            if (!socket) {
+                addMessage('Not connected');
+                return;
+            }
+
+            socket.emit('heartbeat');
+        }
+
+        function addMessage(message) {
+            const messagesDiv = document.getElementById('messages');
+            const timestamp = new Date().toLocaleTimeString();
+            messagesDiv.innerHTML += `<div><strong>[${timestamp}]</strong> ${message}</div>`;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>

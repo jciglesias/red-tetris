@@ -19,4 +19,26 @@ describe('AppController', () => {
       expect(appController.getHello()).toBe('Hello World!');
     });
   });
+
+  describe('route handling', () => {
+    it('should handle room/player routes', () => {
+      const mockResponse = {
+        sendFile: jest.fn(),
+      };
+      
+      appController.serveClientApp('test-room', 'test-player', mockResponse as any);
+      
+      expect(mockResponse.sendFile).toHaveBeenCalled();
+    });
+
+    it('should handle fallback routes', () => {
+      const mockResponse = {
+        sendFile: jest.fn(),
+      };
+      
+      appController.serveApp(mockResponse as any);
+      
+      expect(mockResponse.sendFile).toHaveBeenCalled();
+    });
+  });
 });

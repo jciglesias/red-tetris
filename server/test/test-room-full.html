@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Red Tetris - Room Full Test</title>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .player { border: 1px solid #ccc; padding: 10px; margin: 10px; }
+        .error { color: red; }
+        .success { color: green; }
+        .warning { color: orange; }
+        button { margin: 5px; padding: 5px 10px; }
+        #messages { height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; background: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <h1>Red Tetris - Room Full Requirement Test</h1>
+    <p>This test demonstrates that games can only start when the room is full (2/2 players).</p>
+
+    <!-- Player 1 -->
+    <div class="player">
+        <h3>Player 1</h3>
+        <button onclick="connectPlayer1()">Connect Player 1</button>
+        <button onclick="joinRoomPlayer1()">Join Room</button>
+        <button onclick="setReadyPlayer1()">Toggle Ready</button>
+        <button onclick="startGamePlayer1()">Start Game (Host)</button>
+        <p>Status: <span id="status1">Disconnected</span></p>
+        <p>Ready: <span id="ready1">No</span></p>
+    </div>
+
+    <!-- Player 2 -->
+    <div class="player">
+        <h3>Player 2</h3>
+        <button onclick="connectPlayer2()">Connect Player 2</button>
+        <button onclick="joinRoomPlayer2()">Join Room</button>
+        <button onclick="setReadyPlayer2()">Toggle Ready</button>
+        <p>Status: <span id="status2">Disconnected</span></p>
+        <p>Ready: <span id="ready2">No</span></p>
+    </div>
+
+    <div>
+        <h3>Test Scenarios</h3>
+        <button onclick="runTestScenario1()">Test 1: Try to start with 1 player</button>
+        <button onclick="runTestScenario2()">Test 2: Start with 2 ready players</button>
+        <button onclick="runTestScenario3()">Test 3: Try to start with 2 players, 1 not ready</button>
+    </div>
+
+    <div>
+        <h3>Messages</h3>
+        <div id="messages"></div>
+        <button onclick="clearMessages()">Clear Messages</button>
+    </div>
+
+    <script>
+        let socket1 = null;
+        let socket2 = null;
+        let ready1 = false;
+        let ready2 = false;
+
+        function addMessage(message, type = 'info') {
+            const messagesDiv = document.getElementById('messages');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : '';
+            messagesDiv.innerHTML += `<div class="${className}"><strong>[${timestamp}]</strong> ${message}</div>`;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function clearMessages() {
+            document.getElementById('messages').innerHTML = '';
+        }
+
+        // Player 1 Functions
+        function connectPlayer1() {
+            socket1 = io('http://localhost:3001');
+            
+            socket1.on('connect', () => {
+                document.getElementById('status1').textContent = 'Connected';
+                addMessage('Player 1 connected', 'success');
+            });
+
+            socket1.on('disconnect', () => {
+                document.getElementById('status1').textContent = 'Disconnected';
+                addMessage('Player 1 disconnected', 'warning');
+            });
+
+            socket1.on('join-room-success', (data) => {
+                addMessage(`Player 1 joined room: ${JSON.stringify(data.player)}`, 'success');
+            });
+
+            socket1.on('join-room-error', (data) => {
+                addMessage(`Player 1 join error: ${data.message}`, 'error');
+            });
+
+            socket1.on('player-ready-changed', (data) => {
+                addMessage(`Player ready changed: ${data.playerId} ready=${data.ready}, canStart=${data.canStart}`);
+            });
+
+            socket1.on('game-started', (data) => {
+                addMessage('🎮 GAME STARTED! Both players ready and room is full.', 'success');
+            });
+
+            socket1.on('error', (data) => {
+                addMessage(`Player 1 error: ${data.message}`, 'error');
+            });
+        }
+
+        function joinRoomPlayer1() {
+            if (!socket1) {
+                addMessage('Player 1 not connected', 'error');
+                return;
+            }
+            socket1.emit('join-room', { roomName: 'test-room', playerName: 'Player1' });
+        }
+
+        function setReadyPlayer1() {
+            if (!socket1) {
+                addMessage('Player 1 not connected', 'error');
+                return;
+            }
+            ready1 = !ready1;
+            document.getElementById('ready1').textContent = ready1 ? 'Yes' : 'No';
+            socket1.emit('player-ready', { ready: ready1 });
+            addMessage(`Player 1 set ready to: ${ready1}`);
+        }
+
+        function startGamePlayer1() {
+            if (!socket1) {
+                addMessage('Player 1 not connected', 'error');
+                return;
+            }
+            socket1.emit('start-game');
+            addMessage('Player 1 attempted to start game...');
+        }
+
+        // Player 2 Functions
+        function connectPlayer2() {
+            socket2 = io('http://localhost:3001');
+            
+            socket2.on('connect', () => {
+                document.getElementById('status2').textContent = 'Connected';
+                addMessage('Player 2 connected', 'success');
+            });
+
+            socket2.on('disconnect', () => {
+                document.getElementById('status2').textContent = 'Disconnected';
+                addMessage('Player 2 disconnected', 'warning');
+            });
+
+            socket2.on('join-room-success', (data) => {
+                addMessage(`Player 2 joined room: ${JSON.stringify(data.player)}`, 'success');
+            });
+
+            socket2.on('join-room-error', (data) => {
+                addMessage(`Player 2 join error: ${data.message}`, 'error');
+            });
+
+            socket2.on('player-ready-changed', (data) => {
+                addMessage(`Player ready changed: ${data.playerId} ready=${data.ready}, canStart=${data.canStart}`);
+            });
+
+            socket2.on('game-started', (data) => {
+                addMessage('🎮 GAME STARTED! Both players ready and room is full.', 'success');
+            });
+
+            socket2.on('error', (data) => {
+                addMessage(`Player 2 error: ${data.message}`, 'error');
+            });
+        }
+
+        function joinRoomPlayer2() {
+            if (!socket2) {
+                addMessage('Player 2 not connected', 'error');
+                return;
+            }
+            socket2.emit('join-room', { roomName: 'test-room', playerName: 'Player2' });
+        }
+
+        function setReadyPlayer2() {
+            if (!socket2) {
+                addMessage('Player 2 not connected', 'error');
+                return;
+            }
+            ready2 = !ready2;
+            document.getElementById('ready2').textContent = ready2 ? 'Yes' : 'No';
+            socket2.emit('player-ready', { ready: ready2 });
+            addMessage(`Player 2 set ready to: ${ready2}`);
+        }
+
+        // Test Scenarios
+        async function runTestScenario1() {
+            addMessage('=== TEST 1: Try to start with only 1 player ===', 'warning');
+            clearConnections();
+            await sleep(500);
+            
+            // Connect and join player 1 only
+            connectPlayer1();
+            await sleep(500);
+            joinRoomPlayer1();
+            await sleep(500);
+            setReadyPlayer1(); // Make ready
+            await sleep(500);
+            startGamePlayer1(); // Try to start (should fail)
+            
+            addMessage('Expected: Error "Waiting for more players (1/2)"', 'warning');
+        }
+
+        async function runTestScenario2() {
+            addMessage('=== TEST 2: Start with 2 ready players ===', 'warning');
+            clearConnections();
+            await sleep(500);
+            
+            // Connect both players
+            connectPlayer1();
+            connectPlayer2();
+            await sleep(500);
+            
+            // Join room
+            joinRoomPlayer1();
+            await sleep(500);
+            joinRoomPlayer2();
+            await sleep(500);
+            
+            // Set both ready
+            setReadyPlayer1();
+            await sleep(300);
+            setReadyPlayer2();
+            await sleep(500);
+            
+            // Start game (should succeed)
+            startGamePlayer1();
+            
+            addMessage('Expected: Game should start successfully!', 'success');
+        }
+
+        async function runTestScenario3() {
+            addMessage('=== TEST 3: Try to start with 2 players, 1 not ready ===', 'warning');
+            clearConnections();
+            await sleep(500);
+            
+            // Connect both players
+            connectPlayer1();
+            connectPlayer2();
+            await sleep(500);
+            
+            // Join room
+            joinRoomPlayer1();
+            await sleep(500);
+            joinRoomPlayer2();
+            await sleep(500);
+            
+            // Only player 1 ready
+            setReadyPlayer1();
+            await sleep(500);
+            
+            // Try to start (should fail)
+            startGamePlayer1();
+            
+            addMessage('Expected: Error "Waiting for all players to be ready (1/2 ready)"', 'warning');
+        }
+
+        function clearConnections() {
+            if (socket1) socket1.disconnect();
+            if (socket2) socket2.disconnect();
+            socket1 = null;
+            socket2 = null;
+            ready1 = false;
+            ready2 = false;
+            document.getElementById('status1').textContent = 'Disconnected';
+            document.getElementById('status2').textContent = 'Disconnected';
+            document.getElementById('ready1').textContent = 'No';
+            document.getElementById('ready2').textContent = 'No';
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        addMessage('🎯 Room Full Test Ready! Make sure your server is running on localhost:3001');
+        addMessage('👆 Use the test scenario buttons to see the room-full requirement in action.');
+    </script>
+</body>
+</html>
