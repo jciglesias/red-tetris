@@ -57,9 +57,24 @@ describe('GameLoopService', () => {
       spy.mockRestore();
     });
 
+    it('should start cleanup loop on module init', () => {
+      const spy = jest.spyOn(service as any, 'startCleanupLoop');
+      service.onModuleInit();
+      expect(spy).toHaveBeenCalled();
+      spy.mockRestore();
+    });
+
     it('should stop game loop on module destroy', () => {
       service.onModuleInit();
       const spy = jest.spyOn(service as any, 'stopGameLoop');
+      service.onModuleDestroy();
+      expect(spy).toHaveBeenCalled();
+      spy.mockRestore();
+    });
+
+    it('should stop cleanup loop on module destroy', () => {
+      service.onModuleInit();
+      const spy = jest.spyOn(service as any, 'stopCleanupLoop');
       service.onModuleDestroy();
       expect(spy).toHaveBeenCalled();
       spy.mockRestore();
@@ -181,6 +196,79 @@ describe('GameLoopService', () => {
     });
   });
 
+  describe('cleanup functionality', () => {
+    it('should cleanup expired disconnections', () => {
+      // Trigger cleanup manually
+      (service as any).cleanupInactiveGames();
+      
+      expect(roomService.cleanupExpiredDisconnections).toHaveBeenCalled();
+    });
+
+    it('should remove inactive games during cleanup', () => {
+      const room1 = 'active-room';
+      const room2 = 'inactive-room';
+      
+      service.addActiveGame(room1);
+      service.addActiveGame(room2);
+      
+      // Mock one active, one inactive game
+      (gameService.getGameState as jest.Mock)
+        .mockReturnValueOnce({ gameOver: false }) // active room
+        .mockReturnValueOnce({ gameOver: true }); // inactive room
+      
+      // Trigger cleanup manually
+      (service as any).cleanupInactiveGames();
+      
+      expect(roomService.cleanupExpiredDisconnections).toHaveBeenCalled();
+      
+      // Verify that only active game remains by checking tick behavior
+      jest.clearAllMocks();
+      (gameService.getGameState as jest.Mock).mockReturnValue({ gameOver: false });
+      
+      (service as any).tick();
+      
+      // Only the active room should be processed
+      expect(gameService.tick).toHaveBeenCalledWith(room1);
+      expect(gameService.tick).toHaveBeenCalledTimes(1);
+    });
+
+    it('should remove games with null state during cleanup', () => {
+      const room1 = 'valid-room';
+      const room2 = 'null-room';
+      
+      service.addActiveGame(room1);
+      service.addActiveGame(room2);
+      
+      // Mock one valid, one null game state
+      (gameService.getGameState as jest.Mock)
+        .mockReturnValueOnce({ gameOver: false }) // valid room
+        .mockReturnValueOnce(null); // null room
+      
+      // Trigger cleanup manually
+      (service as any).cleanupInactiveGames();
+      
+      expect(roomService.cleanupExpiredDisconnections).toHaveBeenCalled();
+      
+      // Verify that only valid game remains
+      jest.clearAllMocks();
+      (gameService.getGameState as jest.Mock).mockReturnValue({ gameOver: false });
+      
+      (service as any).tick();
+      
+      // Only the valid room should be processed
+      expect(gameService.tick).toHaveBeenCalledWith(room1);
+      expect(gameService.tick).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle cleanup with no active games', () => {
+      // Trigger cleanup with no active games
+      (service as any).cleanupInactiveGames();
+      
+      expect(roomService.cleanupExpiredDisconnections).toHaveBeenCalled();
+      expect(gameService.getGameState).not.toHaveBeenCalled();
+    });
+  });
+
   describe('interval management', () => {
     it('should clear existing interval when stopping', () => {
       service.onModuleInit();
@@ -191,6 +279,17 @@ describe('GameLoopService', () => {
       service.onModuleDestroy();
       
       expect((service as any).intervalId).toBeNull();
+    });
+
+    it('should clear cleanup interval when stopping', () => {
+      service.onModuleInit();
+      
+      const cleanupIntervalId = (service as any).cleanupIntervalId;
+      expect(cleanupIntervalId).toBeDefined();
+      
+      service.onModuleDestroy();
+      
+      expect((service as any).cleanupIntervalId).toBeNull();
     });
 
     it('should clear interval when stopping game loop', () => {
@@ -217,6 +316,19 @@ describe('GameLoopService', () => {
       service.onModuleDestroy();
       
       // clearInterval should not be called since intervalId is null
+      expect(clearIntervalSpy).not.toHaveBeenCalled();
+      
+      clearIntervalSpy.mockRestore();
+    });
+
+    it('should handle stopping cleanup loop when no interval exists', () => {
+      // Don't start cleanup loop first
+      const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
+      
+      // Call stopCleanupLoop directly
+      (service as any).stopCleanupLoop();
+      
+      // clearInterval should not be called since cleanupIntervalId is null
       expect(clearIntervalSpy).not.toHaveBeenCalled();
       
       clearIntervalSpy.mockRestore();

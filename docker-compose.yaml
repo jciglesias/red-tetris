@@ -9,8 +9,8 @@ services:
       - '3001:3001'
     environment:
       - NODE_ENV=production
-    # depends_on:
-    #   - postgres
+    depends_on:
+      - postgres
     networks:
       - default
 
@@ -18,7 +18,11 @@ services:
     image: postgres:latest
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    env_file: "./server/.env"
+    # env_file: "./server/.env"
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=red_tetris
     ports:
       - '5432:5432'
     networks:
