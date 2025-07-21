@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { connectSocket, disconnectSocket, joinRoom, readyPlayer, startGame } from '../store/socketSlice';
+import { connectSocket, disconnectSocket, joinRoom, readyPlayer, startGame, gameAction, getRoomInfo } from '../store/socketSlice';
 import { RootState, AppDispatch } from '../store';
 import './GameRoom.css';
 
@@ -34,6 +34,37 @@ function GameRoom() {
   initializeNextPiece();
   initializeBoards();
 
+
+    useEffect(() => {
+
+    document.addEventListener('keydown', function(event) {
+      switch(event.key) {
+        case 'ArrowLeft':
+            event.preventDefault();
+            dispatch(gameAction({action: 'move-left'}));
+            break;
+        case 'ArrowRight':
+            event.preventDefault();
+            dispatch(gameAction({action: 'move-right'}));
+            break;
+        case 'ArrowUp':
+            event.preventDefault();
+            dispatch(gameAction({action: 'rotate'}));
+            break;
+        case 'ArrowDown':
+            event.preventDefault();
+            dispatch(gameAction({action: 'soft-drop'}));
+            break;
+        case ' ':
+            event.preventDefault();
+            dispatch(gameAction({action: 'hard-drop'}));
+            break;
+      }
+    }); 
+
+  }, []);
+
+
   useEffect(() => {
 
     dispatch(connectSocket({ room: roomName!, playerName: playerName! }));
@@ -48,6 +79,16 @@ function GameRoom() {
     renderBoard();
     //renderSpectrums();
   }, [gamestate]);
+
+  useEffect(() => {
+    if (!started) return;
+    const intervalId = setInterval(() => {
+      //console.log('Requesting room info');
+      dispatch(getRoomInfo());
+    }, 1000);
+    return () => clearInterval(intervalId);
+  }, [started]);
+  
 
 
   function renderSpectrum(gameState: any, boardReference: HTMLDivElement | null, number: number) {
@@ -97,13 +138,11 @@ function GameRoom() {
   }
 
   function renderBoard() {
-    const board = boardRef.current;
-    if (!board) return;
-    // clear cells
-    board.querySelectorAll('.tetris-cell').forEach(c => c.className = 'tetris-cell');
-    
+    // guard against undefined gamestate or players
+    if (!gamestate?.players) return;
+    // guard against missing players map or this player state
     const playerKey = `${roomName}_${playerName}`;
-    const playersMap = (gamestate.players as any) || {};
+    const playersMap = gamestate.players as Record<string, any>;
     const playerState = playersMap[playerKey];
 
      // draw fixed blocks
@@ -186,8 +225,7 @@ function GameRoom() {
     }
     console.log('start-fast-game')
   }
-
-
+    
   function initializeNextPiece() {
     const nextPiece = nextRef.current;
     if (!nextPiece) return;

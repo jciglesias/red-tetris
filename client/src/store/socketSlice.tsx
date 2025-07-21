@@ -45,17 +45,22 @@ export const connectSocket = createAsyncThunk(
     if (socket) {
       socket.disconnect();
     }
+
     socket = io("http://localhost:3001");
+
     socket.on('connect', () => {
       dispatch(onConnect(payload));
     });
+
     socket.on('disconnect', () => {
       dispatch(onDisconnect());
     });
+
     socket.on('join-room-success', (data) => {
       console.log('Join room success: ' + JSON.stringify(data, null, 2));
       dispatch(onJoinRoomSuccess());
     });
+
     socket.on('player-ready-changed', (data) => {
       console.log('Player ready changed: ' + JSON.stringify(data, null, 2));
       if (data.playerId === payload.room + "_" + payload.playerName) {
@@ -63,6 +68,7 @@ export const connectSocket = createAsyncThunk(
         console.log('Player ready changed! ' + data.ready);
       }
     });
+
     socket.on('error', (data) => {
       console.log('Error: ' + JSON.stringify(data, null, 2));
       const message = typeof data === 'object' && data !== null && 'message' in data
@@ -70,6 +76,7 @@ export const connectSocket = createAsyncThunk(
         : String(data);
       dispatch(onError(message));
     });
+
     socket.on('game-started', (data) => {
       console.log('Game started: ' + JSON.stringify(data, null, 2));
       const playersMap = data.gameState.players as Record<string, any>;
@@ -77,6 +84,17 @@ export const connectSocket = createAsyncThunk(
       dispatch(onStartGameSuccess(keys));
       dispatch(onUpdateData(data.gameState));
     });
+
+    socket.on('game-state-update', (data) => {
+      console.log('Game state update: ' + JSON.stringify(data, null, 2));
+      dispatch(onUpdatedData(data));
+    });
+    
+    socket.on('room-info', (data) => {
+      console.log('Room info: ' + JSON.stringify(data, null, 2));
+      dispatch(onUpdateData(data.gameState));
+    });
+
   }
 );
 
@@ -112,6 +130,25 @@ export const startGame = createAsyncThunk<void, { fast: boolean }>(
   }
 );
 
+export const gameAction = createAsyncThunk<void, { action: string }>(
+  'socket/gameAction',
+  async ({ action }) => {
+    if (socket) {
+      socket.emit('game-action', { action });
+    }
+  }
+);
+
+
+export const getRoomInfo = createAsyncThunk(
+  'socket/getRoomInfo',
+  async () => {
+    if (socket) {
+      socket.emit('get-room-info');
+    }
+  }
+);
+
 export const disconnectSocket = createAsyncThunk(
   'socket/disconnect',
   async (_, { dispatch }) => {
@@ -122,7 +159,6 @@ export const disconnectSocket = createAsyncThunk(
     }
   }
 );
-
 
 const socketSlice = createSlice({
   name: 'socket',
@@ -152,6 +188,9 @@ const socketSlice = createSlice({
     onUpdateData(state, action) {
       state.gamestate = action.payload;
     },
+    onUpdatedData(state, action) {
+      state.gamestate = action.payload;
+    },
     onError(state, action) {
       state.isError = true;
       state.contentError = action.payload;
@@ -159,5 +198,5 @@ const socketSlice = createSlice({
   },
 });
 
-export const { onConnect, onDisconnect, onJoinRoomSuccess, onSetReadySuccess, onStartGameSuccess, onUpdateData, onError } = socketSlice.actions;
+export const { onConnect, onDisconnect, onJoinRoomSuccess, onSetReadySuccess, onStartGameSuccess, onUpdateData, onUpdatedData, onError } = socketSlice.actions;
 export default socketSlice.reducer;
