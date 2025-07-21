@@ -197,15 +197,42 @@ For production deployments:
 | `heartbeat-ack` | `{}` | Heartbeat acknowledged | `{}` |
 | `error` | `{ message: string }` | Error occurred | `{ message: "Player not found in any room" }` |
 
-### Game Actions
+### Game Actions (WebSocket)
 
-| Action | Description | When Available |
-|--------|-------------|---------------|
-| `move-left` | Move piece left | During active game |
-| `move-right` | Move piece right | During active game |
-| `rotate` | Rotate piece clockwise | During active game |
-| `soft-drop` | Accelerate piece down | During active game |
-| `hard-drop` | Instantly drop piece | During active game |
+The `game-action` event accepts the following action types:
+
+| Action | Description | When Available | Example |
+|--------|-------------|---------------|---------|
+| `move-left` | Move current piece left | During active game | `{ action: "move-left" }` |
+| `move-right` | Move current piece right | During active game | `{ action: "move-right" }` |
+| `rotate` | Rotate current piece clockwise | During active game | `{ action: "rotate" }` |
+| `soft-drop` | Accelerate piece downward | During active game | `{ action: "soft-drop" }` |
+| `hard-drop` | Instantly drop piece to bottom | During active game | `{ action: "hard-drop" }` |
+
+**Usage:**
+```javascript
+// Send a game action via WebSocket
+socket.emit('game-action', { action: 'move-left' });
+socket.emit('game-action', { action: 'rotate' });
+socket.emit('game-action', { action: 'hard-drop' });
+```
+
+### REST API Endpoints
+
+#### Leaderboard API
+
+| Method | Endpoint | Parameters | Description | Response |
+|--------|----------|------------|-------------|----------|
+| `GET` | `/api/leaderboard/top` | `?limit=10` (optional) | Get top scores | `LeaderboardEntry[]` |
+| `GET` | `/api/leaderboard/player` | `?name=playerName` (required) | Get player's best score | `LeaderboardEntry \| null` |
+| `GET` | `/api/leaderboard/stats` | None | Get all-time statistics | `LeaderboardStats` |
+| `POST` | `/api/leaderboard` | See LeaderboardEntry body | Submit new score | `LeaderboardEntry` |
+
+#### Health Check
+
+| Method | Endpoint | Parameters | Description | Response |
+|--------|----------|------------|-------------|----------|
+| `GET` | `/health` | None | Server and database status | `HealthStatus` |
 
 ### Data Structures
 
@@ -253,6 +280,172 @@ interface Piece {
   y: number;
   rotation: number;
   shape: number[][];
+}
+```
+
+#### GameActionMessage Object (WebSocket)
+```typescript
+interface GameActionMessage {
+  action: 'move-left' | 'move-right' | 'rotate' | 'soft-drop' | 'hard-drop';
+}
+```
+
+#### JoinRoomMessage Object (WebSocket)
+```typescript
+interface JoinRoomMessage {
+  roomName: string;
+  playerName: string;
+  reconnectionToken?: string;
+}
+```
+
+#### PlayerReadyMessage Object (WebSocket)
+```typescript
+interface PlayerReadyMessage {
+  ready: boolean;
+}
+```
+
+#### LeaderboardEntry Object
+```typescript
+interface LeaderboardEntry {
+  id: number;
+  playerName: string;
+  score: number;
+  linesCleared: number;
+  level: number;
+  gameDuration: number; // in milliseconds
+  roomName?: string;
+  createdAt: Date;
+}
+```
+
+#### LeaderboardStats Object
+```typescript
+interface LeaderboardStats {
+  topScore: number;
+  topScorePlayer: string;
+  mostLinesCleared: number;
+  mostLinesClearedPlayer: string;
+  longestGameDuration: number;
+  longestGamePlayer: string;
+  totalGames: number;
+}
+```
+
+#### CreateLeaderboardEntryDto Object
+```typescript
+interface CreateLeaderboardEntryDto {
+  playerName: string;
+  score: number;
+  linesCleared: number;
+  level: number;
+  gameDuration: number; // in milliseconds
+  roomName?: string;    // optional
+}
+```
+
+#### HealthStatus Object
+```typescript
+interface HealthStatus {
+  status: 'ok' | 'error';
+  database: 'connected' | 'disconnected';
+  timestamp: string;
+  totalGames?: number;
+  error?: string;
+}
+```
+
+### REST API Examples
+
+#### Get Top Scores
+```bash
+curl "http://localhost:3001/api/leaderboard/top?limit=5"
+```
+```json
+[
+  {
+    "id": 1,
+    "playerName": "Player1",
+    "score": 15000,
+    "linesCleared": 150,
+    "level": 8,
+    "gameDuration": 600000,
+    "roomName": "room1",
+    "createdAt": "2025-07-21T10:30:00.000Z"
+  }
+]
+```
+
+#### Get Player Best Score
+```bash
+curl "http://localhost:3001/api/leaderboard/player?name=Player1"
+```
+```json
+{
+  "id": 1,
+  "playerName": "Player1",
+  "score": 15000,
+  "linesCleared": 150,
+  "level": 8,
+  "gameDuration": 600000,
+  "roomName": "room1",
+  "createdAt": "2025-07-21T10:30:00.000Z"
+}
+```
+
+#### Get All-Time Statistics
+```bash
+curl "http://localhost:3001/api/leaderboard/stats"
+```
+```json
+{
+  "topScore": 15000,
+  "topScorePlayer": "Player1",
+  "mostLinesCleared": 150,
+  "mostLinesClearedPlayer": "Player1",
+  "longestGameDuration": 600000,
+  "longestGamePlayer": "Player1",
+  "totalGames": 25
+}
+```
+
+#### Submit New Score
+```bash
+curl -X POST "http://localhost:3001/api/leaderboard" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "playerName": "Player2",
+    "score": 12000,
+    "linesCleared": 120,
+    "level": 6,
+    "gameDuration": 480000,
+    "roomName": "room2"
+  }'
+```
+```json
+{
+  "id": 2,
+  "playerName": "Player2",
+  "score": 12000,
+  "linesCleared": 120,
+  "level": 6,
+  "gameDuration": 480000,
+  "roomName": "room2",
+  "createdAt": "2025-07-21T11:00:00.000Z"
+}
+```
+
+#### Health Check
+```bash
+curl "http://localhost:3001/health"
+```
+```json
+{
+  "status": "ok",
+  "database": "connected",
+  "timestamp": "2025-07-21T11:30:00.000Z",
+  "totalGames": 25
 }
 ```
 
@@ -405,6 +598,82 @@ interface Piece {
   "gameOver": false,
   "winner": null,
   "startTime": 1234567890
+}
+```
+
+#### leaderboard-data
+```json
+{
+  "scores": [
+    {
+      "id": 1,
+      "playerName": "ProPlayer",
+      "score": 15000,
+      "linesCleared": 75,
+      "level": 8,
+      "gameDuration": 450000,
+      "roomName": "competitive",
+      "createdAt": "2025-07-21T10:30:00.000Z"
+    },
+    {
+      "id": 2,
+      "playerName": "TetrisLord",
+      "score": 12500,
+      "linesCleared": 62,
+      "level": 6,
+      "gameDuration": 380000,
+      "roomName": "room1",
+      "createdAt": "2025-07-21T09:15:00.000Z"
+    }
+  ]
+}
+```
+
+#### player-stats-data
+```json
+{
+  "playerStats": {
+    "id": 5,
+    "playerName": "player1",
+    "score": 8750,
+    "linesCleared": 43,
+    "level": 4,
+    "gameDuration": 280000,
+    "roomName": "practice",
+    "createdAt": "2025-07-21T08:45:00.000Z"
+  }
+}
+```
+
+#### leaderboard-stats-data
+```json
+{
+  "stats": {
+    "topScore": 15000,
+    "topScorePlayer": "ProPlayer",
+    "mostLinesCleared": 75,
+    "mostLinesClearedPlayer": "ProPlayer",
+    "longestGameDuration": 450000,
+    "longestGamePlayer": "ProPlayer",
+    "totalGames": 125
+  }
+}
+```
+
+#### score-submitted
+```json
+{
+  "success": true,
+  "entry": {
+    "id": 15,
+    "playerName": "newPlayer",
+    "score": 5500,
+    "linesCleared": 28,
+    "level": 3,
+    "gameDuration": 200000,
+    "roomName": "beginners",
+    "createdAt": "2025-07-21T12:00:00.000Z"
+  }
 }
 ```
 
@@ -776,6 +1045,30 @@ class TetrisClient {
 
   sendGameAction(action) {
     this.socket.emit('game-action', { action });
+  }
+
+  // Leaderboard methods
+  getLeaderboard(limit = 10) {
+    this.socket.emit('get-leaderboard', { limit });
+  }
+
+  getPlayerStats(playerName) {
+    this.socket.emit('get-player-stats', { playerName });
+  }
+
+  getLeaderboardStats() {
+    this.socket.emit('get-leaderboard-stats', {});
+  }
+
+  submitScore(playerName, score, linesCleared, level, gameDuration, roomName) {
+    this.socket.emit('submit-score', {
+      playerName,
+      score,
+      linesCleared,
+      level,
+      gameDuration,
+      roomName
+    });
   }
 
   updateGameState(gameState) {
