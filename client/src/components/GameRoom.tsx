@@ -78,8 +78,8 @@ function GameRoom() {
       const key = `${roomName}_${playerName}`;
       const playerState = (data.gameState.players as any)[key];
       renderBoard(playerState);
-      if (data.gameState.nextPieces && data.gameState.nextPieces[0]) {
-        renderNextPiece(data.gameState.nextPieces[0]);
+      if (playerState.nextPieces && playerState.nextPieces[0]) {
+        renderNextPiece(playerState.nextPieces[0]);
       }
     });
 
@@ -147,6 +147,30 @@ function GameRoom() {
     }
   }
 
+  // render next piece
+  function renderNextPiece(nextPiece: any) {
+    if (!nextPiece?.shape || !Array.isArray(nextPiece.shape)) {
+      console.error('renderNextPiece: invalid nextPiece', nextPiece);
+      return;
+    }
+    console.log('Rendering next piece shape:', nextPiece.shape);
+    // Reset grid
+    initializeNextPiece();
+    // Fill cells according to shape
+    for (let row = 0; row < nextPiece.shape.length; row++) {
+      for (let col = 0; col < nextPiece.shape[row].length; col++) {
+        if (nextPiece.shape[row][col]) {
+          const cell = document.getElementById(`next-${playerName}-${row}-${col}`);
+          if (cell) {
+            const pieceType = nextPiece.type;
+            cell.className = `next-cell filled${pieceType ? ' piece-' + pieceType : ''}`;
+            console.log(`Set next piece cell [${row},${col}] to piece-${pieceType}`);
+          }
+        }
+      }
+    }
+  }
+
   function initializeBoard() {
     const board = boardRef.current;
     if (!board) return;
@@ -178,21 +202,6 @@ function GameRoom() {
           }
         });
       });
-    }
-  }
-
-  // render next piece
-  function renderNextPiece(nextPiece: any) {
-    const next = nextRef.current;
-    if (!next) return;
-    next.innerHTML = '';
-    for (let r = 0; r < 4; r++) {
-      for (let c = 0; c < 4; c++) {
-        const cell = document.createElement('div');
-        cell.className = 'next-cell';
-        if (nextPiece.shape[r][c]) cell.className += ' filled';
-        next.appendChild(cell);
-      }
     }
   }
 
