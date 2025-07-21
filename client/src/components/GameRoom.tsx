@@ -299,7 +299,13 @@ function GameRoom() {
   }
 
   function startGame() {
-    socket.emit('start-game');
+    socket.emit('start-game', { fast: false });
+    console.log('start-game')
+  }
+
+
+  function startFastGame() {
+    socket.emit('start-game', { fast: true });
     console.log('start-game')
   }
 
@@ -321,6 +327,7 @@ function GameRoom() {
         {!hasJoinedRoom && <button onClick={joinRoom}>Join Room</button>}
         {hasJoinedRoom && !playerReady && <button onClick={setReady}>Set Ready</button>}
         {playerReady && !hasStarted && <button onClick={startGame}>Start Game</button>}
+        {playerReady && !hasStarted && <button onClick={startFastGame}>Start Fast Game</button>}
       </div>
       {isError && (
         <div className="error-container">
