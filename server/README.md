@@ -269,7 +269,7 @@ interface GameState {
   gameOver: boolean;
   winner: string | null;
   startTime: number;
-  fastMode: boolean; // true for fast mode (pieces fall twice as fast), false for normal mode
+  fastMode: boolean; // true for fast mode (pieces fall 4x faster), false for normal mode
 }
 ```
 
@@ -715,7 +715,7 @@ Start the game (only works if all players are ready). Supports normal and fast m
 // Start normal game
 socket.emit('start-game', { fast: false });
 
-// Start fast game (pieces fall twice as fast)
+// Start fast game (pieces fall 4x faster)
 socket.emit('start-game', { fast: true });
 
 // Default behavior (normal mode)
@@ -813,7 +813,7 @@ Fired when the game starts.
 socket.on('game-started', (data) => {
   console.log('Game started with state:', data.gameState);
   console.log('Players:', data.players);
-  console.log('Fast mode:', data.gameState.fastMode); // true for fast mode, false for normal
+  console.log('Fast mode:', data.gameState.fastMode); // true for fast mode (4x speed), false for normal
 });
 ```
 
