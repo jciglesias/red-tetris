@@ -15,6 +15,10 @@ export interface SocketState {
   started: boolean;
   isError: boolean;
   contentError: string;
+  opponent1: string;
+  opponent2: string;
+  opponent3: string;
+  opponent4: string;
 }
 
 const initialState: SocketState = { 
@@ -23,7 +27,11 @@ const initialState: SocketState = {
   playerReady: false,
   started: false,
   isError: false,
-  contentError: ''
+  contentError: '',
+  opponent1: '',
+  opponent2: '',
+  opponent3: '',
+  opponent4: ''
 };
 
 export const connectSocket = createAsyncThunk(
@@ -59,7 +67,9 @@ export const connectSocket = createAsyncThunk(
     });
     socket.on('game-started', (data) => {
       console.log('Game started: ' + JSON.stringify(data, null, 2));
-      dispatch(onStartGameSuccess());
+      const playersMap = data.gameState.players as Record<string, any>;
+      const keys = Object.keys(playersMap).filter(k => k !== `${payload.room}_${payload.playerName}`);
+      dispatch(onStartGameSuccess(keys));
     });
   }
 );
@@ -124,8 +134,12 @@ const socketSlice = createSlice({
     onSetReadySuccess(state) {
       state.playerReady = true;
     },
-    onStartGameSuccess(state) {
+    onStartGameSuccess(state, action) {
       state.started = true;
+      if (action.payload[0]) state.opponent1 = action.payload[0];
+      if (action.payload[1]) state.opponent2 = action.payload[1];
+      if (action.payload[2]) state.opponent3 = action.payload[2];
+      if (action.payload[3]) state.opponent4 = action.payload[3];
     },
     onError(state, action) {
       state.isError = true;

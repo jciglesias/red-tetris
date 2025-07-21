@@ -15,6 +15,10 @@ function GameRoom() {
   const started = useSelector((state: RootState) => state.socket.started);
   const isError = useSelector((state: RootState) => state.socket.isError);
   const contentError = useSelector((state: RootState) => state.socket.contentError);
+  const opponent1 = useSelector((state: RootState) => state.socket.opponent1);
+  const opponent2 = useSelector((state: RootState) => state.socket.opponent2);
+  const opponent3 = useSelector((state: RootState) => state.socket.opponent3);
+  const opponent4 = useSelector((state: RootState) => state.socket.opponent4);
 
   useEffect(() => {
 
@@ -80,6 +84,20 @@ function GameRoom() {
           <p>{contentError}</p>
         </div>
       )}
+      <div className="game-container">
+        <div className="opponent-column">
+          <p>{opponent1}</p>
+          <div className="tetris-opponent-board" />
+          <p>{opponent3}</p>
+          <div className="tetris-opponent-board" />
+        </div>
+        <div className="opponent-column">
+          <p>{opponent2}</p>
+          <div className="tetris-opponent-board" />
+          <p>{opponent4}</p>
+          <div className="tetris-opponent-board" />
+        </div>
+      </div>
     </div>
   );
 };
