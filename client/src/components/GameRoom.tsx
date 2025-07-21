@@ -41,14 +41,14 @@ function GameRoom() {
 
   function handleStart() {
     if (playerReady) {
-      dispatch(startGame());
+      dispatch(startGame({ fast: false }));
     }
     console.log('start-game')
   }
 
   function handleFastStart() {
     if (playerReady) {
-      dispatch(startGame());
+      dispatch(startGame({ fast: true }));
     }
     console.log('start-fast-game')
   }

@@ -76,13 +76,11 @@ export const readyPlayer = createAsyncThunk(
   }
 );
 
-export const startGame = createAsyncThunk(
+export const startGame = createAsyncThunk<void, { fast: boolean }>(
   'socket/startGame',
-  async () => {
+  async ({ fast }) => {
     if (socket) {
-      socket.emit('start-game', {
-        fast: false
-      });
+      socket.emit('start-game', { fast });
     }
   }
 );
