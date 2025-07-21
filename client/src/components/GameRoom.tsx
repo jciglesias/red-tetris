@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import io from "socket.io-client";
 import './GameRoom.css';
@@ -14,6 +14,8 @@ function GameRoom() {
   const [hasStarted, sethasStarted] = useState(false);
   const [isError, setIsError] = useState(false);
   const [contentError, setContentError] = useState("");
+  const boardRef = useRef<HTMLDivElement>(null);
+  const nextRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
 
@@ -69,10 +71,27 @@ function GameRoom() {
       console.log('Game started: ' + JSON.stringify(data, null, 2));
       sethasStarted(true);
       setIsError(false);
+      initializeBoard();
+      initializeNextPiece();
+      console.log('Game started data : ' + JSON.stringify(data.gameState, null, 2));
+      // Extract this player's state from the serialized gameState object
+      const key = `${roomName}_${playerName}`;
+      const playerState = (data.gameState.players as any)[key];
+      renderBoard(playerState);
+      if (data.gameState.nextPieces && data.gameState.nextPieces[0]) {
+        renderNextPiece(data.gameState.nextPieces[0]);
+      }
     });
 
     socket.on('game-state-update', (data) => {
       console.log('Game state update: ' + JSON.stringify(data, null, 2));
+      // Extract this player's update
+      const updateKey = `${roomName}_${playerName}`;
+      const updatedState = (data.players as any)[updateKey];
+      renderBoard(updatedState);
+      if (updatedState.nextPieces && updatedState.nextPieces[0]) {
+        renderNextPiece(updatedState.nextPieces[0]);
+      }
     });
 
     socket.on('game-ended', (data) => {
@@ -115,11 +134,8 @@ function GameRoom() {
   }, []);
 
   function initializeNextPiece() {
-      const nextPiece = document.getElementById(`nextPiece${playerName}`);
-    if (!nextPiece) {
-      console.error(`initializeNextPiece: element #nextPiece${playerName} not found`);
-      return;
-    }
+    const nextPiece = nextRef.current;
+    if (!nextPiece) return;
     nextPiece.innerHTML = '';
     for (let row = 0; row < 4; row++) {
         for (let col = 0; col < 4; col++) {
@@ -132,19 +148,84 @@ function GameRoom() {
   }
 
   function initializeBoard() {
-    const board = document.getElementById(`tetrisBoard${playerName}`);
-    if (!board) {
-      console.error(`initializeBoard: element #tetrisBoard${playerName} not found`);
-      return;
-    }
+    const board = boardRef.current;
+    if (!board) return;
     board.innerHTML = '';
     for (let row = 0; row < 20; row++) {
-        for (let col = 0; col < 10; col++) {
-            const cell = document.createElement('div');
-            cell.className = 'tetris-cell';
-            cell.id = `cell-${playerName}-${row}-${col}`;
-            board.appendChild(cell);
-        }
+      for (let col = 0; col < 10; col++) {
+        const cell = document.createElement('div');
+        cell.className = 'tetris-cell';
+        cell.id = `cell-${playerName}-${row}-${col}`;
+        board.appendChild(cell);
+      }
+    }
+  }
+
+  // render board state
+  function renderBoard(gameState: any) {
+    console.log('renderBoard');
+    const board = boardRef.current;
+    if (!board) return;
+    // draw current piece
+    if (gameState.currentPiece) {
+      const p = gameState.currentPiece;
+      p.shape.forEach((rowArr: number[], r: number) => {
+        rowArr.forEach((val, c) => {
+          if (val) {
+            const rr = p.y + r, cc = p.x + c;
+            const cell = document.getElementById(`cell-${playerName}-${rr}-${cc}`);
+            if (cell) cell.className = 'tetris-cell current';
+          }
+        });
+      });
+    }
+  }
+
+  // render next piece
+  function renderNextPiece(nextPiece: any) {
+    const next = nextRef.current;
+    if (!next) return;
+    next.innerHTML = '';
+    for (let r = 0; r < 4; r++) {
+      for (let c = 0; c < 4; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'next-cell';
+        if (nextPiece.shape[r][c]) cell.className += ' filled';
+        next.appendChild(cell);
+      }
+    }
+  }
+
+  // render board state
+  function renderBoardsave(gameState: any) {
+    console.log('renderBoard');
+    const board = boardRef.current;
+    if (!board) return;
+    // clear cells
+    board.querySelectorAll('.tetris-cell').forEach(c => c.className = 'tetris-cell');
+    // draw fixed blocks
+    if (gameState.board) {
+      gameState.board.forEach((rowArr: number[], r: number) => {
+        rowArr.forEach((val, c) => {
+          if (val) {
+            const cell = document.getElementById(`cell-${playerName}-${r}-${c}`);
+            if (cell) cell.className = `tetris-cell filled`;
+          }
+        });
+      });
+    }
+    // draw current piece
+    if (gameState.currentPiece) {
+      const p = gameState.currentPiece;
+      p.shape.forEach((rowArr: number[], r: number) => {
+        rowArr.forEach((val, c) => {
+          if (val) {
+            const rr = p.y + r, cc = p.x + c;
+            const cell = document.getElementById(`cell-${playerName}-${rr}-${cc}`);
+            if (cell) cell.className = 'tetris-cell current';
+          }
+        });
+      });
     }
   }
 
@@ -167,6 +248,7 @@ function GameRoom() {
     socket.emit('start-game');
     console.log('start-game')
   }
+
   return (
     <div className="game-room">
       <div className="room-header">
@@ -193,9 +275,8 @@ function GameRoom() {
         </div>
       )}
       <div className="game-container">
-        <p>Game room placeholder</p>
-        <div id={`nextPiece${playerName}`} className="next-piece"></div>
-        <div id={`tetrisBoard${playerName}`} className="tetris-board"></div>
+        <div ref={nextRef} className="next-piece" />
+        <div ref={boardRef} className="tetris-board" />
       </div>
     </div>
   );

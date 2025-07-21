@@ -8,12 +8,10 @@
   font-family: Arial, sans-serif;
   position: relative;
 }
-
 .room-header {
   text-align: center;
   margin-bottom: 20px;
 }
-
 .status-panel {
   position: absolute;
   top: 20px;
@@ -24,7 +22,6 @@
   gap: 10px;
   margin-bottom: 20px;
 }
-
 .status-indicator {
   padding: 4px 8px;
   background: transparent;
@@ -32,18 +29,15 @@
   font-size: 0.9rem;
   color: #555;
 }
-
 .status-indicator p {
   margin: 0;
 }
-
 .button-group {
   display: flex;
   justify-content: center;
   gap: 10px;
   margin-bottom: 20px;
 }
-
 .button-group button {
   padding: 10px 20px;
   border: none;
@@ -53,11 +47,9 @@
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
-
 .button-group button:hover {
   background-color: #115293;
 }
-
 .error-container {
   background-color: #ffe6e6;
   color: #d32f2f;
@@ -65,13 +57,11 @@
   border-radius: 4px;
   margin-bottom: 20px;
 }
-
 .game-container {
   margin-top: 20px;
   border-top: 1px solid #ccc;
   padding-top: 20px;
 }
-
 .tetris-board {
     display: grid;
     grid-template-columns: repeat(10, 25px);
@@ -83,7 +73,6 @@
     padding: 5px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
-
 .tetris-cell {
     width: 25px;
     height: 25px;
@@ -91,7 +80,6 @@
     background-color: #111;
     transition: all 0.1s ease;
 }
-        
 .tetris-cell {
     width: 25px;
     height: 25px;
@@ -99,7 +87,6 @@
     background-color: #111;
     transition: all 0.1s ease;
  }
-
 .tetris-cell.filled {
     background: linear-gradient(145deg, #4CAF50, #45a049);
     border: 1px solid #66BB6A;
