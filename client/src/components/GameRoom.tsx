@@ -124,7 +124,7 @@ function GameRoom() {
       const updatedState = (data.gameState.players as any)?.[key];
       playerStateRef.current = updatedState;
       renderBoard(updatedState);
-      //renderSpectrums(data);
+      renderSpectrums(data);
     });
 
     socket.on('game-ended', (data) => {
@@ -246,7 +246,7 @@ function GameRoom() {
       for (let col = 0; col < 10; col++) {
         const cell = document.createElement('div');
         cell.className = 'tetris-cell';
-        cell.id = `cell-${playerName}-${row}-${col}`;
+        cell.id = `cell-player-${row}-${col}`;
         board.appendChild(cell);
       }
     }
@@ -331,7 +331,7 @@ function GameRoom() {
         for (let col = 0; col < Math.min(gameState.board[row].length, 10); col++) {
           const cellValue = gameState.board[row][col];
           if (cellValue !== 0) {
-            const cell = document.getElementById(`cell-${playerName}-${row}-${col}`);
+            const cell = document.getElementById(`cell-player-${row}-${col}`);
             if (cell) {
               const pieceTypes = ['', 'I', 'O', 'T', 'S', 'Z', 'J', 'L'];
               const pieceType = pieceTypes[cellValue] || '';
@@ -352,7 +352,7 @@ function GameRoom() {
         rowArr.forEach((val, c) => {
           if (val) {
             const rr = p.y + r, cc = p.x + c;
-            const cell = document.getElementById(`cell-${playerName}-${rr}-${cc}`);
+            const cell = document.getElementById(`cell-player-${rr}-${cc}`);
             if (cell) cell.className = 'tetris-cell current';
           }
         });
