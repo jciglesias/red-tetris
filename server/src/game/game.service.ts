@@ -27,6 +27,7 @@ export interface GameState {
   gameOver: boolean;
   winner: string | null;
   startTime: number;
+  fastMode: boolean; // Add fast mode to game state
 }
 
 // Tetris piece definitions following original game rules
@@ -75,7 +76,7 @@ export class GameService {
 
   constructor() {}
 
-  createGame(roomName: string, playerIds: string[]): GameState {
+  createGame(roomName: string, playerIds: string[], fastMode: boolean = false): GameState {
     // Generate a sequence of pieces for the game
     const pieceSequence = this.generatePieceSequence(1000); // Generate 1000 pieces
     
@@ -103,6 +104,7 @@ export class GameService {
       gameOver: false,
       winner: null,
       startTime: Date.now(),
+      fastMode, // Store the fast mode setting in game state
     };
 
     this.games.set(roomName, gameState);
@@ -176,7 +178,7 @@ export class GameService {
   }
 
   // Game tick - called periodically to advance game state
-  tick(roomName: string): boolean {
+  tick(roomName: string, fastMode: boolean = false): boolean {
     const game = this.games.get(roomName);
     if (!game || game.gameOver) {
       return false;
@@ -188,11 +190,17 @@ export class GameService {
     for (const player of game.players.values()) {
       if (!player.isAlive || !player.currentPiece) continue;
 
-      // Try to move piece down
-      if (!this.movePieceDown(player)) {
-        // Piece can't move down, lock it and get next piece
-        this.lockPiece(game, player);
-        gameChanged = true;
+      // In fast mode, move pieces down 2-3 times per tick instead of 1
+      const movesPerTick = fastMode ? 2 : 1;
+      
+      for (let i = 0; i < movesPerTick; i++) {
+        // Try to move piece down
+        if (!this.movePieceDown(player)) {
+          // Piece can't move down, lock it and get next piece
+          this.lockPiece(game, player);
+          gameChanged = true;
+          break; // Break out of the move loop since piece is locked
+        }
       }
     }
 

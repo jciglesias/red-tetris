@@ -92,7 +92,7 @@ describe('GameLoopService', () => {
       // Trigger tick manually
       (service as any).tick();
       
-      expect(gameService.tick).toHaveBeenCalledWith(roomName);
+      expect(gameService.tick).toHaveBeenCalledWith(roomName, false);
     });
 
     it('should remove active game', () => {
@@ -164,8 +164,8 @@ describe('GameLoopService', () => {
       // Trigger tick manually
       (service as any).tick();
       
-      expect(gameService.tick).toHaveBeenCalledWith(room1);
-      expect(gameService.tick).toHaveBeenCalledWith(room2);
+      expect(gameService.tick).toHaveBeenCalledWith(room1, false);
+      expect(gameService.tick).toHaveBeenCalledWith(room2, false);
       expect(gameService.tick).toHaveBeenCalledTimes(2);
     });
 
@@ -191,7 +191,7 @@ describe('GameLoopService', () => {
       // Trigger tick manually
       (service as any).tick();
       
-      expect(gameService.tick).toHaveBeenCalledWith(validRoom);
+      expect(gameService.tick).toHaveBeenCalledWith(validRoom, false);
       expect(gameService.tick).toHaveBeenCalledTimes(1);
     });
   });
@@ -228,7 +228,7 @@ describe('GameLoopService', () => {
       (service as any).tick();
       
       // Only the active room should be processed
-      expect(gameService.tick).toHaveBeenCalledWith(room1);
+      expect(gameService.tick).toHaveBeenCalledWith(room1, false);
       expect(gameService.tick).toHaveBeenCalledTimes(1);
     });
 
@@ -256,7 +256,7 @@ describe('GameLoopService', () => {
       (service as any).tick();
       
       // Only the valid room should be processed
-      expect(gameService.tick).toHaveBeenCalledWith(room1);
+      expect(gameService.tick).toHaveBeenCalledWith(room1, false);
       expect(gameService.tick).toHaveBeenCalledTimes(1);
     });
 

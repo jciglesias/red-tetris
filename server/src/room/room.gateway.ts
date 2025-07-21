@@ -22,6 +22,10 @@ interface PlayerReadyMessage {
   ready: boolean;
 }
 
+interface StartGameMessage {
+  fast?: boolean;
+}
+
 interface GameActionMessage {
   action: 'move-left' | 'move-right' | 'rotate' | 'soft-drop' | 'hard-drop';
 }
@@ -161,7 +165,10 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('start-game')
-  handleStartGame(@ConnectedSocket() client: Socket) {
+  handleStartGame(
+    @MessageBody() data: StartGameMessage,
+    @ConnectedSocket() client: Socket,
+  ) {
     const playerData = this.roomService.getPlayerBySocketId(client.id);
     if (!playerData) {
       client.emit('error', { message: 'Player not found in any room' });
@@ -194,7 +201,11 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    const gameStarted = this.roomService.startGame(room.name);
+    // Extract the fast mode parameter (default to false if not provided)
+    const fastMode = data?.fast || false;
+    console.log(`Starting game in ${fastMode ? 'fast' : 'normal'} mode`);
+
+    const gameStarted = this.roomService.startGame(room.name, fastMode);
     if (gameStarted) {
       // Get initial game state
       const gameState = this.gameService.getGameState(room.name);
@@ -203,6 +214,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server.to(room.name).emit('game-started', {
         gameState: this.serializeGameState(gameState),
         players: this.roomService.getRoomPlayers(room.name),
+        fastMode: fastMode, // Include fast mode info in the response
       });
     }
   }

@@ -168,7 +168,7 @@ For production deployments:
 |-------|------------|-------------|---------|
 | `join-room` | `{ roomName: string, playerName: string, reconnectionToken?: string }` | Join or create a room | `{ roomName: "room1", playerName: "player1" }` |
 | `player-ready` | `{ ready: boolean }` | Toggle ready state | `{ ready: true }` |
-| `start-game` | `{}` | Start the game | `{}` |
+| `start-game` | `{ fast?: boolean }` | Start the game (normal or fast mode) | `{ fast: true }` |
 | `game-action` | `{ action: string }` | Send game action | `{ action: "move-left" }` |
 | `restart-game` | `{}` | Restart current game | `{}` |
 | `get-room-info` | `{}` | Get room information | `{}` |
@@ -269,6 +269,7 @@ interface GameState {
   gameOver: boolean;
   winner: string | null;
   startTime: number;
+  fastMode: boolean; // true for fast mode (pieces fall twice as fast), false for normal mode
 }
 ```
 
@@ -709,8 +710,15 @@ socket.emit('player-ready', {
 ```
 
 #### `start-game`
-Start the game (only works if all players are ready).
+Start the game (only works if all players are ready). Supports normal and fast modes.
 ```javascript
+// Start normal game
+socket.emit('start-game', { fast: false });
+
+// Start fast game (pieces fall twice as fast)
+socket.emit('start-game', { fast: true });
+
+// Default behavior (normal mode)
 socket.emit('start-game');
 ```
 
@@ -805,6 +813,7 @@ Fired when the game starts.
 socket.on('game-started', (data) => {
   console.log('Game started with state:', data.gameState);
   console.log('Players:', data.players);
+  console.log('Fast mode:', data.gameState.fastMode); // true for fast mode, false for normal
 });
 ```
 

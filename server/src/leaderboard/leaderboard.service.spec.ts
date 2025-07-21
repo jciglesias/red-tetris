@@ -162,18 +162,18 @@ describe('LeaderboardService', () => {
       const mostLinesClearedEntry = { id: 2, playerName: 'LinesPlayer', score: 3000, linesCleared: 80, gameDuration: 400 };
       const longestGameEntry = { id: 3, playerName: 'LongestPlayer', score: 2000, linesCleared: 30, gameDuration: 900 };
 
-      mockRepository.findOne
-        .mockResolvedValueOnce(topScoreEntry) // For top score
-        .mockResolvedValueOnce(mostLinesClearedEntry) // For most lines cleared
-        .mockResolvedValueOnce(longestGameEntry); // For longest game
+      mockRepository.find
+        .mockResolvedValueOnce([topScoreEntry]) // For top score
+        .mockResolvedValueOnce([mostLinesClearedEntry]) // For most lines cleared
+        .mockResolvedValueOnce([longestGameEntry]); // For longest game
 
       const result = await service.getAllTimeStats();
 
       expect(mockRepository.count).toHaveBeenCalled();
-      expect(mockRepository.findOne).toHaveBeenCalledTimes(3);
-      expect(mockRepository.findOne).toHaveBeenNthCalledWith(1, { order: { score: 'DESC' } });
-      expect(mockRepository.findOne).toHaveBeenNthCalledWith(2, { order: { linesCleared: 'DESC' } });
-      expect(mockRepository.findOne).toHaveBeenNthCalledWith(3, { order: { gameDuration: 'DESC' } });
+      expect(mockRepository.find).toHaveBeenCalledTimes(3);
+      expect(mockRepository.find).toHaveBeenNthCalledWith(1, { order: { score: 'DESC' }, take: 1 });
+      expect(mockRepository.find).toHaveBeenNthCalledWith(2, { order: { linesCleared: 'DESC' }, take: 1 });
+      expect(mockRepository.find).toHaveBeenNthCalledWith(3, { order: { gameDuration: 'DESC' }, take: 1 });
 
       expect(result).toEqual({
         topScore: 5000,
@@ -188,7 +188,7 @@ describe('LeaderboardService', () => {
 
     it('should handle null entries gracefully', async () => {
       mockRepository.count.mockResolvedValue(1);
-      mockRepository.findOne.mockResolvedValue(null);
+      mockRepository.find.mockResolvedValue([]); // Empty array means no entries found
 
       const result = await service.getAllTimeStats();
 

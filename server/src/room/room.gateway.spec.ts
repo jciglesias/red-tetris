@@ -195,9 +195,9 @@ describe('RoomGateway', () => {
       (gameService.getGameState as jest.Mock).mockReturnValue(mockGameState);
       (roomService.getRoomPlayers as jest.Mock).mockReturnValue(mockPlayers);
       
-      gateway.handleStartGame(mockClient as Socket);
+      gateway.handleStartGame({}, mockClient as Socket);
       
-      expect(roomService.startGame).toHaveBeenCalledWith('test-room');
+      expect(roomService.startGame).toHaveBeenCalledWith('test-room', false);
       expect(mockServer.to).toHaveBeenCalledWith('test-room');
       expect(mockServer.emit).toHaveBeenCalledWith('game-started', expect.any(Object));
     });
@@ -210,7 +210,7 @@ describe('RoomGateway', () => {
       
       (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(mockPlayerData);
       
-      gateway.handleStartGame(mockClient as Socket);
+      gateway.handleStartGame({}, mockClient as Socket);
       
       expect(mockClient.emit).toHaveBeenCalledWith('error', expect.objectContaining({
         message: 'Only host can start the game'
@@ -226,7 +226,7 @@ describe('RoomGateway', () => {
       (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(mockPlayerData);
       (roomService.canStartGame as jest.Mock).mockReturnValue(false);
       
-      gateway.handleStartGame(mockClient as Socket);
+      gateway.handleStartGame({}, mockClient as Socket);
       
       expect(mockClient.emit).toHaveBeenCalledWith('error', expect.objectContaining({
         message: 'Waiting for more players (0/5)'
@@ -236,7 +236,7 @@ describe('RoomGateway', () => {
     it('should handle start-game error when player not found', () => {
       (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(null);
       
-      gateway.handleStartGame(mockClient as Socket);
+      gateway.handleStartGame({}, mockClient as Socket);
       
       expect(mockClient.emit).toHaveBeenCalledWith('error', {
         message: 'Player not found in any room'
@@ -251,7 +251,7 @@ describe('RoomGateway', () => {
       
       (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(mockPlayerData);
       
-      gateway.handleStartGame(mockClient as Socket);
+      gateway.handleStartGame({}, mockClient as Socket);
       
       expect(mockClient.emit).toHaveBeenCalledWith('error', {
         message: 'Only host can start the game'
