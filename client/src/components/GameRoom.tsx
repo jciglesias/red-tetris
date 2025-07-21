@@ -16,6 +16,8 @@ function GameRoom() {
   const [contentError, setContentError] = useState("");
   const boardRef = useRef<HTMLDivElement>(null);
   const nextRef = useRef<HTMLDivElement>(null);
+  // keep last player state for periodic rendering
+  const playerStateRef = useRef<any>(null);
 
   useEffect(() => {
 
@@ -77,6 +79,7 @@ function GameRoom() {
       // Extract this player's state from the serialized gameState object
       const key = `${roomName}_${playerName}`;
       const playerState = (data.gameState.players as any)[key];
+      playerStateRef.current = playerState;
       renderBoard(playerState);
       if (playerState.nextPieces && playerState.nextPieces[0]) {
         renderNextPiece(playerState.nextPieces[0]);
@@ -88,10 +91,28 @@ function GameRoom() {
       // Extract this player's update
       const updateKey = `${roomName}_${playerName}`;
       const updatedState = (data.players as any)[updateKey];
+      playerStateRef.current = updatedState;
       renderBoard(updatedState);
       if (updatedState.nextPieces && updatedState.nextPieces[0]) {
         renderNextPiece(updatedState.nextPieces[0]);
       }
+    });
+
+    socket.on('room-info', (data) => {
+      // Handle room-info safely
+      if (!data || !data.gameState) {
+        console.warn('room-info: missing gameState', data);
+        return;
+      }
+      console.log('Room info:', JSON.stringify(data.gameState, null, 2));
+      const key = `${roomName}_${playerName}`;
+      const updatedState = (data.gameState.players as any)?.[key];
+      if (!updatedState) {
+        console.warn(`room-info: no state for key ${key}`, data.gameState.players);
+        return;
+      }
+      playerStateRef.current = updatedState;
+      renderBoard(updatedState);
     });
 
     socket.on('game-ended', (data) => {
@@ -132,6 +153,16 @@ function GameRoom() {
     };
 
   }, []);
+
+  // call renderBoard every second using the last known state
+  useEffect(() => {
+    if (!hasStarted) return;
+    const intervalId = setInterval(() => {
+      console.log('Requesting room info');
+      socket.emit('get-room-info');
+    }, 1000);
+    return () => clearInterval(intervalId);
+  }, [hasStarted]);
 
   function initializeNextPiece() {
     const nextPiece = nextRef.current;
