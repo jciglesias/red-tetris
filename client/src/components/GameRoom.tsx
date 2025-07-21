@@ -246,6 +246,7 @@ function GameRoom() {
     console.log('renderBoard');
     const board = boardRef.current;
     if (!board) return;
+    board.querySelectorAll('.tetris-cell').forEach(c => c.className = 'tetris-cell');
     // draw current piece
     if (gameState.currentPiece) {
       const p = gameState.currentPiece;
