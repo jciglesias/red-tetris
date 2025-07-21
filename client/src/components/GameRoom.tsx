@@ -77,10 +77,7 @@ function GameRoom() {
     if (!gamestate?.players) return;
     const playersMap = gamestate.players as Record<string, any>;
     const keys = Object.keys(playersMap).filter(k => k !== `${roomName}_${playerName}`);
-    if (keys[0]) {
-      const state1 = playersMap[keys[0]];
-      renderSpectrum(state1, board1Ref.current, 1);
-    }
+    if (keys[0]) renderSpectrum(playersMap[keys[0]], board1Ref.current, 1);
     if (keys[1]) renderSpectrum(playersMap[keys[1]], board2Ref.current, 2);
     if (keys[2]) renderSpectrum(playersMap[keys[2]], board3Ref.current, 3);
     if (keys[3]) renderSpectrum(playersMap[keys[3]], board4Ref.current, 4);
@@ -125,10 +122,12 @@ function GameRoom() {
       });
     });
 
+    const nextPiece = nextRef.current;
+    if (!nextPiece) return;
+    nextPiece.querySelectorAll('.next-cell').forEach(c => c.className = 'next-cell');
 
     if (!playerState?.nextPieces?.[0]) return;
     const np = playerState.nextPieces[0];
-    initializeNextPiece();
     for (let row = 0; row < np.shape.length; row++) {
       for (let col = 0; col < np.shape[row].length; col++) {
         if (np.shape[row][col]) {
