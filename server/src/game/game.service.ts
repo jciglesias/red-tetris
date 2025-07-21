@@ -16,14 +16,14 @@ export interface PlayerGameState {
   spectrum: number[]; // Height of each column for spectrum view
   lines: number; // Lines cleared
   isAlive: boolean;
-  penalties: number; // Pending penalty lines
+  penalties: number;
+  pieceIndex: number; // Individual piece index for this player
 }
 
 export interface GameState {
   roomName: string;
   players: Map<string, PlayerGameState>;
   pieceSequence: Piece[];
-  currentPieceIndex: number;
   gameOver: boolean;
   winner: string | null;
   startTime: number;
@@ -92,6 +92,7 @@ export class GameService {
         lines: 0,
         isAlive: true,
         penalties: 0,
+        pieceIndex: 0, // Each player starts at the beginning of the sequence
       });
     });
 
@@ -99,7 +100,6 @@ export class GameService {
       roomName,
       players,
       pieceSequence,
-      currentPieceIndex: 0,
       gameOver: false,
       winner: null,
       startTime: Date.now(),
@@ -230,13 +230,13 @@ export class GameService {
 
   private initializePlayerPieces(game: GameState): void {
     for (const player of game.players.values()) {
-      // Give current piece
-      player.currentPiece = { ...game.pieceSequence[game.currentPieceIndex] };
+      // Give current piece from player's individual piece index
+      player.currentPiece = { ...game.pieceSequence[player.pieceIndex] };
       
       // Give next pieces
       player.nextPieces = [];
       for (let i = 1; i <= this.PIECES_AHEAD; i++) {
-        const pieceIndex = (game.currentPieceIndex + i) % game.pieceSequence.length;
+        const pieceIndex = (player.pieceIndex + i) % game.pieceSequence.length;
         player.nextPieces.push({ ...game.pieceSequence[pieceIndex] });
       }
     }
@@ -313,9 +313,9 @@ export class GameService {
     // Update spectrum
     this.updateSpectrum(player);
 
-    // Give next piece
-    game.currentPieceIndex = (game.currentPieceIndex + 1) % game.pieceSequence.length;
-    const nextPiece = { ...game.pieceSequence[game.currentPieceIndex] };
+    // Give next piece from this player's individual sequence
+    player.pieceIndex = (player.pieceIndex + 1) % game.pieceSequence.length;
+    const nextPiece = { ...game.pieceSequence[player.pieceIndex] };
 
     // Check if player topped out
     if (!this.canSpawnPiece(player, nextPiece)) {
@@ -327,7 +327,7 @@ export class GameService {
     
     // Update next pieces queue
     player.nextPieces.shift();
-    const nextPieceIndex = (game.currentPieceIndex + this.PIECES_AHEAD) % game.pieceSequence.length;
+    const nextPieceIndex = (player.pieceIndex + this.PIECES_AHEAD) % game.pieceSequence.length;
     player.nextPieces.push({ ...game.pieceSequence[nextPieceIndex] });
   }
 
@@ -406,10 +406,22 @@ export class GameService {
 
   private checkGameOver(game: GameState): void {
     const alivePlayers = Array.from(game.players.values()).filter(p => p.isAlive);
+    const totalPlayers = game.players.size;
     
-    if (alivePlayers.length <= 1) {
+    // Game over conditions:
+    // 1. No players alive (everyone lost)
+    // 2. Multiple players started but only one remains (multiplayer victory)
+    // Note: Single player games continue until the player loses
+    
+    if (alivePlayers.length === 0) {
+      // Everyone lost - no winner
       game.gameOver = true;
-      game.winner = alivePlayers.length === 1 ? alivePlayers[0].playerId : null;
+      game.winner = null;
+    } else if (totalPlayers > 1 && alivePlayers.length === 1) {
+      // Multiplayer game with one survivor - they win
+      game.gameOver = true;
+      game.winner = alivePlayers[0].playerId;
     }
+    // Single player games (totalPlayers === 1) continue until player loses
   }
 }

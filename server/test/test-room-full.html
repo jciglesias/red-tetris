@@ -14,8 +14,8 @@
     </style>
 </head>
 <body>
-    <h1>Red Tetris - Room Full Requirement Test</h1>
-    <p>This test demonstrates that games can only start when the room is full (2/2 players).</p>
+    <h1>Red Tetris - Player Ready Test</h1>
+    <p>This test demonstrates that games can start when all current players are ready (even with just 1 player).</p>
 
     <!-- Player 1 -->
     <div class="player">
@@ -96,7 +96,7 @@
             });
 
             socket1.on('game-started', (data) => {
-                addMessage('🎮 GAME STARTED! Both players ready and room is full.', 'success');
+                addMessage('🎮 GAME STARTED! All players ready.', 'success');
             });
 
             socket1.on('error', (data) => {
@@ -159,7 +159,7 @@
             });
 
             socket2.on('game-started', (data) => {
-                addMessage('🎮 GAME STARTED! Both players ready and room is full.', 'success');
+                addMessage('🎮 GAME STARTED! All players ready.', 'success');
             });
 
             socket2.on('error', (data) => {
