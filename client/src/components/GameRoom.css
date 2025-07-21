@@ -58,9 +58,7 @@
   margin-bottom: 20px;
 }
 .game-container {
-  margin-top: 20px;
   border-top: 1px solid #ccc;
-  padding-top: 20px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -77,7 +75,7 @@
 }
 .opponent-column
 {
-  margin: 100px;
+  margin: 50px 100px;
 }
 .tetris-board {
     display: grid;

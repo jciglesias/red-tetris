@@ -21,9 +21,14 @@ function GameRoom() {
   const board3Ref = useRef<HTMLDivElement>(null);
   const board4Ref = useRef<HTMLDivElement>(null);
   const playerStateRef = useRef<any>(null);
+  // state for opponent display names
+  const [player1Ref, setPlayer1Ref] = useState<string>("");
+  const [player2Ref, setPlayer2Ref] = useState<string>("");
+  const [player3Ref, setPlayer3Ref] = useState<string>("");
+  const [player4Ref, setPlayer4Ref] = useState<string>("");
 
   useEffect(() => {
-
+    // set opponent name example
     initializeNextPiece();
     initializeBoards();
   
@@ -76,8 +81,14 @@ function GameRoom() {
       console.log('Game started: ' + JSON.stringify(data, null, 2));
       sethasStarted(true);
       setIsError(false);
+      // Set opponent names from data.gameState.players
+      const playersMap = data.gameState.players as Record<string, any>;
+      const keys = Object.keys(playersMap).filter(k => k !== `${roomName}_${playerName}`);
+      setPlayer1Ref(keys[0] ? keys[0].split('_')[1] : '');
+      setPlayer2Ref(keys[1] ? keys[1].split('_')[1] : '');
+      setPlayer3Ref(keys[2] ? keys[2].split('_')[1] : '');
+      setPlayer4Ref(keys[3] ? keys[3].split('_')[1] : '');
       console.log('Game started data : ' + JSON.stringify(data.gameState, null, 2));
-      // Extract this player's state from the serialized gameState object
       const key = `${roomName}_${playerName}`;
       const playerState = (data.gameState.players as any)[key];
       playerStateRef.current = playerState;
@@ -88,8 +99,7 @@ function GameRoom() {
     });
 
     socket.on('game-state-update', (data) => {
-      console.log('Game state update: ' + JSON.stringify(data, null, 2));
-      // Extract this player's update
+      //console.log('Game state update: ' + JSON.stringify(data, null, 2));
       const updateKey = `${roomName}_${playerName}`;
       const updatedState = (data.players as any)[updateKey];
       playerStateRef.current = updatedState;
@@ -105,7 +115,7 @@ function GameRoom() {
         console.warn('room-info: missing gameState', data);
         return;
       }
-      console.log('Room info:', JSON.stringify(data.gameState, null, 2));
+      //console.log('Room info:', JSON.stringify(data.gameState, null, 2));
       const key = `${roomName}_${playerName}`;
       const updatedState = (data.gameState.players as any)?.[key];
       if (!updatedState) {
@@ -220,7 +230,7 @@ function GameRoom() {
           if (cell) {
             const pieceType = nextPiece.type;
             cell.className = `next-cell filled${pieceType ? ' piece-' + pieceType : ''}`;
-            console.log(`Set next piece cell [${row},${col}] to piece-${pieceType}`);
+            //console.log(`Set next piece cell [${row},${col}] to piece-${pieceType}`);
           }
         }
       }
@@ -359,7 +369,9 @@ function GameRoom() {
       )}
       <div className="game-container">
         <div className="opponent-column">
+          <p>{player1Ref}</p>
           <div ref={board1Ref} className="tetris-opponent-board" />
+          <p>{player3Ref}</p>
           <div ref={board3Ref} className="tetris-opponent-board" />
         </div>
         <div className='player-container'>
@@ -367,7 +379,9 @@ function GameRoom() {
           <div ref={boardRef} className="tetris-board" />
         </div>
         <div className="opponent-column">
+          <p>{player2Ref}</p>
           <div ref={board2Ref} className="tetris-opponent-board" />
+          <p>{player4Ref}</p>
           <div ref={board4Ref} className="tetris-opponent-board" />
         </div>
       </div>
