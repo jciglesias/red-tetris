@@ -1,18 +1,15 @@
-import React, { useState }  from 'react';
+import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import './App.css';
 import Home from './components/Home';
 import GameRoom from './components/GameRoom';
 
-
-import { useNavigate } from 'react-router-dom';
-
-const App: React.FC = () => {
+function App() {
   return (
     <div className="App">
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/room/:roomName" element={<GameRoom />} />
+        <Route path="/:roomName/:playerName" element={<GameRoom />} />
       </Routes>
     </div>
   );

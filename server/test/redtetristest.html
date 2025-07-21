@@ -772,6 +772,7 @@
 
             // Toggle the ready state and send to server
             const newReadyState = !playersReady[playerId];
+            console.log()
             sockets[playerId].emit('player-ready', { ready: newReadyState });
             addMessage(`Player ${playerId} sent ready toggle event: ${newReadyState}`);
         }
