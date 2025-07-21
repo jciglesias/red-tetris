@@ -77,7 +77,7 @@ function GameRoom() {
 
   useEffect(() => {
     renderBoard();
-    //renderSpectrums();
+    renderSpectrums();
   }, [gamestate]);
 
   useEffect(() => {
@@ -90,8 +90,7 @@ function GameRoom() {
   }, [started]);
   
 
-
-  function renderSpectrum(gameState: any, boardReference: HTMLDivElement | null, number: number) {
+  function renderSpectrum(opponentState: any, boardReference: HTMLDivElement | null, number: number) {
     const board = boardReference;
     if (!board) return;
     // Clear previous spectrum
@@ -99,7 +98,7 @@ function GameRoom() {
     // Render new spectrum
     //console.log('Rendering spectrum:', JSON.stringify(gameState.spectrum, null, 2));
     for (let col = 0; col < 10; col++) {
-        for (let row = 0; row < gameState.spectrum[col]; row++) {
+        for (let row = 0; row < opponentState.spectrum[col]; row++) {
           const cell = document.getElementById(`cell-${number}-${19 - row}-${col}`);
           if (cell) {
             cell.className = 'tetris-opponent-cell filled';
@@ -109,6 +108,8 @@ function GameRoom() {
   }
 
   function renderSpectrums() {
+    // guard against undefined/null players map
+    if (!gamestate?.players) return;
     const playersMap = gamestate.players as Record<string, any>;
     const keys = Object.keys(playersMap).filter(k => k !== `${roomName}_${playerName}`);
     if (keys[0]) {
