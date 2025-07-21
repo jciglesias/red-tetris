@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { connectSocket, disconnectSocket, joinRoom, readyPlayer, startGame } from '../store/socketSlice';
@@ -19,17 +19,48 @@ function GameRoom() {
   const opponent2 = useSelector((state: RootState) => state.socket.opponent2);
   const opponent3 = useSelector((state: RootState) => state.socket.opponent3);
   const opponent4 = useSelector((state: RootState) => state.socket.opponent4);
+  const gamestate = useSelector((state: RootState) => state.socket.gamestate);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const nextRef = useRef<HTMLDivElement>(null);
+  const board1Ref = useRef<HTMLDivElement>(null);
+  const board2Ref = useRef<HTMLDivElement>(null);
+  const board3Ref = useRef<HTMLDivElement>(null);
+  const board4Ref = useRef<HTMLDivElement>(null);
+
+  initializeNextPiece();
+  initializeBoards();
 
   useEffect(() => {
 
     dispatch(connectSocket({ room: roomName!, playerName: playerName! }));
-    
     return () => {
       dispatch(disconnectSocket());
     };
 
   }, [roomName, playerName, dispatch]);
 
+
+  useEffect(() => {
+    renderBoard();
+  }, [gamestate]);
+
+  function renderBoard() {
+    // guard against missing players map or this player state
+    const playerKey = `${roomName}_${playerName}`;
+    const playersMap = (gamestate.players as any) || {};
+    const playerState = playersMap[playerKey];
+    if (!playerState?.currentPiece?.shape) return;
+    const p = playerState.currentPiece;
+    p.shape.forEach((rowArr: number[], r: number) => {
+      rowArr.forEach((val, c) => {
+        if (val) {
+          const rr = p.y + r, cc = p.x + c;
+          const cell = document.getElementById(`cell-player-${rr}-${cc}`);
+          if (cell) cell.className = 'tetris-cell current';
+        }
+      });
+    });
+  }
 
   function handleJoin() {
     if (roomName && playerName) {
@@ -59,15 +90,66 @@ function GameRoom() {
     console.log('start-fast-game')
   }
 
+
+  function initializeNextPiece() {
+    const nextPiece = nextRef.current;
+    if (!nextPiece) return;
+    nextPiece.innerHTML = '';
+    for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 4; col++) {
+            const cell = document.createElement('div');
+            cell.className = 'next-cell';
+            cell.id = `next-${playerName}-${row}-${col}`;
+            nextPiece.appendChild(cell);
+        }
+    }
+  }
+
+    function initializePlayerBoard(ref: HTMLDivElement | null) {
+    const board = ref;
+    if (!board) return;
+    board.innerHTML = '';
+    for (let row = 0; row < 20; row++) {
+      for (let col = 0; col < 10; col++) {
+        const cell = document.createElement('div');
+        cell.className = 'tetris-cell';
+        cell.id = `cell-player-${row}-${col}`;
+        board.appendChild(cell);
+      }
+    }
+  }
+
+  function initializeOpponentBoard(ref: HTMLDivElement | null, number: number = 1) {
+    const board = ref;
+    if (!board) return;
+    board.innerHTML = '';
+    for (let row = 0; row < 20; row++) {
+      for (let col = 0; col < 10; col++) {
+        const cell = document.createElement('div');
+        cell.className = 'tetris-opponent-cell';
+        cell.id = `cell-${number}-${row}-${col}`;
+        board.appendChild(cell);
+      }
+    }
+  }
+
+  function initializeBoards() {
+    initializePlayerBoard(boardRef.current);
+    initializeOpponentBoard(board1Ref.current, 1);
+    initializeOpponentBoard(board2Ref.current, 2);
+    initializeOpponentBoard(board3Ref.current, 3);
+    initializeOpponentBoard(board4Ref.current, 4);
+  }
+
   return (
     <div className="game-room">
       <div className="room-header">
         <h2>Room: {roomName}</h2>
         <h2>Player: {playerName}</h2>
-        <h3>Status: {connected ? 'Connected' : 'Disconnected'}</h3>
       </div>
        <div className="status-panel">
         <div className="status-indicator">
+          <p>Connected: {connected ? 'Yes' : 'No'}</p>
           <p>Joined: {joined ? 'Yes' : 'No'}</p>
           <p>Ready: {playerReady ? 'Yes' : 'No'}</p>
         </div>
@@ -87,15 +169,19 @@ function GameRoom() {
       <div className="game-container">
         <div className="opponent-column">
           <p>{opponent1}</p>
-          <div className="tetris-opponent-board" />
+          <div ref={board1Ref} className="tetris-opponent-board" />
           <p>{opponent3}</p>
-          <div className="tetris-opponent-board" />
+          <div ref={board3Ref} className="tetris-opponent-board" />
+        </div>
+        <div className='player-container'>
+          <div ref={nextRef} className="next-piece" />
+          <div ref={boardRef} className="tetris-board" />
         </div>
         <div className="opponent-column">
           <p>{opponent2}</p>
-          <div className="tetris-opponent-board" />
+          <div ref={board2Ref} className="tetris-opponent-board" />
           <p>{opponent4}</p>
-          <div className="tetris-opponent-board" />
+          <div ref={board4Ref} className="tetris-opponent-board" />
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { io, Socket } from 'socket.io-client';
+import { GameState } from '../components/Interfaces';
 
 let socket: Socket | null = null;
 
@@ -19,6 +20,8 @@ export interface SocketState {
   opponent2: string;
   opponent3: string;
   opponent4: string;
+  playerId: string;
+  gamestate: GameState;
 }
 
 const initialState: SocketState = { 
@@ -31,7 +34,9 @@ const initialState: SocketState = {
   opponent1: '',
   opponent2: '',
   opponent3: '',
-  opponent4: ''
+  opponent4: '',
+  playerId: '',
+  gamestate: {} as GameState
 };
 
 export const connectSocket = createAsyncThunk(
@@ -42,7 +47,7 @@ export const connectSocket = createAsyncThunk(
     }
     socket = io("http://localhost:3001");
     socket.on('connect', () => {
-      dispatch(onConnect());
+      dispatch(onConnect(payload));
     });
     socket.on('disconnect', () => {
       dispatch(onDisconnect());
@@ -70,6 +75,7 @@ export const connectSocket = createAsyncThunk(
       const playersMap = data.gameState.players as Record<string, any>;
       const keys = Object.keys(playersMap).filter(k => k !== `${payload.room}_${payload.playerName}`);
       dispatch(onStartGameSuccess(keys));
+      dispatch(onUpdateData(data.gameState));
     });
   }
 );
@@ -117,12 +123,14 @@ export const disconnectSocket = createAsyncThunk(
   }
 );
 
+
 const socketSlice = createSlice({
   name: 'socket',
   initialState,
   reducers: {
-    onConnect(state) {
+    onConnect(state, action) {
       state.connected = true;
+      state.playerId = action.payload.room + "_" + action.payload.playerName;
     },
     onDisconnect(state) {
       state.connected = false;
@@ -141,6 +149,9 @@ const socketSlice = createSlice({
       if (action.payload[2]) state.opponent3 = action.payload[2];
       if (action.payload[3]) state.opponent4 = action.payload[3];
     },
+    onUpdateData(state, action) {
+      state.gamestate = action.payload;
+    },
     onError(state, action) {
       state.isError = true;
       state.contentError = action.payload;
@@ -148,5 +159,5 @@ const socketSlice = createSlice({
   },
 });
 
-export const { onConnect, onDisconnect, onJoinRoomSuccess, onSetReadySuccess, onStartGameSuccess, onError } = socketSlice.actions;
+export const { onConnect, onDisconnect, onJoinRoomSuccess, onSetReadySuccess, onStartGameSuccess, onUpdateData, onError } = socketSlice.actions;
 export default socketSlice.reducer;

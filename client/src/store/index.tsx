@@ -9,6 +9,8 @@ const rootReducer = combineReducers({
 
 export const store = configureStore({
   reducer: rootReducer,
+  // Enable Redux DevTools only in development
+  devTools: process.env.NODE_ENV !== 'production',
 });
 
 // Infer the `RootState` and `AppDispatch` types
