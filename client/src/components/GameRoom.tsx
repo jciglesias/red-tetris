@@ -274,39 +274,6 @@ function GameRoom() {
     }
   }
 
-  // render board state
-  function renderBoardsave(gameState: any) {
-    console.log('renderBoard');
-    const board = boardRef.current;
-    if (!board) return;
-    // clear cells
-    board.querySelectorAll('.tetris-cell').forEach(c => c.className = 'tetris-cell');
-    // draw fixed blocks
-    if (gameState.board) {
-      gameState.board.forEach((rowArr: number[], r: number) => {
-        rowArr.forEach((val, c) => {
-          if (val) {
-            const cell = document.getElementById(`cell-${playerName}-${r}-${c}`);
-            if (cell) cell.className = `tetris-cell filled`;
-          }
-        });
-      });
-    }
-    // draw current piece
-    if (gameState.currentPiece) {
-      const p = gameState.currentPiece;
-      p.shape.forEach((rowArr: number[], r: number) => {
-        rowArr.forEach((val, c) => {
-          if (val) {
-            const rr = p.y + r, cc = p.x + c;
-            const cell = document.getElementById(`cell-${playerName}-${rr}-${cc}`);
-            if (cell) cell.className = 'tetris-cell current';
-          }
-        });
-      });
-    }
-  }
-
   function joinRoom() {
     socket.emit('join-room', {
         roomName: roomName,
