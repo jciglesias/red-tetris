@@ -249,15 +249,24 @@ function GameRoom() {
     // clear cells
     board.querySelectorAll('.tetris-cell').forEach(c => c.className = 'tetris-cell');
     // draw fixed blocks
-    if (gameState.board) {
-      gameState.board.forEach((rowArr: number[], r: number) => {
-        rowArr.forEach((val, c) => {
-          if (val) {
-            const cell = document.getElementById(`cell-${playerName}-${r}-${c}`);
-            if (cell) cell.className = `tetris-cell filled`;
+    if (gameState.board && Array.isArray(gameState.board)) {      
+      for (let row = 0; row < Math.min(gameState.board.length, 20); row++) {
+        for (let col = 0; col < Math.min(gameState.board[row].length, 10); col++) {
+          const cellValue = gameState.board[row][col];
+          if (cellValue !== 0) {
+            const cell = document.getElementById(`cell-${playerName}-${row}-${col}`);
+            if (cell) {
+              const pieceTypes = ['', 'I', 'O', 'T', 'S', 'Z', 'J', 'L'];
+              const pieceType = pieceTypes[cellValue] || '';
+              if (pieceType) {
+                cell.className = `tetris-cell filled piece-${pieceType}`;
+              } else {
+                cell.className = 'tetris-cell filled';
+              }
+            }
           }
-        });
-      });
+        }
+      }
     }
     // draw current piece
     if (gameState.currentPiece) {
