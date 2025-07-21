@@ -26,6 +26,10 @@ function GameRoom() {
   const board2Ref = useRef<HTMLDivElement>(null);
   const board3Ref = useRef<HTMLDivElement>(null);
   const board4Ref = useRef<HTMLDivElement>(null);
+  const player1StateRef = useRef<any>(null);
+  const player2StateRef = useRef<any>(null);
+  const player3StateRef = useRef<any>(null);
+  const player4StateRef = useRef<any>(null);
 
   initializeNextPiece();
   initializeBoards();
@@ -42,7 +46,55 @@ function GameRoom() {
 
   useEffect(() => {
     renderBoard();
+    //renderSpectrums();
   }, [gamestate]);
+
+
+  function renderSpectrum(gameState: any, boardReference: HTMLDivElement | null, number: number) {
+    const board = boardReference;
+    if (!board) return;
+    // Clear previous spectrum
+    board.querySelectorAll('.tetris-opponent-cell').forEach(c => c.className = 'tetris-opponent-cell');
+    // Render new spectrum
+    //console.log('Rendering spectrum:', JSON.stringify(gameState.spectrum, null, 2));
+    for (let col = 0; col < 10; col++) {
+        for (let row = 0; row < gameState.spectrum[col]; row++) {
+          const cell = document.getElementById(`cell-${number}-${19 - row}-${col}`);
+          if (cell) {
+            cell.className = 'tetris-opponent-cell filled';
+          }
+        }
+      }
+  }
+
+  function renderSpectrums() {
+    const playersMap = gamestate.players as Record<string, any>;
+    const keys = Object.keys(playersMap).filter(k => k !== `${roomName}_${playerName}`);
+    if (keys[0]) {
+      console.log('renderSpectrums', keys[0]);
+      const updatedState1 = (gamestate.players as any)[keys[0]];
+      player1StateRef.current = updatedState1;
+      renderSpectrum(player1StateRef.current, board1Ref.current, 1);
+    }
+    if (keys[1]) {
+      console.log('renderSpectrums', keys[1]);
+      const updatedState2 = (gamestate.players as any)[keys[1]];
+      player2StateRef.current = updatedState2;
+      renderSpectrum(player2StateRef.current, board2Ref.current, 2);
+    }
+    if (keys[2]) {
+      console.log('renderSpectrums', keys[2]);
+      const updatedState3 = (gamestate.players as any)[keys[2]];
+      player3StateRef.current = updatedState3;
+      renderSpectrum(player3StateRef.current, board3Ref.current, 3);
+    }
+    if (keys[3]) {
+      console.log('renderSpectrums', keys[3]);
+      const updatedState4 = (gamestate.players as any)[keys[3]];
+      player4StateRef.current = updatedState4;
+      renderSpectrum(player4StateRef.current, board4Ref.current, 4);
+    }
+  }
 
   function renderBoard() {
     const board = boardRef.current;
@@ -87,6 +139,24 @@ function GameRoom() {
         }
       });
     });
+
+
+    if (!playerState?.nextPieces?.[0]) return;
+    const np = playerState.nextPieces[0];
+    initializeNextPiece();
+    for (let row = 0; row < np.shape.length; row++) {
+      for (let col = 0; col < np.shape[row].length; col++) {
+        if (np.shape[row][col]) {
+          const cell = document.getElementById(`next-${playerName}-${row}-${col}`);
+          if (cell) {
+            const pieceType = np.type;
+            cell.className = `next-cell filled${pieceType ? ' piece-' + pieceType : ''}`;
+            //console.log(`Set next piece cell [${row},${col}] to piece-${pieceType}`);
+          }
+        }
+      }
+    }
+
   }
 
   function handleJoin() {
