@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { connectSocket, disconnectSocket, joinRoom, readyPlayer, startGame, gameAction, getRoomInfo } from '../store/socketSlice';
@@ -26,18 +26,12 @@ function GameRoom() {
   const board2Ref = useRef<HTMLDivElement>(null);
   const board3Ref = useRef<HTMLDivElement>(null);
   const board4Ref = useRef<HTMLDivElement>(null);
-  const player1StateRef = useRef<any>(null);
-  const player2StateRef = useRef<any>(null);
-  const player3StateRef = useRef<any>(null);
-  const player4StateRef = useRef<any>(null);
 
   initializeNextPiece();
   initializeBoards();
 
-
-    useEffect(() => {
-
-    document.addEventListener('keydown', function(event) {
+  useEffect(() => {
+    const handleKey = (event: KeyboardEvent) => {
       switch(event.key) {
         case 'ArrowLeft':
             event.preventDefault();
@@ -60,9 +54,12 @@ function GameRoom() {
             dispatch(gameAction({action: 'hard-drop'}));
             break;
       }
-    }); 
-
-  }, []);
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [dispatch]);
 
 
   useEffect(() => {
@@ -75,76 +72,24 @@ function GameRoom() {
   }, [roomName, playerName, dispatch]);
 
 
-  useEffect(() => {
-    renderBoard();
-    renderSpectrums();
-  }, [gamestate]);
-
-  useEffect(() => {
-    if (!started) return;
-    const intervalId = setInterval(() => {
-      //console.log('Requesting room info');
-      dispatch(getRoomInfo());
-    }, 1000);
-    return () => clearInterval(intervalId);
-  }, [started]);
-  
-
-  function renderSpectrum(opponentState: any, boardReference: HTMLDivElement | null, number: number) {
-    const board = boardReference;
-    if (!board) return;
-    // Clear previous spectrum
-    board.querySelectorAll('.tetris-opponent-cell').forEach(c => c.className = 'tetris-opponent-cell');
-    // Render new spectrum
-    //console.log('Rendering spectrum:', JSON.stringify(gameState.spectrum, null, 2));
-    for (let col = 0; col < 10; col++) {
-        for (let row = 0; row < opponentState.spectrum[col]; row++) {
-          const cell = document.getElementById(`cell-${number}-${19 - row}-${col}`);
-          if (cell) {
-            cell.className = 'tetris-opponent-cell filled';
-          }
-        }
-      }
-  }
-
-  function renderSpectrums() {
-    // guard against undefined/null players map
+  // Memoized render functions for board and spectrums
+  const renderSpectrums = useCallback(() => {
     if (!gamestate?.players) return;
     const playersMap = gamestate.players as Record<string, any>;
     const keys = Object.keys(playersMap).filter(k => k !== `${roomName}_${playerName}`);
     if (keys[0]) {
-      console.log('renderSpectrums', keys[0]);
-      const updatedState1 = (gamestate.players as any)[keys[0]];
-      player1StateRef.current = updatedState1;
-      renderSpectrum(player1StateRef.current, board1Ref.current, 1);
+      const state1 = playersMap[keys[0]];
+      renderSpectrum(state1, board1Ref.current, 1);
     }
-    if (keys[1]) {
-      console.log('renderSpectrums', keys[1]);
-      const updatedState2 = (gamestate.players as any)[keys[1]];
-      player2StateRef.current = updatedState2;
-      renderSpectrum(player2StateRef.current, board2Ref.current, 2);
-    }
-    if (keys[2]) {
-      console.log('renderSpectrums', keys[2]);
-      const updatedState3 = (gamestate.players as any)[keys[2]];
-      player3StateRef.current = updatedState3;
-      renderSpectrum(player3StateRef.current, board3Ref.current, 3);
-    }
-    if (keys[3]) {
-      console.log('renderSpectrums', keys[3]);
-      const updatedState4 = (gamestate.players as any)[keys[3]];
-      player4StateRef.current = updatedState4;
-      renderSpectrum(player4StateRef.current, board4Ref.current, 4);
-    }
-  }
+    if (keys[1]) renderSpectrum(playersMap[keys[1]], board2Ref.current, 2);
+    if (keys[2]) renderSpectrum(playersMap[keys[2]], board3Ref.current, 3);
+    if (keys[3]) renderSpectrum(playersMap[keys[3]], board4Ref.current, 4);
+  }, [gamestate, roomName, playerName]);
 
-  function renderBoard() {
-    // guard against undefined gamestate or players
+  const renderBoard = useCallback(() => {
     if (!gamestate?.players) return;
-    // guard against missing players map or this player state
-    const playerKey = `${roomName}_${playerName}`;
-    const playersMap = gamestate.players as Record<string, any>;
-    const playerState = playersMap[playerKey];
+    const key = `${roomName}_${playerName}`;
+    const playerState = (gamestate.players as Record<string, any>)[key];
 
      // draw fixed blocks
     if (playerState && Array.isArray(playerState.board)) {
@@ -197,6 +142,38 @@ function GameRoom() {
       }
     }
 
+  }, [gamestate, roomName, playerName]);
+
+  useEffect(() => {
+    renderBoard();
+    renderSpectrums();
+  }, [renderBoard, renderSpectrums]);
+
+  useEffect(() => {
+    if (!started) return;
+    const intervalId = setInterval(() => {
+      //console.log('Requesting room info');
+      dispatch(getRoomInfo());
+    }, 1000);
+    return () => clearInterval(intervalId);
+  }, [started, dispatch]);
+  
+
+  function renderSpectrum(opponentState: any, boardReference: HTMLDivElement | null, number: number) {
+    const board = boardReference;
+    if (!board) return;
+    // Clear previous spectrum
+    board.querySelectorAll('.tetris-opponent-cell').forEach(c => c.className = 'tetris-opponent-cell');
+    // Render new spectrum
+    //console.log('Rendering spectrum:', JSON.stringify(gameState.spectrum, null, 2));
+    for (let col = 0; col < 10; col++) {
+        for (let row = 0; row < opponentState.spectrum[col]; row++) {
+          const cell = document.getElementById(`cell-${number}-${19 - row}-${col}`);
+          if (cell) {
+            cell.className = 'tetris-opponent-cell filled';
+          }
+        }
+      }
   }
 
   function handleJoin() {
