@@ -16,13 +16,16 @@ function GameRoom() {
   const [contentError, setContentError] = useState("");
   const boardRef = useRef<HTMLDivElement>(null);
   const nextRef = useRef<HTMLDivElement>(null);
-  // keep last player state for periodic rendering
+  const board1Ref = useRef<HTMLDivElement>(null);
+  const board2Ref = useRef<HTMLDivElement>(null);
+  const board3Ref = useRef<HTMLDivElement>(null);
+  const board4Ref = useRef<HTMLDivElement>(null);
   const playerStateRef = useRef<any>(null);
 
   useEffect(() => {
 
     initializeNextPiece();
-    initializeBoard();
+    initializeBoards();
   
     socket.on('connect', () => {
       console.log('connect')
@@ -73,8 +76,6 @@ function GameRoom() {
       console.log('Game started: ' + JSON.stringify(data, null, 2));
       sethasStarted(true);
       setIsError(false);
-      initializeBoard();
-      initializeNextPiece();
       console.log('Game started data : ' + JSON.stringify(data.gameState, null, 2));
       // Extract this player's state from the serialized gameState object
       const key = `${roomName}_${playerName}`;
@@ -173,11 +174,7 @@ function GameRoom() {
     });
 
     return () => {
-      socket.off('connect');
-      socket.off('disconnect');
-      socket.off('game-state-update');
-      socket.off('game-started');
-      socket.off('room-info');
+      socket.removeAllListeners();
     };
 
   }, []);
@@ -230,8 +227,8 @@ function GameRoom() {
     }
   }
 
-  function initializeBoard() {
-    const board = boardRef.current;
+  function initializePlayerBoard(ref: HTMLDivElement | null) {
+    const board = ref;
     if (!board) return;
     board.innerHTML = '';
     for (let row = 0; row < 20; row++) {
@@ -242,6 +239,28 @@ function GameRoom() {
         board.appendChild(cell);
       }
     }
+  }
+
+  function initializeOpponentBoard(ref: HTMLDivElement | null, number: number = 1) {
+    const board = ref;
+    if (!board) return;
+    board.innerHTML = '';
+    for (let row = 0; row < 20; row++) {
+      for (let col = 0; col < 10; col++) {
+        const cell = document.createElement('div');
+        cell.className = 'tetris-opponent-cell';
+        cell.id = `cell-${number}-${row}-${col}`;
+        board.appendChild(cell);
+      }
+    }
+  }
+
+  function initializeBoards() {
+    initializePlayerBoard(boardRef.current);
+    initializeOpponentBoard(board1Ref.current, 1);
+    initializeOpponentBoard(board2Ref.current, 2);
+    initializeOpponentBoard(board3Ref.current, 3);
+    initializeOpponentBoard(board4Ref.current, 4);
   }
 
   // render board state
@@ -339,8 +358,18 @@ function GameRoom() {
         </div>
       )}
       <div className="game-container">
-        <div ref={nextRef} className="next-piece" />
-        <div ref={boardRef} className="tetris-board" />
+        <div className="opponent-column">
+          <div ref={board1Ref} className="tetris-opponent-board" />
+          <div ref={board3Ref} className="tetris-opponent-board" />
+        </div>
+        <div className='player-container'>
+          <div ref={nextRef} className="next-piece" />
+          <div ref={boardRef} className="tetris-board" />
+        </div>
+        <div className="opponent-column">
+          <div ref={board2Ref} className="tetris-opponent-board" />
+          <div ref={board4Ref} className="tetris-opponent-board" />
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 .game-room {
-  max-width: 600px;
-  margin: 40px auto;
+  max-width: 800px;
+  margin: 10px auto;
   padding: 20px;
   background: #f9f9f9;
   border-radius: 8px;
@@ -61,6 +61,23 @@
   margin-top: 20px;
   border-top: 1px solid #ccc;
   padding-top: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.player-container, .opponent-column {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+.player-container {
+  width: 277px;
+}
+.opponent-column
+{
+  margin: 100px;
 }
 .tetris-board {
     display: grid;
@@ -73,9 +90,21 @@
     padding: 5px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
-.tetris-cell {
-    width: 25px;
-    height: 25px;
+
+.tetris-opponent-board {
+    display: grid;
+    grid-template-columns: repeat(10, 10px);
+    grid-template-rows: repeat(20, 10px);
+    gap: 1px;
+    border: 3px solid #333;
+    background-color: #222;
+    margin: 10px 0;
+    padding: 5px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+.tetris-opponent-cell {
+    width: 10px;
+    height: 10px;
     border: 1px solid #444;
     background-color: #111;
     transition: all 0.1s ease;
