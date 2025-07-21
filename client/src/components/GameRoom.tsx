@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { connectSocket, disconnectSocket, joinRoom, readyPlayer } from '../store/socketSlice';
+import { connectSocket, disconnectSocket, joinRoom, readyPlayer, startGame } from '../store/socketSlice';
 import { RootState, AppDispatch } from '../store';
 import './GameRoom.css';
 
@@ -12,6 +12,7 @@ function GameRoom() {
   const connected = useSelector((state: RootState) => state.socket.connected);
   const joined = useSelector((state: RootState) => state.socket.joined);
   const playerReady = useSelector((state: RootState) => state.socket.playerReady);
+  const started = useSelector((state: RootState) => state.socket.started);
 
   useEffect(() => {
 
@@ -32,10 +33,24 @@ function GameRoom() {
   }
 
   function handleReady() {
-    if (roomName && playerName) {
+    if (joined) {
       dispatch(readyPlayer());
     }
     console.log('player-ready')
+  }
+
+  function handleStart() {
+    if (playerReady) {
+      dispatch(startGame());
+    }
+    console.log('start-game')
+  }
+
+  function handleFastStart() {
+    if (playerReady) {
+      dispatch(startGame());
+    }
+    console.log('start-fast-game')
   }
 
   return (
@@ -54,6 +69,8 @@ function GameRoom() {
       <div className="button-group">
         {!joined && <button onClick={handleJoin}>Join Room</button>}
         {joined && !playerReady && <button onClick={handleReady}>Set Ready</button>}
+        {playerReady && !started && <button onClick={handleStart}>Start Game</button>}
+        {playerReady && !started && <button onClick={handleFastStart}>Start Fast Game</button>}
       </div>
     </div>
   );

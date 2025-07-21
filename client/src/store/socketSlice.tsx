@@ -12,12 +12,14 @@ export interface SocketState {
   connected: boolean;
   joined: boolean;
   playerReady: boolean;
+  started: boolean;
 }
 
 const initialState: SocketState = { 
   connected: false, 
   joined: false,
-  playerReady: false
+  playerReady: false,
+  started: false
 };
 
 export const connectSocket = createAsyncThunk(
@@ -44,6 +46,10 @@ export const connectSocket = createAsyncThunk(
         console.log('Player ready changed! ' + data.ready);
       }
     });
+    socket.on('game-started', (data) => {
+      console.log('Game started: ' + JSON.stringify(data, null, 2));
+      dispatch(onStartGameSuccess());
+    });
   }
 );
 
@@ -65,6 +71,17 @@ export const readyPlayer = createAsyncThunk(
     if (socket) {
       socket.emit('player-ready', {
         ready: true
+      });
+    }
+  }
+);
+
+export const startGame = createAsyncThunk(
+  'socket/startGame',
+  async () => {
+    if (socket) {
+      socket.emit('start-game', {
+        fast: false
       });
     }
   }
@@ -98,8 +115,11 @@ const socketSlice = createSlice({
     onSetReadySuccess(state) {
       state.playerReady = true;
     },
+    onStartGameSuccess(state) {
+      state.started = true;
+    },
   },
 });
 
-export const { onConnect, onDisconnect, onJoinRoomSuccess, onSetReadySuccess } = socketSlice.actions;
+export const { onConnect, onDisconnect, onJoinRoomSuccess, onSetReadySuccess, onStartGameSuccess } = socketSlice.actions;
 export default socketSlice.reducer;
