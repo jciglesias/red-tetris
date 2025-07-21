@@ -307,7 +307,7 @@ export class GameService {
     
     // Send penalty lines to other players if lines were cleared
     if (clearedLines > 0) {
-      this.sendPenaltyLines(game, player.playerId, clearedLines - 1);
+      this.sendPenaltyLines(game, player.playerId, clearedLines);
     }
 
     // Update spectrum
@@ -335,7 +335,11 @@ export class GameService {
     let linesCleared = 0;
     
     for (let y = this.BOARD_HEIGHT - 1; y >= 0; y--) {
-      if (player.board[y].every(cell => cell !== 0)) {
+      // Check if line is complete AND doesn't contain penalty blocks (value 9)
+      const lineComplete = player.board[y].every(cell => cell !== 0);
+      const hasPenaltyBlocks = player.board[y].some(cell => cell === 9);
+      
+      if (lineComplete && !hasPenaltyBlocks) {
         // Remove completed line
         player.board.splice(y, 1);
         // Add new empty line at top
@@ -351,21 +355,28 @@ export class GameService {
 
   private applyPenalties(player: PlayerGameState): void {
     while (player.penalties > 0) {
-      // Remove top line and add penalty line at bottom
+      // Remove top line (this shifts all pieces up)
       player.board.shift();
-      const penaltyLine = Array(this.BOARD_WIDTH).fill(8); // 8 = penalty block
-      // Leave one random gap in penalty line
-      const gapIndex = Math.floor(Math.random() * this.BOARD_WIDTH);
-      penaltyLine[gapIndex] = 0;
+      
+      // Add penalty line at bottom - these are permanent obstacles
+      // Make penalty lines completely solid to prevent pieces from falling through gaps
+      const penaltyLine = Array(this.BOARD_WIDTH).fill(9); // 9 = penalty block (unclearable)
+      
+      // No gaps - penalty lines are solid barriers that force pieces to stack above them
       player.board.push(penaltyLine);
       player.penalties--;
     }
   }
 
-  private sendPenaltyLines(game: GameState, senderId: string, count: number): void {
-    for (const [playerId, player] of game.players) {
-      if (playerId !== senderId && player.isAlive) {
-        player.penalties += count;
+  private sendPenaltyLines(game: GameState, senderId: string, linesCleared: number): void {
+    // Calculate penalty lines: n lines cleared = n-1 penalty lines
+    const penaltyLines = Math.max(0, linesCleared - 1);
+    
+    if (penaltyLines > 0) {
+      for (const [playerId, player] of game.players) {
+        if (playerId !== senderId && player.isAlive) {
+          player.penalties += penaltyLines;
+        }
       }
     }
   }

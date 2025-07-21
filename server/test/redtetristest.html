@@ -226,6 +226,7 @@
         .tetris-cell.piece-Z { background: linear-gradient(145deg, #F44336, #D32F2F); border-color: #EF5350; } /* Red */
         .tetris-cell.piece-J { background: linear-gradient(145deg, #2196F3, #1976D2); border-color: #42A5F5; } /* Blue */
         .tetris-cell.piece-L { background: linear-gradient(145deg, #FF9800, #F57C00); border-color: #FFB74D; } /* Orange */
+        .tetris-cell.piece-penalty { background: linear-gradient(145deg, #424242, #212121); border-color: #616161; } /* Dark Gray - Penalty blocks */
         
         /* Game status indicators */
         .status-playing { color: #4CAF50; font-weight: bold; }
@@ -404,8 +405,8 @@
                         if (cellValue !== 0) {
                             const cell = document.getElementById(`cell-${playerId}-${row}-${col}`);
                             if (cell) {
-                                // Map numeric values to piece types (1-7 -> I,O,T,S,Z,J,L)
-                                const pieceTypes = ['', 'I', 'O', 'T', 'S', 'Z', 'J', 'L'];
+                                // Map numeric values to piece types (1-7 -> I,O,T,S,Z,J,L, 9 -> penalty)
+                                const pieceTypes = ['', 'I', 'O', 'T', 'S', 'Z', 'J', 'L', '', 'penalty'];
                                 const pieceType = pieceTypes[cellValue] || '';
                                 if (pieceType) {
                                     cell.className = `tetris-cell filled piece-${pieceType}`;
