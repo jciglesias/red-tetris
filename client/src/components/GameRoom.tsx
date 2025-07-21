@@ -147,6 +147,31 @@ function GameRoom() {
       setContentError(JSON.stringify(data, null, 2));
     });
 
+    document.addEventListener('keydown', function(event) {
+      switch(event.key) {
+        case 'ArrowLeft':
+            event.preventDefault();
+            socket.emit('game-action', {action: 'move-left'});
+            break;
+        case 'ArrowRight':
+            event.preventDefault();
+            socket.emit('game-action', {action: 'move-right'});
+            break;
+        case 'ArrowUp':
+            event.preventDefault();
+            socket.emit('game-action', {action: 'rotate'});
+            break;
+        case 'ArrowDown':
+            event.preventDefault();
+            socket.emit('game-action', {action: 'soft-drop'});
+            break;
+        case ' ':
+            event.preventDefault();
+            socket.emit('game-action', {action: 'hard-drop'});
+            break;
+      }
+    });
+
     return () => {
       socket.off('connect');
       socket.off('disconnect');
