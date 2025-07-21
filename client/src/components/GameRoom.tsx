@@ -163,7 +163,6 @@ function GameRoom() {
     if (!board) return;
     // Clear previous spectrum
     board.querySelectorAll('.tetris-opponent-cell').forEach(c => c.className = 'tetris-opponent-cell');
-    // Render new spectrum
     //console.log('Rendering spectrum:', JSON.stringify(gameState.spectrum, null, 2));
     for (let col = 0; col < 10; col++) {
         for (let row = 0; row < opponentState.spectrum[col]; row++) {
