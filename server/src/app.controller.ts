@@ -50,14 +50,25 @@ export class AppController {
   // Handle URL pattern: /<room>/<player>
   @Get(':room/:player')
   serveClientApp(@Param('room') room: string, @Param('player') player: string, @Res() res: Response) {
-    // Serve the React app's index.html for any room/player route
-    // This allows the client-side router to handle the routing
-    res.sendFile(join(process.cwd(), '../client/build/index.html'));
+    // For now, return JSON response to test the route works
+    // In production with built client, this would serve index.html
+    res.json({
+      message: 'Room/Player route working',
+      room: room,
+      player: player,
+      url: `/${room}/${player}`,
+      note: 'Route is working. In production, this would serve the React app.'
+    });
   }
 
   // Fallback for any other routes - serve React app
   @Get('*')
   serveApp(@Res() res: Response) {
-    res.sendFile(join(process.cwd(), '../client/build/index.html'));
+    // For now, return JSON response to test the route works
+    res.json({
+      message: 'Catch-all route working',
+      path: res.req.url,
+      note: 'Route is working. In production, this would serve the React app.'
+    });
   }
 }

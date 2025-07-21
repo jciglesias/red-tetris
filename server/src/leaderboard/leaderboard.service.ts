@@ -63,25 +63,28 @@ export class LeaderboardService {
       };
     }
 
-    const topScore = await this.leaderboardRepository.findOne({
+    const topScore = await this.leaderboardRepository.find({
       order: { score: 'DESC' },
+      take: 1,
     });
 
-    const mostLinesCleared = await this.leaderboardRepository.findOne({
+    const mostLinesCleared = await this.leaderboardRepository.find({
       order: { linesCleared: 'DESC' },
+      take: 1,
     });
 
-    const longestGame = await this.leaderboardRepository.findOne({
+    const longestGame = await this.leaderboardRepository.find({
       order: { gameDuration: 'DESC' },
+      take: 1,
     });
 
     return {
-      topScore: topScore?.score || 0,
-      topScorePlayer: topScore?.playerName || '',
-      mostLinesCleared: mostLinesCleared?.linesCleared || 0,
-      mostLinesClearedPlayer: mostLinesCleared?.playerName || '',
-      longestGameDuration: longestGame?.gameDuration || 0,
-      longestGamePlayer: longestGame?.playerName || '',
+      topScore: topScore[0]?.score || 0,
+      topScorePlayer: topScore[0]?.playerName || '',
+      mostLinesCleared: mostLinesCleared[0]?.linesCleared || 0,
+      mostLinesClearedPlayer: mostLinesCleared[0]?.playerName || '',
+      longestGameDuration: longestGame[0]?.gameDuration || 0,
+      longestGamePlayer: longestGame[0]?.playerName || '',
       totalGames,
     };
   }
