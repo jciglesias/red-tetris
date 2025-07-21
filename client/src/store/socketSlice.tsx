@@ -13,13 +13,17 @@ export interface SocketState {
   joined: boolean;
   playerReady: boolean;
   started: boolean;
+  isError: boolean;
+  contentError: string;
 }
 
 const initialState: SocketState = { 
   connected: false, 
   joined: false,
   playerReady: false,
-  started: false
+  started: false,
+  isError: false,
+  contentError: ''
 };
 
 export const connectSocket = createAsyncThunk(
@@ -45,6 +49,13 @@ export const connectSocket = createAsyncThunk(
         dispatch(onSetReadySuccess());
         console.log('Player ready changed! ' + data.ready);
       }
+    });
+    socket.on('error', (data) => {
+      console.log('Error: ' + JSON.stringify(data, null, 2));
+      const message = typeof data === 'object' && data !== null && 'message' in data
+        ? (data as any).message
+        : String(data);
+      dispatch(onError(message));
     });
     socket.on('game-started', (data) => {
       console.log('Game started: ' + JSON.stringify(data, null, 2));
@@ -116,8 +127,12 @@ const socketSlice = createSlice({
     onStartGameSuccess(state) {
       state.started = true;
     },
+    onError(state, action) {
+      state.isError = true;
+      state.contentError = action.payload;
+    },
   },
 });
 
-export const { onConnect, onDisconnect, onJoinRoomSuccess, onSetReadySuccess, onStartGameSuccess } = socketSlice.actions;
+export const { onConnect, onDisconnect, onJoinRoomSuccess, onSetReadySuccess, onStartGameSuccess, onError } = socketSlice.actions;
 export default socketSlice.reducer;
