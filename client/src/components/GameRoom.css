@@ -107,6 +107,11 @@
     background-color: #111;
     transition: all 0.1s ease;
 }
+.tetris-opponent-cell.filled {
+    background: linear-gradient(145deg, #4CAF50, #45a049);
+    border: 1px solid #66BB6A;
+    box-shadow: inset 1px 1px 2px rgba(255,255,255,0.3);
+}
 .tetris-cell {
     width: 25px;
     height: 25px;

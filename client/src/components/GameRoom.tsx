@@ -26,6 +26,10 @@ function GameRoom() {
   const [player2Ref, setPlayer2Ref] = useState<string>("");
   const [player3Ref, setPlayer3Ref] = useState<string>("");
   const [player4Ref, setPlayer4Ref] = useState<string>("");
+  const player1StateRef = useRef<any>(null);
+  const player2StateRef = useRef<any>(null);
+  const player3StateRef = useRef<any>(null);
+  const player4StateRef = useRef<any>(null);
 
   useEffect(() => {
     // set opponent name example
@@ -118,12 +122,9 @@ function GameRoom() {
       //console.log('Room info:', JSON.stringify(data.gameState, null, 2));
       const key = `${roomName}_${playerName}`;
       const updatedState = (data.gameState.players as any)?.[key];
-      if (!updatedState) {
-        console.warn(`room-info: no state for key ${key}`, data.gameState.players);
-        return;
-      }
       playerStateRef.current = updatedState;
       renderBoard(updatedState);
+      //renderSpectrums(data);
     });
 
     socket.on('game-ended', (data) => {
@@ -193,7 +194,7 @@ function GameRoom() {
   useEffect(() => {
     if (!hasStarted) return;
     const intervalId = setInterval(() => {
-      console.log('Requesting room info');
+      //console.log('Requesting room info');
       socket.emit('get-room-info');
     }, 1000);
     return () => clearInterval(intervalId);
@@ -273,9 +274,53 @@ function GameRoom() {
     initializeOpponentBoard(board4Ref.current, 4);
   }
 
-  // render board state
+  function renderSpectrum(gameState: any, boardReference: HTMLDivElement | null, number: number) {
+    const board = boardReference;
+    if (!board) return;
+    // Clear previous spectrum
+    board.querySelectorAll('.tetris-opponent-cell').forEach(c => c.className = 'tetris-opponent-cell');
+    // Render new spectrum
+    //console.log('Rendering spectrum:', JSON.stringify(gameState.spectrum, null, 2));
+    for (let col = 0; col < 10; col++) {
+        for (let row = 0; row < gameState.spectrum[col]; row++) {
+          const cell = document.getElementById(`cell-${number}-${19 - row}-${col}`);
+          if (cell) {
+            cell.className = 'tetris-opponent-cell filled';
+          }
+        }
+      }
+  }
+
+  function renderSpectrums(data: any) {
+    const playersMap = data.gameState.players as Record<string, any>;
+    const keys = Object.keys(playersMap).filter(k => k !== `${roomName}_${playerName}`);
+    if (keys[0]) {
+      console.log('renderSpectrums', keys[0]);
+      const updatedState1 = (data.gameState.players as any)[keys[0]];
+      player1StateRef.current = updatedState1;
+      renderSpectrum(player1StateRef.current, board1Ref.current, 1);
+    }
+    if (keys[1]) {
+      console.log('renderSpectrums', keys[1]);
+      const updatedState2 = (data.gameState.players as any)[keys[1]];
+      player2StateRef.current = updatedState2;
+      renderSpectrum(player2StateRef.current, board2Ref.current, 2);
+    }
+    if (keys[2]) {
+      console.log('renderSpectrums', keys[2]);
+      const updatedState3 = (data.gameState.players as any)[keys[2]];
+      player3StateRef.current = updatedState3;
+      renderSpectrum(player3StateRef.current, board3Ref.current, 3);
+    }
+    if (keys[3]) {
+      console.log('renderSpectrums', keys[3]);
+      const updatedState4 = (data.gameState.players as any)[keys[3]];
+      player4StateRef.current = updatedState4;
+      renderSpectrum(player4StateRef.current, board4Ref.current, 4);
+    }
+  }
+
   function renderBoard(gameState: any) {
-    console.log('renderBoard');
     const board = boardRef.current;
     if (!board) return;
     // clear cells
