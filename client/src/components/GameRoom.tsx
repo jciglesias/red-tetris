@@ -45,12 +45,39 @@ function GameRoom() {
   }, [gamestate]);
 
   function renderBoard() {
-    // guard against missing players map or this player state
+    const board = boardRef.current;
+    if (!board) return;
+    // clear cells
+    board.querySelectorAll('.tetris-cell').forEach(c => c.className = 'tetris-cell');
+    
     const playerKey = `${roomName}_${playerName}`;
     const playersMap = (gamestate.players as any) || {};
     const playerState = playersMap[playerKey];
+
+     // draw fixed blocks
+    if (playerState && Array.isArray(playerState.board)) {
+      for (let row = 0; row < Math.min(playerState.board.length, 20); row++) {
+        for (let col = 0; col < Math.min(playerState.board[row].length, 10); col++) {
+          const cellValue = playerState.board[row][col];
+          if (cellValue !== 0) {
+            const cell = document.getElementById(`cell-player-${row}-${col}`);
+            if (cell) {
+              const pieceTypes = ['', 'I', 'O', 'T', 'S', 'Z', 'J', 'L'];
+              const pieceType = pieceTypes[cellValue] || '';
+              if (pieceType) {
+                cell.className = `tetris-cell filled piece-${pieceType}`;
+              } else {
+                cell.className = 'tetris-cell filled';
+              }
+            }
+          }
+        }
+      }
+    }
+
     if (!playerState?.currentPiece?.shape) return;
     const p = playerState.currentPiece;
+    // draw current piece
     p.shape.forEach((rowArr: number[], r: number) => {
       rowArr.forEach((val, c) => {
         if (val) {
