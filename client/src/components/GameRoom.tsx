@@ -175,6 +175,9 @@ function GameRoom() {
     return () => {
       socket.off('connect');
       socket.off('disconnect');
+      socket.off('game-state-update');
+      socket.off('game-started');
+      socket.off('room-info');
     };
 
   }, []);
