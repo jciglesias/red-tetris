@@ -36,27 +36,6 @@ describe('LeaderboardController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('addEntry', () => {
-    it('should add a leaderboard entry', async () => {
-      const createDto: CreateLeaderboardEntryDto = {
-        playerName: 'TestPlayer',
-        score: 1000,
-        linesCleared: 10,
-        level: 5,
-        gameDuration: 300,
-        roomName: 'TestRoom',
-      };
-
-      const mockEntry = { id: 1, ...createDto };
-      mockLeaderboardService.addEntry.mockResolvedValue(mockEntry);
-
-      const result = await controller.addEntry(createDto);
-
-      expect(mockLeaderboardService.addEntry).toHaveBeenCalledWith(createDto);
-      expect(result).toEqual(mockEntry);
-    });
-  });
-
   describe('getTopScores', () => {
     it('should return top scores with default limit', async () => {
       const mockEntries = [

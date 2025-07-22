@@ -220,7 +220,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('game-action')
-  handleGameAction(
+  async handleGameAction(
     @MessageBody() data: GameActionMessage,
     @ConnectedSocket() client: Socket,
   ) {
@@ -248,7 +248,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         // Check if game ended
         if (gameState.gameOver) {
-          this.roomService.endGame(room.name);
+          await this.roomService.endGame(room.name);
           this.server.to(room.name).emit('game-ended', {
             winner: gameState.winner,
             finalState: this.serializeGameState(gameState),
@@ -375,6 +375,66 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
     } else {
       client.emit('reconnection-error', { message: 'Failed to reconnect player' });
+    }
+  }
+
+  @SubscribeMessage('quit-game')
+  async handleQuitGame(@ConnectedSocket() client: Socket) {
+    const playerData = this.roomService.getPlayerBySocketId(client.id);
+    if (!playerData) {
+      client.emit('error', { message: 'Player not found in any room' });
+      return;
+    }
+
+    const { player, room } = playerData;
+    
+    if (room.gameState !== 'playing') {
+      client.emit('error', { message: 'No game in progress to quit' });
+      return;
+    }
+
+    // Mark player as not alive (quit)
+    const gameState = this.gameService.getGameState(room.name);
+    if (gameState) {
+      const gamePlayer = gameState.players.get(player.id);
+      if (gamePlayer) {
+        gamePlayer.isAlive = false;
+      }
+      
+      // For solo games, always end the game when the player quits
+      // For multiplayer, check if this causes game over
+      const isSoloGame = room.players.size === 1;
+      
+      if (isSoloGame) {
+        // Solo game: player quitting means game ends
+        gameState.gameOver = true;
+        await this.roomService.endGame(room.name);
+        this.server.to(room.name).emit('game-ended', {
+          winner: null, // Solo quit doesn't have a winner
+          finalState: this.serializeGameState(gameState),
+          reason: 'Player quit',
+        });
+      } else {
+        // Multiplayer: check if this causes game over
+        const gameEnded = this.gameService.checkForGameOver(room.name);
+        
+        if (gameEnded) {
+          // Game ended, save results
+          const finalGameState = this.gameService.getGameState(room.name);
+          await this.roomService.endGame(room.name);
+          this.server.to(room.name).emit('game-ended', {
+            winner: finalGameState?.winner,
+            finalState: this.serializeGameState(finalGameState),
+            reason: 'Player quit',
+          });
+        } else {
+          // Just notify about the quit
+          this.server.to(room.name).emit('player-quit', {
+            playerId: player.id,
+            playerName: player.name,
+          });
+        }
+      }
     }
   }
 }

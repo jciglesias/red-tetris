@@ -9,6 +9,8 @@ export interface CreateLeaderboardEntryDto {
   linesCleared: number;
   level: number;
   gameDuration: number;
+  fastMode?: boolean;
+  isWin?: boolean;
   roomName?: string;
 }
 
@@ -87,5 +89,101 @@ export class LeaderboardService {
       longestGamePlayer: longestGame[0]?.playerName || '',
       totalGames,
     };
+  }
+
+  async getTopScoresByMode(limit: number = 10, fastMode?: boolean): Promise<LeaderboardEntry[]> {
+    const queryBuilder = this.leaderboardRepository.createQueryBuilder('entry');
+    
+    if (fastMode !== undefined) {
+      queryBuilder.where('entry.fastMode = :fastMode', { fastMode });
+    }
+    
+    return await queryBuilder
+      .orderBy('entry.score', 'DESC')
+      .take(limit)
+      .getMany();
+  }
+
+  async getPlayerBestScoreByMode(playerName: string, fastMode?: boolean): Promise<LeaderboardEntry | null> {
+    const queryBuilder = this.leaderboardRepository.createQueryBuilder('entry')
+      .where('entry.playerName = :playerName', { playerName });
+    
+    if (fastMode !== undefined) {
+      queryBuilder.andWhere('entry.fastMode = :fastMode', { fastMode });
+    }
+    
+    return await queryBuilder
+      .orderBy('entry.score', 'DESC')
+      .getOne();
+  }
+
+  async getPlayerStatistics(playerName: string): Promise<{
+    totalGames: number;
+    gamesWon: number;
+    bestScore: number;
+    totalLinesCleared: number;
+    averageGameDuration: number;
+    winRate: number;
+  }> {
+    const playerEntries = await this.leaderboardRepository.find({
+      where: { playerName },
+    });
+
+    if (playerEntries.length === 0) {
+      return {
+        totalGames: 0,
+        gamesWon: 0,
+        bestScore: 0,
+        totalLinesCleared: 0,
+        averageGameDuration: 0,
+        winRate: 0,
+      };
+    }
+
+    const totalGames = playerEntries.length;
+    const gamesWon = playerEntries.filter(entry => entry.isWin).length;
+    const bestScore = Math.max(...playerEntries.map(entry => entry.score));
+    const totalLinesCleared = playerEntries.reduce((sum, entry) => sum + entry.linesCleared, 0);
+    const averageGameDuration = playerEntries.reduce((sum, entry) => sum + entry.gameDuration, 0) / totalGames;
+    const winRate = totalGames > 0 ? (gamesWon / totalGames) * 100 : 0;
+
+    return {
+      totalGames,
+      gamesWon,
+      bestScore,
+      totalLinesCleared,
+      averageGameDuration,
+      winRate,
+    };
+  }
+
+  async getTopWinners(limit: number = 10): Promise<Array<{
+    playerName: string;
+    gamesWon: number;
+    winRate: number;
+    bestScore: number;
+  }>> {
+    const query = `
+      SELECT 
+        playerName,
+        COUNT(*) as totalGames,
+        SUM(CASE WHEN isWin = 1 THEN 1 ELSE 0 END) as gamesWon,
+        MAX(score) as bestScore,
+        CAST(SUM(CASE WHEN isWin = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) AS DECIMAL(5,2)) as winRate
+      FROM leaderboard 
+      GROUP BY playerName 
+      HAVING totalGames >= 3
+      ORDER BY gamesWon DESC, winRate DESC 
+      LIMIT ?
+    `;
+
+    const result = await this.leaderboardRepository.query(query, [limit]);
+    
+    return result.map((row: any) => ({
+      playerName: row.playerName,
+      gamesWon: parseInt(row.gamesWon),
+      winRate: parseFloat(row.winRate),
+      bestScore: parseInt(row.bestScore),
+    }));
   }
 }

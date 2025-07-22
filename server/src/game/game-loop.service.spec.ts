@@ -17,12 +17,14 @@ describe('GameLoopService', () => {
           useValue: {
             getGameState: jest.fn(),
             tick: jest.fn(),
+            createGame: jest.fn(),
           },
         },
         {
           provide: RoomService,
           useValue: {
             cleanupExpiredDisconnections: jest.fn(),
+            endGame: jest.fn().mockResolvedValue(true),
           },
         },
       ],
@@ -351,5 +353,81 @@ describe('GameLoopService', () => {
     // Clean up
     service.onModuleDestroy();
     tickSpy.mockRestore();
+  });
+
+  describe('game ending and leaderboard integration', () => {
+    it('should save results when game ends naturally during tick', async () => {
+      const roomName = 'auto-end-room';
+      
+      // Mock the endGame method to verify it gets called
+      const roomServiceSpy = jest.spyOn(service['roomService'], 'endGame').mockResolvedValue(true);
+      
+      // Create a mock game state that starts as not over, then becomes over
+      const mockGameState = {
+        roomName,
+        players: new Map(),
+        gameOver: false,
+        winner: null,
+        startTime: Date.now(),
+        pieceSequence: [],
+        fastMode: false,
+      };
+      
+      // Mock getGameState to return our mock game state
+      const getGameStateSpy = jest.spyOn(gameService, 'getGameState').mockReturnValue(mockGameState);
+      
+      // Add the game to active games
+      service.addActiveGame(roomName, false);
+      
+      // First tick - game is running
+      await service['tick']();
+      expect(roomServiceSpy).not.toHaveBeenCalled();
+      
+      // Now set game as over
+      mockGameState.gameOver = true;
+      
+      // Second tick - should detect game ended and call endGame
+      await service['tick']();
+      
+      // Verify endGame was called
+      expect(roomServiceSpy).toHaveBeenCalledWith(roomName);
+      expect(service['activeGames'].has(roomName)).toBe(false);
+      
+      roomServiceSpy.mockRestore();
+      getGameStateSpy.mockRestore();
+    });
+
+    it('should not call endGame twice for same game', async () => {
+      const roomName = 'already-ended-room';
+      
+      const roomServiceSpy = jest.spyOn(service['roomService'], 'endGame').mockResolvedValue(true);
+      
+      // Create a game that's already over
+      const mockGameState = {
+        roomName,
+        players: new Map(),
+        gameOver: true,
+        winner: null,
+        startTime: Date.now(),
+        pieceSequence: [],
+        fastMode: false,
+      };
+      
+      const getGameStateSpy = jest.spyOn(gameService, 'getGameState').mockReturnValue(mockGameState);
+      
+      service.addActiveGame(roomName, false);
+      
+      // First tick should call endGame and remove from active games
+      await service['tick']();
+      expect(roomServiceSpy).toHaveBeenCalledTimes(1);
+      expect(service['activeGames'].has(roomName)).toBe(false);
+      
+      // Second tick should not call endGame again since game is no longer active
+      await service['tick']();
+      expect(roomServiceSpy).toHaveBeenCalledTimes(1);
+      
+      roomServiceSpy.mockRestore();
+      getGameStateSpy.mockRestore();
+    });
   });
 });
