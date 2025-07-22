@@ -251,10 +251,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Broadcast updated game state to all players in room
       const gameState = this.gameService.getGameState(room.name);
       if (gameState) {
-        this.server.to(room.name).emit('game-state-update', {
-          gameState: this.serializeGameState(gameState),
-          players: this.roomService.getRoomPlayers(room.name), // Include updated player stats
-        });
+        this.server.to(room.name).emit('game-state-update', this.serializeGameState(gameState));
 
         // Check if game ended
         if (gameState.gameOver) {
