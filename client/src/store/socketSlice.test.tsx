@@ -752,6 +752,73 @@ describe('socketSlice', () => {
     expect(state.gameOver).toBe(true);
   });
 
+  it('should handle game-ended event with null winner', () => {
+    const store = configureStore({
+      reducer: { socket: socketReducer }
+    });
+
+    // Mock socket with no winner scenario
+    const mockSocket = {
+      on: jest.fn((event, callback) => {
+        if (event === 'game-ended') {
+          callback({
+            winner: null, // No winner (e.g., solo game quit or all players lost)
+            finalState: {
+              roomName: 'room1',
+              players: new Map(),
+              pieceSequence: [],
+              currentPieceIndex: 0,
+              gameOver: true,
+              winner: null,
+              startTime: Date.now()
+            }
+          });
+        }
+      }),
+      emit: jest.fn(),
+      disconnect: jest.fn()
+    };
+
+    (require('socket.io-client').io as jest.Mock).mockReturnValue(mockSocket);
+
+    store.dispatch(connectSocket({ room: 'room1', playerName: 'player1' }));
+    
+    // Check that onGameOver was dispatched (since winner is null)
+    const state = store.getState().socket;
+    expect(state.gameOver).toBe(true);
+    expect(state.gameWon).toBe(false);
+  });
+
+  it('should handle game-ended event with undefined finalState', () => {
+    const store = configureStore({
+      reducer: { socket: socketReducer }
+    });
+
+    // Mock socket with undefined finalState scenario
+    const mockSocket = {
+      on: jest.fn((event, callback) => {
+        if (event === 'game-ended') {
+          callback({
+            winner: 'room1_player2',
+            finalState: undefined // No finalState provided
+          });
+        }
+      }),
+      emit: jest.fn(),
+      disconnect: jest.fn()
+    };
+
+    (require('socket.io-client').io as jest.Mock).mockReturnValue(mockSocket);
+
+    store.dispatch(connectSocket({ room: 'room1', playerName: 'player1' }));
+    
+    // Check that onGameOver was dispatched with empty object fallback
+    const state = store.getState().socket;
+    expect(state.gameOver).toBe(true);
+    expect(state.gameWon).toBe(false);
+    expect(state.gamestate).toEqual({}); // Should fallback to empty object
+  });
+
   it('should handle onGameWon reducer correctly', () => {
     const initialState: SocketState = {
       connected: false,

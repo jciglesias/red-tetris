@@ -547,7 +547,6 @@ curl "http://localhost:3001/health"
 | `"Could not join room. Room may be full, game in progress, or name taken."` | Cannot join room | Try different room or wait for game to end |
 | `"Player not found in any room"` | Player not connected to any room | Join a room first |
 | `"Only host can start the game"` | Non-host tried to start game | Wait for host to start |
-| `"Waiting for more players (X/Y)"` | Not enough players to start game | Wait for more players to join |
 | `"Waiting for all players to be ready (X/Y ready)"` | Not all players are ready | Wait for all players to mark themselves ready |
 | `"Cannot start game. Unknown reason."` | Game start failed for unknown reason | Contact support |
 | `"Game is not currently in progress"` | Game action sent when game not playing | Wait for game to start |

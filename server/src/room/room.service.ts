@@ -145,12 +145,7 @@ export class RoomService {
 
   canStartGame(roomName: string): boolean {
     const room = this.getRoom(roomName);
-    if (!room || room.gameState !== 'waiting' || room.players.size === 0) {
-      return false;
-    }
-
-    // At least 1 player must be in the room
-    if (room.players.size < 1) {
+    if (!room || room.gameState !== 'waiting' || room.players.size < 1) {
       return false;
     }
 

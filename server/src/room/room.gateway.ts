@@ -8,9 +8,10 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { RoomService, Player } from './room.service';
 import { GameService, GameState } from '../game/game.service';
+import { GameLoopService } from '../game/game-loop.service';
 
 interface JoinRoomMessage {
   roomName: string;
@@ -48,7 +49,27 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private roomService: RoomService,
     private gameService: GameService,
-  ) {}
+    @Optional() private gameLoopService?: GameLoopService,
+  ) {
+    // Register this gateway as the game end event emitter
+    // Use setTimeout to ensure all services are fully initialized
+    setTimeout(() => {
+      if (this.gameLoopService && this.gameLoopService.setGameEndEventEmitter) {
+        this.gameLoopService.setGameEndEventEmitter(this);
+      }
+    }, 0);
+  }
+
+  /**
+   * Emit game-ended event to all players in a room
+   * Called by GameLoopService when a game ends naturally
+   */
+  emitGameEnded(roomName: string, winner: string | null, finalState: any) {
+    this.server.to(roomName).emit('game-ended', {
+      winner: winner,
+      finalState: this.serializeGameState(finalState),
+    });
+  }
 
   /**
    * Helper function to serialize GameState for JSON transmission
@@ -193,10 +214,12 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const readyPlayers = connectedPlayers.filter(p => p.isReady);
       
       let message = '';
-      if (connectedPlayers.length < room.maxPlayers) {
-        message = `Waiting for more players (${connectedPlayers.length}/${room.maxPlayers})`;
-      } else if (readyPlayers.length < connectedPlayers.length) {
+      if (readyPlayers.length < connectedPlayers.length) {
         message = `Waiting for all players to be ready (${readyPlayers.length}/${connectedPlayers.length} ready)`;
+      } else if (connectedPlayers.length < room.players.size) {
+        message = `Waiting for all players to connect (${connectedPlayers.length}/${room.players.size} connected)`;
+      } else if (room.gameState !== 'waiting') {
+        message = `Cannot start game. game state: ${room.gameState}.`;
       } else {
         message = 'Cannot start game. Unknown reason.';
       }
