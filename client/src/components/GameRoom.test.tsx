@@ -47,7 +47,9 @@ const defaultState: SocketState = {
   playerId: '',
   gamestate: defaultGameState,
   gameOver: false,
-  gameWon: false
+  gameWon: false,
+  score: 0,
+  level: 1
 };
 
 // Helper function to create complete player state

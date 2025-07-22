@@ -293,6 +293,9 @@ function GameRoom() {
           <p>Connected: {connected ? 'Yes' : 'No'}</p>
           <p>Joined: {joined ? 'Yes' : 'No'}</p>
           <p>Ready: {playerReady ? 'Yes' : 'No'}</p>
+          <p></p>
+          {started && <p>Score: 20</p>}
+          {started && <p>Level: 20</p>}
         </div>
       </div>
       <div className="button-group">

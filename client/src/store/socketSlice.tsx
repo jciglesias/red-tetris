@@ -24,6 +24,8 @@ export interface SocketState {
   gamestate: GameState;
   gameOver: boolean;
   gameWon: boolean;
+  score: number;
+  level: number;
 }
 
 const initialState: SocketState = { 
@@ -40,7 +42,9 @@ const initialState: SocketState = {
   playerId: '',
   gamestate: {} as GameState,
   gameOver: false,
-  gameWon: false
+  gameWon: false,
+  score: 0,
+  level: 0
 };
 
 export const connectSocket = createAsyncThunk(
