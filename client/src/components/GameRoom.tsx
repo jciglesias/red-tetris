@@ -339,23 +339,62 @@ function GameRoom() {
       {joined && !started && (
         <div className="game-container">
             <div className="chat-container">
+              <div className="chat-header">
+                <h3 style={{ 
+                  margin: '0 0 12px 0', 
+                  color: 'white', 
+                  textAlign: 'center',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                  fontSize: '18px',
+                  fontWeight: '600'
+                }}>
+                  💬 Chat Room
+                </h3>
+              </div>
               <ul>
-                {messages.map((message) => (
-                  <li key={message.playerId + '-' + message.timestamp}>
-                    <strong>{message.playerName}:</strong> {message.message}
+                {messages.length === 0 ? (
+                  <li style={{ 
+                    textAlign: 'center', 
+                    fontStyle: 'italic', 
+                    color: '#666',
+                    background: 'linear-gradient(135deg, #f0f2f5 0%, #e4e6ea 100%)',
+                    borderLeft: '4px solid #ddd'
+                  }}>
+                    🎮 Welcome to the chat! Start a conversation while waiting for the game...
                   </li>
-                ))}
+                ) : (
+                  messages.map((message) => (
+                    <li key={message.playerId + '-' + message.timestamp}>
+                      <strong>{message.playerName}:</strong> {message.message}
+                      <span style={{ 
+                        fontSize: '0.75em', 
+                        color: '#888', 
+                        float: 'right',
+                        marginTop: '2px',
+                        opacity: 0.7
+                      }}>
+                        {new Date(message.timestamp).toLocaleTimeString([], { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </span>
+                    </li>
+                  ))
+                )}
               </ul>
+              <form onSubmit={handleMessage}>
+                <input
+                  type="text"
+                  value={messageVar}
+                  onChange={(e) => setMessageVar(e.target.value)}
+                  placeholder="💭 Type your message..."
+                  maxLength={200}
+                />
+                <button type="submit" disabled={!messageVar.trim()}>
+                  🚀 Send
+                </button>
+              </form>
             </div>
-            <form onSubmit={handleMessage}>
-              <input
-                type="text"
-                value={messageVar}
-                onChange={(e) => setMessageVar(e.target.value)}
-                placeholder="Type your message..."
-              />
-              <button type="submit">Send</button>
-            </form>
         </div>
       )}
       <div className="game-container">
