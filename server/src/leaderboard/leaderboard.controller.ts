@@ -8,7 +8,7 @@ export class LeaderboardController {
   @Get('top')
   async getTopScores(@Query('limit') limit?: string) {
     const numLimit = limit ? parseInt(limit, 10) : 10;
-    const validLimit = isNaN(numLimit) ? 10 : numLimit;
+    const validLimit = isNaN(numLimit) || numLimit < 0 ? 10 : numLimit;
     return await this.leaderboardService.getTopScores(validLimit);
   }
 
@@ -33,7 +33,7 @@ export class LeaderboardController {
   @Get('top-winners')
   async getTopWinners(@Query('limit') limit?: string) {
     const numLimit = limit ? parseInt(limit, 10) : 10;
-    const validLimit = isNaN(numLimit) ? 10 : numLimit;
+    const validLimit = isNaN(numLimit) || numLimit < 0 ? 10 : numLimit;
     return await this.leaderboardService.getTopWinners(validLimit);
   }
 }
