@@ -19,7 +19,8 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children }) => {
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
       display: 'flex',
       justifyContent: 'center',
-      alignItems: 'center'
+      alignItems: 'center',
+      zIndex: 9999
     }}>
       <div style={{
         backgroundColor: 'white',

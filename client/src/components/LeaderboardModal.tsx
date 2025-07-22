@@ -8,16 +8,15 @@ const LeaderboardModal = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/leaderboard/top?limit=5');
+      const response = await fetch('http://localhost:3001/api/leaderboard/top?limit=10');
       const data = await response.json();
+      console.log('Fetched leaderboard data:', data); // Debugging line
       setLeaderboardData(data);
       setIsModalOpen(true);
     } catch (error) {
       console.error('Error fetching data:', error);
     }
   };
-
-  fetchData();
 
   return (
     <div>
