@@ -8,13 +8,15 @@ export interface Piece {
 
 export interface PlayerGameState {
   playerId: string;
-  board: number[][]; // 20x10 grid, 0 = empty, 1-7 = piece colors
+  board: number[][];              // 20x10 grid, 0 = empty, 1-7 = piece colors
   currentPiece: Piece | null;
   nextPieces: Piece[];
-  spectrum: number[]; // Height of each column for spectrum view
-  lines: number; // Lines cleared
+  spectrum: number[];             // Height of each column for spectrum view
+  lines: number;                  // Lines cleared
+  score: number;                  // Player's current score
+  level: number;                  // Current level (affects drop speed)
   isAlive: boolean;
-  penalties: number; // Pending penalty lines
+  penalties: number;              // Pending penalty lines
 }
 
 export interface GameState {

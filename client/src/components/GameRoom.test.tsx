@@ -59,6 +59,8 @@ function createPlayerState(overrides?: Partial<PlayerGameState>): PlayerGameStat
     nextPieces: [],
     spectrum: Array(10).fill(0),
     lines: 0,
+    score: 0,
+    level: 1,
     isAlive: true,
     penalties: 0,
     ...overrides
@@ -257,6 +259,8 @@ describe('GameRoom component', () => {
             }],
             spectrum: Array(10).fill(0),
             lines: 0,
+            score: 500,
+            level: 1,
             isAlive: true,
             penalties: 0
           }]
@@ -314,6 +318,8 @@ describe('GameRoom component', () => {
             }],
             spectrum: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             lines: 0,
+            score: 0,
+            level: 1,
             isAlive: true,
             penalties: 0
           }]
@@ -355,6 +361,8 @@ describe('GameRoom component', () => {
             ],
             spectrum: [3, 2, 1, 0, 0, 0, 1, 2, 3, 2],
             lines: 5,
+            score: 2500,
+            level: 2,
             isAlive: true,
             penalties: 2
           }]
@@ -399,6 +407,8 @@ describe('GameRoom component', () => {
               }],
               spectrum: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
               lines: 0,
+              score: 0,
+              level: 1,
               isAlive: true,
               penalties: 0
             }]
@@ -426,6 +436,8 @@ describe('GameRoom component', () => {
             nextPieces: [],
             spectrum: [1, 2, 3, 2, 1, 0, 1, 2, 1, 0],
             lines: 0,
+            score: 0,
+            level: 1,
             isAlive: true,
             penalties: 0
           }],
@@ -436,6 +448,8 @@ describe('GameRoom component', () => {
             nextPieces: [],
             spectrum: [2, 1, 0, 1, 2, 3, 2, 1, 0, 1],
             lines: 3,
+            score: 1500,
+            level: 1,
             isAlive: true,
             penalties: 1
           }]
