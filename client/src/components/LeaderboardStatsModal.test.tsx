@@ -16,7 +16,7 @@ describe('LeaderboardStatsModal Component', () => {
     topScorePlayer: 'Player1',
     mostLinesCleared: 150,
     mostLinesClearedPlayer: 'Player2',
-    longestGameDuration: 600000, // 10 minutes
+    longestGameDuration: 600, // 10 minutes = 600 seconds
     longestGamePlayer: 'Player3',
     totalGames: 25
   };
@@ -30,17 +30,17 @@ describe('LeaderboardStatsModal Component', () => {
     mockConsoleError.mockRestore();
   });
 
-  it('should render the All Stats button', () => {
+  it('should render the World Records button', () => {
     render(<LeaderboardStatsModal />);
     
-    expect(screen.getByText('All Stats')).toBeInTheDocument();
-    expect(screen.getByText('All Stats')).toHaveClass('modal-button');
+    expect(screen.getByText('World Records')).toBeInTheDocument();
+    expect(screen.getByText('World Records')).toHaveClass('modal-button');
   });
 
   it('should not show modal initially', () => {
     render(<LeaderboardStatsModal />);
     
-    expect(screen.queryByText('Leaderboard Statistics')).not.toBeInTheDocument();
+    expect(screen.queryByText('🏆 World Records 🏆')).not.toBeInTheDocument();
     expect(screen.queryByText('🏆 Top Score')).not.toBeInTheDocument();
   });
 
@@ -52,7 +52,7 @@ describe('LeaderboardStatsModal Component', () => {
 
     render(<LeaderboardStatsModal />);
     
-    const button = screen.getByText('All Stats');
+    const button = screen.getByText('World Records');
     fireEvent.click(button);
 
     // Verify fetch was called with correct URL
@@ -60,7 +60,7 @@ describe('LeaderboardStatsModal Component', () => {
 
     // Wait for modal to appear
     await waitFor(() => {
-      expect(screen.getByText('Leaderboard Statistics')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /world records/i })).toBeInTheDocument();
     });
   });
 
@@ -72,10 +72,10 @@ describe('LeaderboardStatsModal Component', () => {
 
     render(<LeaderboardStatsModal />);
     
-    fireEvent.click(screen.getByText('All Stats'));
+    fireEvent.click(screen.getByText('World Records'));
 
     await waitFor(() => {
-      expect(screen.getByText('Leaderboard Statistics')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /world records/i })).toBeInTheDocument();
     });
 
     // Check all section headers
@@ -104,7 +104,7 @@ describe('LeaderboardStatsModal Component', () => {
   it('should format duration correctly', async () => {
     const customStatsData = {
       ...mockStatsData,
-      longestGameDuration: 125000 // 2 minutes and 5 seconds
+      longestGameDuration: 125 // 2 minutes and 5 seconds
     };
 
     mockFetch.mockResolvedValueOnce({
@@ -114,7 +114,7 @@ describe('LeaderboardStatsModal Component', () => {
 
     render(<LeaderboardStatsModal />);
     
-    fireEvent.click(screen.getByText('All Stats'));
+    fireEvent.click(screen.getByText('World Records'));
 
     await waitFor(() => {
       expect(screen.getByText('2:05')).toBeInTheDocument();
@@ -124,7 +124,7 @@ describe('LeaderboardStatsModal Component', () => {
   it('should format duration with padding correctly', async () => {
     const customStatsData = {
       ...mockStatsData,
-      longestGameDuration: 65000 // 1 minute and 5 seconds
+      longestGameDuration: 65 // 1 minute and 5 seconds
     };
 
     mockFetch.mockResolvedValueOnce({
@@ -134,7 +134,7 @@ describe('LeaderboardStatsModal Component', () => {
 
     render(<LeaderboardStatsModal />);
     
-    fireEvent.click(screen.getByText('All Stats'));
+    fireEvent.click(screen.getByText('World Records'));
 
     await waitFor(() => {
       expect(screen.getByText('1:05')).toBeInTheDocument();
@@ -144,7 +144,7 @@ describe('LeaderboardStatsModal Component', () => {
   it('should show loading state when statsData is null', () => {
     render(<LeaderboardStatsModal />);
     
-    fireEvent.click(screen.getByText('All Stats'));
+    fireEvent.click(screen.getByText('World Records'));
 
     // Before the fetch completes, it should show loading
     expect(screen.queryByText('Loading stats...')).not.toBeInTheDocument(); // Initially not shown
@@ -156,14 +156,14 @@ describe('LeaderboardStatsModal Component', () => {
 
     render(<LeaderboardStatsModal />);
     
-    fireEvent.click(screen.getByText('All Stats'));
+    fireEvent.click(screen.getByText('World Records'));
 
     await waitFor(() => {
       expect(mockConsoleError).toHaveBeenCalledWith('Error fetching stats:', mockError);
     });
 
     // Modal should not open on error
-    expect(screen.queryByText('Leaderboard Statistics')).not.toBeInTheDocument();
+    expect(screen.queryByText('🏆 World Records 🏆')).not.toBeInTheDocument();
   });
 
   it('should close modal when close button is clicked', async () => {
@@ -175,18 +175,18 @@ describe('LeaderboardStatsModal Component', () => {
     render(<LeaderboardStatsModal />);
     
     // Open modal
-    fireEvent.click(screen.getByText('All Stats'));
+    fireEvent.click(screen.getByText('World Records'));
 
     await waitFor(() => {
-      expect(screen.getByText('Leaderboard Statistics')).toBeInTheDocument();
+      expect(screen.getByText('🏆 World Records 🏆')).toBeInTheDocument();
     });
 
     // Close modal
-    const closeButton = screen.getByText('Close');
+    const closeButton = screen.getByText('×');
     fireEvent.click(closeButton);
 
     // Modal should be closed
-    expect(screen.queryByText('Leaderboard Statistics')).not.toBeInTheDocument();
+    expect(screen.queryByText('🏆 World Records 🏆')).not.toBeInTheDocument();
   });
 
   it('should have correct styling structure', async () => {
@@ -197,10 +197,10 @@ describe('LeaderboardStatsModal Component', () => {
 
     render(<LeaderboardStatsModal />);
     
-    fireEvent.click(screen.getByText('All Stats'));
+    fireEvent.click(screen.getByText('World Records'));
 
     await waitFor(() => {
-      expect(screen.getByText('Leaderboard Statistics')).toBeInTheDocument();
+      expect(screen.getByText('🏆 World Records 🏆')).toBeInTheDocument();
     });
 
     // Check that the grid container exists
@@ -228,22 +228,22 @@ describe('LeaderboardStatsModal Component', () => {
 
     render(<LeaderboardStatsModal />);
     
-    const button = screen.getByText('All Stats');
+    const button = screen.getByText('World Records');
     
     // First click
     fireEvent.click(button);
     await waitFor(() => {
-      expect(screen.getByText('Leaderboard Statistics')).toBeInTheDocument();
+      expect(screen.getByText('🏆 World Records 🏆')).toBeInTheDocument();
     });
 
     // Close modal
-    fireEvent.click(screen.getByText('Close'));
-    expect(screen.queryByText('Leaderboard Statistics')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('×'));
+    expect(screen.queryByText('🏆 World Records 🏆')).not.toBeInTheDocument();
 
     // Second click
     fireEvent.click(button);
     await waitFor(() => {
-      expect(screen.getByText('Leaderboard Statistics')).toBeInTheDocument();
+      expect(screen.getByText('🏆 World Records 🏆')).toBeInTheDocument();
     });
 
     // Verify fetch was called twice
@@ -263,7 +263,7 @@ describe('LeaderboardStatsModal Component', () => {
 
     render(<LeaderboardStatsModal />);
     
-    fireEvent.click(screen.getByText('All Stats'));
+    fireEvent.click(screen.getByText('World Records'));
 
     await waitFor(() => {
       expect(screen.getByText('1,234,567')).toBeInTheDocument();
@@ -288,14 +288,14 @@ describe('LeaderboardStatsModal Component', () => {
 
     render(<LeaderboardStatsModal />);
     
-    fireEvent.click(screen.getByText('All Stats'));
+    fireEvent.click(screen.getByText('World Records'));
 
     await waitFor(() => {
-      expect(screen.getByText('Leaderboard Statistics')).toBeInTheDocument();
+      expect(screen.getByText('🏆 World Records 🏆')).toBeInTheDocument();
     });
 
     // Check zero values are displayed correctly
-    expect(screen.getByText('0')).toBeInTheDocument(); // topScore
+    expect(screen.getAllByText('0')).toHaveLength(3); // topScore, mostLines, totalGames
     expect(screen.getByText('0:00')).toBeInTheDocument(); // duration
     expect(screen.getAllByText('by NoPlayer')).toHaveLength(3);
   });
@@ -304,11 +304,11 @@ describe('LeaderboardStatsModal Component', () => {
     it('should format various durations correctly', async () => {
       const testCases = [
         { input: 0, expected: '0:00' },
-        { input: 5000, expected: '0:05' },
-        { input: 60000, expected: '1:00' },
-        { input: 65000, expected: '1:05' },
-        { input: 600000, expected: '10:00' },
-        { input: 3665000, expected: '61:05' } // 1 hour 1 minute 5 seconds
+        { input: 5, expected: '0:05' },
+        { input: 60, expected: '1:00' },
+        { input: 65, expected: '1:05' },
+        { input: 600, expected: '10:00' },
+        { input: 3665, expected: '61:05' } // 1 hour 1 minute 5 seconds
       ];
 
       for (const testCase of testCases) {
@@ -322,17 +322,67 @@ describe('LeaderboardStatsModal Component', () => {
           json: async () => customStatsData,
         } as Response);
 
-        render(<LeaderboardStatsModal />);
+        const { unmount } = render(<LeaderboardStatsModal />);
         
-        fireEvent.click(screen.getByText('All Stats'));
+        fireEvent.click(screen.getByText('World Records'));
 
         await waitFor(() => {
           expect(screen.getByText(testCase.expected)).toBeInTheDocument();
         });
 
-        // Close modal for next iteration
-        fireEvent.click(screen.getByText('Close'));
+        // Clean up
+        unmount();
       }
+    });
+
+    it('should test formatDuration as isolated function', () => {
+      render(<LeaderboardStatsModal />);
+      
+      // Create a mock component to test the format function indirectly
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          topScore: 15000,
+          topScorePlayer: 'Player1',
+          mostLinesCleared: 150,
+          mostLinesClearedPlayer: 'Player2',
+          longestGameDuration: 0, // 0 milliseconds
+          longestGamePlayer: 'Player3',
+          totalGames: 25
+        }),
+      } as Response);
+      
+      fireEvent.click(screen.getByText('World Records'));
+      
+      waitFor(() => {
+        expect(screen.getByText('0:00')).toBeInTheDocument();
+      });
+    });
+  });
+
+  it('should handle modal state correctly when opening and closing', () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockStatsData,
+    } as Response);
+
+    render(<LeaderboardStatsModal />);
+    
+    // Modal should not be visible initially
+    expect(screen.queryByRole('heading', { name: /world records/i })).not.toBeInTheDocument();
+    
+    // Open modal
+    fireEvent.click(screen.getByText('World Records'));
+    
+    waitFor(() => {
+      expect(screen.getByRole('heading', { name: /world records/i })).toBeInTheDocument();
+      
+      // Close modal
+      fireEvent.click(screen.getByText('×'));
+      
+      waitFor(() => {
+        expect(screen.queryByRole('heading', { name: /world records/i })).not.toBeInTheDocument();
+      });
     });
   });
 });

@@ -19,7 +19,7 @@ describe('Modal Component', () => {
     );
 
     expect(screen.queryByText('Test Modal Content')).not.toBeInTheDocument();
-    expect(screen.queryByText('Close')).not.toBeInTheDocument();
+    expect(screen.queryByText('×')).not.toBeInTheDocument();
   });
 
   it('should render when isOpen is true', () => {
@@ -30,7 +30,7 @@ describe('Modal Component', () => {
     );
 
     expect(screen.getByText('Test Modal Content')).toBeInTheDocument();
-    expect(screen.getByText('Close')).toBeInTheDocument();
+    expect(screen.getByText('×')).toBeInTheDocument();
   });
 
   it('should render children content correctly', () => {
@@ -60,7 +60,7 @@ describe('Modal Component', () => {
       </Modal>
     );
 
-    const closeButton = screen.getByText('Close');
+    const closeButton = screen.getByText('×');
     fireEvent.click(closeButton);
 
     expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -74,7 +74,8 @@ describe('Modal Component', () => {
     );
 
     // Check if the backdrop exists
-    const backdrop = screen.getByText('Test Modal Content').closest('div')?.parentElement;
+    const modalContent = screen.getByText('Test Modal Content').parentElement;
+    const backdrop = modalContent?.parentElement;
     expect(backdrop).toHaveStyle({
       position: 'fixed',
       top: '0',
@@ -89,7 +90,6 @@ describe('Modal Component', () => {
     });
 
     // Check if the modal content container exists
-    const modalContent = screen.getByText('Test Modal Content').closest('div');
     expect(modalContent).toHaveStyle({
       backgroundColor: 'white',
       padding: '20px',
@@ -132,7 +132,7 @@ describe('Modal Component', () => {
       </Modal>
     );
 
-    expect(screen.getByText('Close')).toBeInTheDocument();
+    expect(screen.getByText('×')).toBeInTheDocument();
   });
 
   it('should handle different onClose functions', () => {
@@ -145,7 +145,7 @@ describe('Modal Component', () => {
       </Modal>
     );
 
-    fireEvent.click(screen.getByText('Close'));
+    fireEvent.click(screen.getByText('×'));
     expect(firstOnClose).toHaveBeenCalledTimes(1);
     expect(secondOnClose).not.toHaveBeenCalled();
 
@@ -155,8 +155,53 @@ describe('Modal Component', () => {
       </Modal>
     );
 
-    fireEvent.click(screen.getByText('Close'));
+    fireEvent.click(screen.getByText('×'));
     expect(firstOnClose).toHaveBeenCalledTimes(1);
     expect(secondOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('should handle close button hover effects', () => {
+    const mockOnClose = jest.fn();
+    
+    render(
+      <Modal isOpen={true} onClose={mockOnClose}>
+        <div>Test Modal</div>
+      </Modal>
+    );
+    
+    const closeButton = screen.getByText('×');
+    
+    // Test hover enter
+    fireEvent.mouseEnter(closeButton);
+    
+    // Check if style changes (hover effects applied)
+    expect(closeButton).toHaveStyle('background: #d32f2f');
+    expect(closeButton).toHaveStyle('transform: scale(1.1)');
+    
+    // Test hover leave  
+    fireEvent.mouseLeave(closeButton);
+    
+    // Check if style reverts
+    expect(closeButton).toHaveStyle('background: #f44336');
+    expect(closeButton).toHaveStyle('transform: scale(1)');
+  });
+
+  it('should handle overlay click to close modal', () => {
+    const mockOnClose = jest.fn();
+    
+    render(
+      <Modal isOpen={true} onClose={mockOnClose}>
+        <div>Test Modal</div>
+      </Modal>
+    );
+    
+    // Click on the overlay (not the modal content)
+    const overlay = screen.getByText('Test Modal').parentElement?.parentElement;
+    if (overlay) {
+      fireEvent.click(overlay);
+    }
+    
+    // Modal should not close by clicking content area, only close button should work
+    expect(mockOnClose).not.toHaveBeenCalled();
   });
 });

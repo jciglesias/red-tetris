@@ -98,7 +98,9 @@ export const connectSocket = createAsyncThunk(
       console.log('Game started: ' + JSON.stringify(data, null, 2));
       const playersMap = data.gameState.players as Record<string, any>;
       const keys = Object.keys(playersMap).filter(k => k !== `${payload.room}_${payload.playerName}`);
-      dispatch(onStartGameSuccess(keys));
+      // Extract player names from the full keys
+      const playerNames = keys.map(k => k.split('_')[1]);
+      dispatch(onStartGameSuccess(playerNames));
       dispatch(onUpdateData(data.gameState));
     });
 
@@ -108,7 +110,7 @@ export const connectSocket = createAsyncThunk(
         const key = `${payload.room}_${payload.playerName}`;
         const playerState = (data.players as Record<string, any>)[key];
         //console.log('Game state update: ' + JSON.stringify(playerState, null, 2));
-        if (playerState.isAlive && playerState.isAlive === false) {
+        if (playerState && playerState.isAlive && playerState.isAlive === false) {
             dispatch(onGameOver(data));
         }
         if (data.winner && data.winner === key) {
@@ -124,7 +126,7 @@ export const connectSocket = createAsyncThunk(
         const key = `${payload.room}_${payload.playerName}`;
         const playerState = (data.gameState.players as Record<string, any>)[key];
         //console.log('Game state update: ' + JSON.stringify(playerState, null, 2));
-        if (playerState.isAlive && playerState.isAlive === false) {
+        if (playerState && playerState.isAlive && playerState.isAlive === false) {
           dispatch(onGameOver(data.gameState));
         }
         if (data.gameState.winner && data.gameState.winner === key) {
@@ -254,10 +256,10 @@ const socketSlice = createSlice({
       state.started = true;
       state.isError = false;
       state.contentError = '';
-      if (action.payload[0]) state.opponent1 = action.payload[0].split('_')[1];
-      if (action.payload[1]) state.opponent2 = action.payload[1].split('_')[1];
-      if (action.payload[2]) state.opponent3 = action.payload[2].split('_')[1];
-      if (action.payload[3]) state.opponent4 = action.payload[3].split('_')[1];
+      if (action.payload[0]) state.opponent1 = action.payload[0];
+      if (action.payload[1]) state.opponent2 = action.payload[1];
+      if (action.payload[2]) state.opponent3 = action.payload[2];
+      if (action.payload[3]) state.opponent4 = action.payload[3];
     },
     onUpdateData(state, action) {
       state.gamestate = action.payload;

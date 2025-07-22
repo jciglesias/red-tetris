@@ -17,8 +17,8 @@ const LeaderboardStatsModal = () => {
     }
   };
 
-  const formatDuration = (milliseconds: number) => {
-    const seconds = Math.floor(milliseconds);
+  const formatDuration = (second: number) => {
+    const seconds = Math.floor(second);
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;

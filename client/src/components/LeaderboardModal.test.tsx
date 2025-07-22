@@ -86,7 +86,7 @@ describe('LeaderboardModal Component', () => {
 
     // Wait for modal to appear
     await waitFor(() => {
-      expect(screen.getByText('Leaderboard')).toBeInTheDocument();
+      expect(screen.getByText("🏆 Top 10 All Time 🏆")).toBeInTheDocument();
     });
 
     // Verify console.log was called
@@ -104,21 +104,21 @@ describe('LeaderboardModal Component', () => {
     fireEvent.click(screen.getByText('Best Scores'));
 
     await waitFor(() => {
-      expect(screen.getByText('Leaderboard')).toBeInTheDocument();
+      expect(screen.getByText("🏆 Top 10 All Time 🏆")).toBeInTheDocument();
     });
 
     // Check table headers
-    expect(screen.getByText('ID')).toBeInTheDocument();
-    expect(screen.getByText('Player Name')).toBeInTheDocument();
-    expect(screen.getByText('Score')).toBeInTheDocument();
+    expect(screen.getByText('🏅 Rank')).toBeInTheDocument();
+    expect(screen.getByText('👤 Player')).toBeInTheDocument();
+    expect(screen.getByText('💰 Score')).toBeInTheDocument();
 
     // Check table data
     expect(screen.getByText('Player1')).toBeInTheDocument();
-    expect(screen.getByText('15000')).toBeInTheDocument();
+    expect(screen.getByText('15,000')).toBeInTheDocument(); // formatted with commas
     expect(screen.getByText('Player2')).toBeInTheDocument();
-    expect(screen.getByText('12000')).toBeInTheDocument();
+    expect(screen.getByText('12,000')).toBeInTheDocument(); // formatted with commas
     expect(screen.getByText('Player3')).toBeInTheDocument();
-    expect(screen.getByText('8000')).toBeInTheDocument();
+    expect(screen.getByText('8,000')).toBeInTheDocument(); // formatted with commas
 
     // Verify all rows are present (3 data rows + 1 header row)
     const rows = screen.getAllByRole('row');
@@ -152,17 +152,20 @@ describe('LeaderboardModal Component', () => {
     fireEvent.click(screen.getByText('Best Scores'));
 
     await waitFor(() => {
-      expect(screen.getByText('Leaderboard')).toBeInTheDocument();
+      expect(screen.getByText("🏆 Top 10 All Time 🏆")).toBeInTheDocument();
     });
 
-    // Should show headers but no data rows
-    expect(screen.getByText('ID')).toBeInTheDocument();
-    expect(screen.getByText('Player Name')).toBeInTheDocument();
-    expect(screen.getByText('Score')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('📊 No leaderboard data available')).toBeInTheDocument();
+    });
 
-    // Only header row should be present
-    const rows = screen.getAllByRole('row');
-    expect(rows).toHaveLength(1);
+    // Should not show headers when there's no data
+    expect(screen.queryByText('🏅 Rank')).not.toBeInTheDocument();
+    expect(screen.queryByText('👤 Player')).not.toBeInTheDocument();
+    expect(screen.queryByText('💰 Score')).not.toBeInTheDocument();
+
+    // No table should be present
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
   it('should close modal when close button is clicked', async () => {
@@ -177,11 +180,11 @@ describe('LeaderboardModal Component', () => {
     fireEvent.click(screen.getByText('Best Scores'));
 
     await waitFor(() => {
-      expect(screen.getByText('Leaderboard')).toBeInTheDocument();
+      expect(screen.getByText("🏆 Top 10 All Time 🏆")).toBeInTheDocument();
     });
 
     // Close modal
-    const closeButton = screen.getByText('Close');
+    const closeButton = screen.getByText('×');
     fireEvent.click(closeButton);
 
     // Modal should be closed
@@ -201,17 +204,17 @@ describe('LeaderboardModal Component', () => {
     // First click
     fireEvent.click(button);
     await waitFor(() => {
-      expect(screen.getByText('Leaderboard')).toBeInTheDocument();
+      expect(screen.getByText("🏆 Top 10 All Time 🏆")).toBeInTheDocument();
     });
 
     // Close modal
-    fireEvent.click(screen.getByText('Close'));
+    fireEvent.click(screen.getByText('×'));
     expect(screen.queryByText('Leaderboard')).not.toBeInTheDocument();
 
     // Second click
     fireEvent.click(button);
     await waitFor(() => {
-      expect(screen.getByText('Leaderboard')).toBeInTheDocument();
+      expect(screen.getByText("🏆 Top 10 All Time 🏆")).toBeInTheDocument();
     });
 
     // Verify fetch was called twice
@@ -229,14 +232,14 @@ describe('LeaderboardModal Component', () => {
     fireEvent.click(screen.getByText('Best Scores'));
 
     await waitFor(() => {
-      expect(screen.getByText('Leaderboard')).toBeInTheDocument();
+      expect(screen.getByText("🏆 Top 10 All Time 🏆")).toBeInTheDocument();
     });
 
     // Check if table structure is correct
     const table = screen.getByRole('table');
     expect(table).toBeInTheDocument();
 
-    const thead = screen.getByText('ID').closest('thead');
+    const thead = screen.getByText('🏅 Rank').closest('thead');
     const tbody = screen.getByText('Player1').closest('tbody');
     
     expect(thead).toBeInTheDocument();
@@ -246,6 +249,7 @@ describe('LeaderboardModal Component', () => {
     const player1Row = screen.getByText('Player1').closest('tr');
     expect(player1Row).toContainHTML('<td>1</td>');
     expect(player1Row).toContainHTML('<td>Player1</td>');
-    expect(player1Row).toContainHTML('<td>15000</td>');
+    expect(player1Row).toContainHTML('<td>15,000</td>'); // formatted with commas
   });
+
 });
