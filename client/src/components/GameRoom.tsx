@@ -59,21 +59,25 @@ function GameRoom() {
             event.preventDefault();
             dispatch(gameAction({action: 'soft-drop'}));
             break;
-        case 'End':
+        case ' ':
             event.preventDefault();
             dispatch(gameAction({action: 'hard-drop'}));
             break;
-        case 'Delete':
+        case 's':
             event.preventDefault();
             dispatch(gameAction({action: 'skip-piece'}));
             break;
       }
     };
-    document.addEventListener('keydown', handleKey);
+    if (started) {
+      document.addEventListener('keydown', handleKey);
+    } else {
+      document.removeEventListener('keydown', handleKey);
+    }
     return () => {
       document.removeEventListener('keydown', handleKey);
     };
-  }, [dispatch]);
+  }, [dispatch, started]);
 
 
   useEffect(() => {
