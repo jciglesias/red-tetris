@@ -9,6 +9,12 @@ interface ConnectPayload {
   playerName: string;
 }
 
+interface ReconnectPayload {
+  room: string;
+  playerName: string;
+  reconnectionToken?: string;
+}
+
 export interface SocketState {
   connected: boolean;
   joined: boolean;
@@ -27,6 +33,7 @@ export interface SocketState {
   score: number;
   level: number;
   messages: ChatMessage[];
+  reconnectionToken: string;
 }
 
 const initialState: SocketState = { 
@@ -46,8 +53,64 @@ const initialState: SocketState = {
   gameWon: false,
   score: 0,
   level: 0,
-  messages: []
+  messages: [],
+  reconnectionToken: ''
 };
+
+// Fonction utilitaire pour sauvegarder le token de reconnexion
+const saveReconnectionToken = (room: string, playerName: string, token: string) => {
+  localStorage.setItem('redtetris_reconnection_token', token);
+  localStorage.setItem('redtetris_room', room);
+  localStorage.setItem('redtetris_player', playerName);
+};
+
+// Fonction utilitaire pour récupérer le token de reconnexion
+const getReconnectionData = () => {
+  const token = localStorage.getItem('redtetris_reconnection_token');
+  const room = localStorage.getItem('redtetris_room');
+  const player = localStorage.getItem('redtetris_player');
+  return { token, room, player };
+};
+
+// Fonction utilitaire pour nettoyer le token de reconnexion
+const clearReconnectionData = () => {
+  localStorage.removeItem('redtetris_reconnection_token');
+  localStorage.removeItem('redtetris_room');
+  localStorage.removeItem('redtetris_player');
+};
+
+export const requestReconnection = createAsyncThunk(
+  'socket/requestReconnection',
+  async (payload: ReconnectPayload, { dispatch }) => {
+    if (!socket) {
+      socket = io("http://localhost:3001");
+    }
+
+    socket.emit('request-reconnection', {
+      roomName: payload.room,
+      playerName: payload.playerName,
+      reconnectionToken: payload.reconnectionToken
+    });
+
+    // Gérer les événements de reconnexion
+    socket.on('reconnection-success', (data) => {
+      console.log('Reconnection success: ' + JSON.stringify(data, null, 2));
+      dispatch(onReconnectionSuccess(data));
+      if (data.reconnectionToken) {
+        saveReconnectionToken(payload.room, payload.playerName, data.reconnectionToken);
+      }
+    });
+
+    socket.on('reconnection-error', (data) => {
+      console.log('Reconnection error: ' + JSON.stringify(data, null, 2));
+      const message = typeof data === 'object' && data !== null && 'message' in data
+        ? (data as any).message
+        : String(data);
+      dispatch(onReconnectionError(message));
+      clearReconnectionData();
+    });
+  }
+);
 
 export const connectSocket = createAsyncThunk(
   'socket/connect',
@@ -57,6 +120,17 @@ export const connectSocket = createAsyncThunk(
     }
 
     socket = io("http://localhost:3001");
+
+    // Tenter une reconnexion automatique si des données existent
+    const reconnectionData = getReconnectionData();
+    if (reconnectionData.token && reconnectionData.room === payload.room && reconnectionData.player === payload.playerName) {
+      console.log('Attempting automatic reconnection...');
+      dispatch(requestReconnection({
+        room: payload.room,
+        playerName: payload.playerName,
+        reconnectionToken: reconnectionData.token
+      }));
+    }
 
     socket.on('connect', () => {
       dispatch(onConnect(payload));
@@ -69,6 +143,11 @@ export const connectSocket = createAsyncThunk(
     socket.on('join-room-success', (data) => {
       console.log('Join room success: ' + JSON.stringify(data, null, 2));
       dispatch(onJoinRoomSuccess());
+      // Sauvegarder le token de reconnexion si fourni
+      if (data.reconnectionToken) {
+        saveReconnectionToken(payload.room, payload.playerName, data.reconnectionToken);
+        dispatch(setReconnectionToken(data.reconnectionToken));
+      }
     });
 
     socket.on('join-room-error', (data) => {
@@ -207,7 +286,6 @@ export const gameAction = createAsyncThunk<void, { action: string }>(
   }
 );
 
-
 export const sendMessage = createAsyncThunk<void, { message: string }>(
   'socket/sendMessage',
   async ({ message }) => {
@@ -242,6 +320,8 @@ export const disconnectSocket = createAsyncThunk(
       socket.disconnect();
       socket = null;
       dispatch(onDisconnect());
+      // Nettoyer les données de reconnexion lors de la déconnexion manuelle
+      clearReconnectionData();
     }
   }
 );
@@ -320,8 +400,45 @@ const socketSlice = createSlice({
     addMessages(state, action) {
       state.messages = [...state.messages, ...action.payload]
     },
+    setReconnectionToken(state, action) {
+      state.reconnectionToken = action.payload;
+    },
+    onReconnectionSuccess(state, action) {
+      state.connected = true;
+      state.joined = true;
+      state.isError = false;
+      state.contentError = '';
+      if (action.payload.reconnectionToken) {
+        state.reconnectionToken = action.payload.reconnectionToken;
+      }
+      // Restaurer l'état du jeu si fourni
+      if (action.payload.gameState) {
+        state.gamestate = action.payload.gameState;
+        state.started = action.payload.gameState.started || false;
+        state.gameOver = action.payload.gameState.gameOver || false;
+        state.gameWon = action.payload.gameState.gameWon || false;
+        if (action.payload.opponents) {
+          state.opponent1 = action.payload.opponents[0] || '';
+          state.opponent2 = action.payload.opponents[1] || '';
+          state.opponent3 = action.payload.opponents[2] || '';
+          state.opponent4 = action.payload.opponents[3] || '';
+        }
+        if (action.payload.score !== undefined) state.score = action.payload.score;
+        if (action.payload.level !== undefined) state.level = action.payload.level;
+      }
+      if (action.payload.player) {
+        state.playerReady = action.payload.player.isReady || false;
+        state.score = action.payload.player.score || false;
+        state.level = action.payload.player.level || false;
+      }
+    },
+    onReconnectionError(state, action) {
+      state.isError = true;
+      state.contentError = `Reconnection failed: ${action.payload}`;
+      state.reconnectionToken = '';
+    },
   },
 });
 
-export const { onConnect, onDisconnect, onJoinRoomSuccess, onJoinRoomError, onSetReadySuccess, onStartGameSuccess, onUpdateData, onUpdatedData, onGameOver, onGameWon, onScoreUpdate, onError, addMessage, addMessages } = socketSlice.actions;
+export const { onConnect, onDisconnect, onJoinRoomSuccess, onJoinRoomError, onSetReadySuccess, onStartGameSuccess, onUpdateData, onUpdatedData, onGameOver, onGameWon, onScoreUpdate, onError, addMessage, addMessages, setReconnectionToken, onReconnectionSuccess, onReconnectionError } = socketSlice.actions;
 export default socketSlice.reducer;

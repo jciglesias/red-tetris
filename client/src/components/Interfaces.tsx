@@ -6,6 +6,20 @@ export interface Piece {
   shape: number[][];
 }
 
+interface Player {
+  id: string;           // Format: "roomName_playerName"
+  name: string;
+  socketId: string;
+  isHost: boolean;
+  isReady: boolean;
+  isConnected: boolean;
+  lastSeen: Date;
+  reconnectionToken: string;
+  score: number;        // Live player score (updated during gameplay)
+  level: number;        // Current game level
+  linesCleared: number; // Lines cleared so far
+}
+
 export interface PlayerGameState {
   playerId: string;
   board: number[][];              // 20x10 grid, 0 = empty, 1-7 = piece colors
@@ -35,7 +49,7 @@ export interface LeaderboardEntry {
   score: number;
   linesCleared: number;
   level: number;
-  gameDuration: number; // in milliseconds
+  gameDuration: number;
   roomName?: string;
   createdAt: Date;
 }

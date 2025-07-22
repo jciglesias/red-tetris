@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { connectSocket, disconnectSocket, joinRoom, readyPlayer, startGame, gameAction, getRoomInfo, relaunchGame, sendMessage } from '../store/socketSlice';
+import { connectSocket, disconnectSocket, joinRoom, readyPlayer, startGame, gameAction, getRoomInfo, relaunchGame, sendMessage, requestReconnection } from '../store/socketSlice';
 import { RootState, AppDispatch } from '../store';
 import './GameRoom.css';
 import LeaderboardModal from './LeaderboardModal';
@@ -27,6 +27,7 @@ function GameRoom() {
   const gamestate = useSelector((state: RootState) => state.socket.gamestate);
   const score = useSelector((state: RootState) => state.socket.score);
   const level = useSelector((state: RootState) => state.socket.level);
+  const reconnectionToken = useSelector((state: RootState) => state.socket.reconnectionToken);
   const boardRef = useRef<HTMLDivElement>(null);
   const nextRef = useRef<HTMLDivElement>(null);
   const board1Ref = useRef<HTMLDivElement>(null);
@@ -246,6 +247,18 @@ function GameRoom() {
     }
     console.log('send-message');
   }
+
+  function handleReconnect() {
+    if (roomName && playerName) {
+      const storedToken = localStorage.getItem('redtetris_reconnection_token');
+      dispatch(requestReconnection({
+        room: roomName,
+        playerName: playerName,
+        reconnectionToken: storedToken || reconnectionToken ||undefined
+      }));
+    }
+    console.log('request-reconnection');
+  }
     
   function initializeNextPiece() {
     const nextPiece = nextRef.current;
@@ -328,6 +341,7 @@ function GameRoom() {
         </div>
       </div>
       <div className="button-group">
+        {!connected && !joined && <button onClick={handleReconnect}>Reconnect</button>}
         {!joined && !gameOver && !gameWon && <button onClick={handleJoin}>Join Room</button>}
         {joined && !playerReady && <button onClick={handleReady}>Set Ready</button>}
         {playerReady && !started && <button onClick={handleStart}>Start Game</button>}

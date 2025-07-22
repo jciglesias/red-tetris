@@ -778,7 +778,8 @@ describe('socketSlice', () => {
       gameWon: false,
       score: 0,
       level: 1,
-      messages: []
+      messages: [],
+      reconnectionToken: ''
     };
 
     const finalGameState = {
@@ -827,7 +828,8 @@ describe('socketSlice', () => {
       gameWon: false,
       score: 0,
       level: 1,
-      messages: []
+      messages: [],
+      reconnectionToken: ''
     };
 
     const finalGameState = {
@@ -877,7 +879,8 @@ describe('socketSlice', () => {
       gameWon: false,
       score: 0,
       level: 1,
-      messages: []
+      messages: [],
+      reconnectionToken: ''
     };
 
     const gameState = {
@@ -934,7 +937,8 @@ describe('socketSlice', () => {
       gameWon: false,
       score: 0,
       level: 1,
-      messages: []
+      messages: [],
+      reconnectionToken: ''
     };
 
     const gameState = {

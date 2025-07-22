@@ -50,7 +50,8 @@ const defaultState: SocketState = {
   gameWon: false,
   score: 0,
   level: 1,
-  messages: []
+  messages: [],
+  reconnectionToken: ''
 };
 
 // Helper function to create complete player state
