@@ -606,5 +606,67 @@ describe('GameService', () => {
         expect(player.currentPiece.x).toBe(4);
       }
     });
+
+    it('should ensure all players get the same piece sequence', () => {
+      const roomName = 'test-room';
+      const playerIds = ['player1', 'player2', 'player3'];
+
+      const gameState = service.createGame(roomName, playerIds);
+      
+      // All players should start with the same piece sequence
+      const player1 = gameState.players.get('player1');
+      const player2 = gameState.players.get('player2');
+      const player3 = gameState.players.get('player3');
+
+      expect(player1?.currentPiece?.type).toBe(player2?.currentPiece?.type);
+      expect(player1?.currentPiece?.type).toBe(player3?.currentPiece?.type);
+      
+      // Next pieces should also match
+      for (let i = 0; i < 5; i++) {
+        expect(player1?.nextPieces[i]?.type).toBe(player2?.nextPieces[i]?.type);
+        expect(player1?.nextPieces[i]?.type).toBe(player3?.nextPieces[i]?.type);
+      }
+    });
+
+    it('should maintain piece sequence synchronization when players advance independently', () => {
+      const roomName = 'test-room';
+      const playerIds = ['player1', 'player2'];
+
+      const gameState = service.createGame(roomName, playerIds);
+      const player1 = gameState.players.get('player1');
+      const player2 = gameState.players.get('player2');
+
+      // Store initial piece types
+      const initialPiece1 = player1?.currentPiece?.type;
+      const initialPiece2 = player2?.currentPiece?.type;
+      const initialNext1 = player1?.nextPieces[0]?.type;
+      const initialNext2 = player2?.nextPieces[0]?.type;
+
+      expect(initialPiece1).toBe(initialPiece2);
+      expect(initialNext1).toBe(initialNext2);
+
+      // Simulate player1 locking a piece (hard drop)
+      service.processPlayerAction(roomName, 'player1', 'hard-drop');
+
+      // Player1 should get the next piece, player2 should still have the same current piece
+      const afterDrop1 = gameState.players.get('player1');
+      const afterDrop2 = gameState.players.get('player2');
+
+      expect(afterDrop1?.currentPiece?.type).toBe(initialNext1); // Player1 advanced
+      expect(afterDrop2?.currentPiece?.type).toBe(initialPiece2); // Player2 unchanged
+
+      // When player2 eventually drops, they should get the same next piece sequence
+      service.processPlayerAction(roomName, 'player2', 'hard-drop');
+
+      const afterBothDrop1 = gameState.players.get('player1');
+      const afterBothDrop2 = gameState.players.get('player2');
+
+      expect(afterBothDrop2?.currentPiece?.type).toBe(initialNext2); // Player2 got their next piece
+      
+      // Both players should now have the same next piece sequence again
+      for (let i = 0; i < 5; i++) {
+        expect(afterBothDrop1?.nextPieces[i]?.type).toBe(afterBothDrop2?.nextPieces[i]?.type);
+      }
+    });
   });
 });

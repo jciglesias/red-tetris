@@ -16,17 +16,18 @@ export interface PlayerGameState {
   spectrum: number[]; // Height of each column for spectrum view
   lines: number; // Lines cleared
   isAlive: boolean;
-  penalties: number; // Pending penalty lines
+  penalties: number;
+  pieceIndex: number; // Individual piece index for this player
 }
 
 export interface GameState {
   roomName: string;
   players: Map<string, PlayerGameState>;
   pieceSequence: Piece[];
-  currentPieceIndex: number;
   gameOver: boolean;
   winner: string | null;
   startTime: number;
+  fastMode: boolean; // Add fast mode to game state
 }
 
 // Tetris piece definitions following original game rules
@@ -75,7 +76,7 @@ export class GameService {
 
   constructor() {}
 
-  createGame(roomName: string, playerIds: string[]): GameState {
+  createGame(roomName: string, playerIds: string[], fastMode: boolean = false): GameState {
     // Generate a sequence of pieces for the game
     const pieceSequence = this.generatePieceSequence(1000); // Generate 1000 pieces
     
@@ -92,6 +93,7 @@ export class GameService {
         lines: 0,
         isAlive: true,
         penalties: 0,
+        pieceIndex: 0, // Each player starts at the beginning of the sequence
       });
     });
 
@@ -99,10 +101,10 @@ export class GameService {
       roomName,
       players,
       pieceSequence,
-      currentPieceIndex: 0,
       gameOver: false,
       winner: null,
       startTime: Date.now(),
+      fastMode, // Store the fast mode setting in game state
     };
 
     this.games.set(roomName, gameState);
@@ -176,7 +178,7 @@ export class GameService {
   }
 
   // Game tick - called periodically to advance game state
-  tick(roomName: string): boolean {
+  tick(roomName: string, fastMode: boolean = false): boolean {
     const game = this.games.get(roomName);
     if (!game || game.gameOver) {
       return false;
@@ -188,11 +190,17 @@ export class GameService {
     for (const player of game.players.values()) {
       if (!player.isAlive || !player.currentPiece) continue;
 
-      // Try to move piece down
-      if (!this.movePieceDown(player)) {
-        // Piece can't move down, lock it and get next piece
-        this.lockPiece(game, player);
-        gameChanged = true;
+      // In fast mode, move pieces down much faster per tick
+      const movesPerTick = fastMode ? 4 : 1; // 4x faster instead of 2x
+      
+      for (let i = 0; i < movesPerTick; i++) {
+        // Try to move piece down
+        if (!this.movePieceDown(player)) {
+          // Piece can't move down, lock it and get next piece
+          this.lockPiece(game, player);
+          gameChanged = true;
+          break; // Break out of the move loop since piece is locked
+        }
       }
     }
 
@@ -230,13 +238,13 @@ export class GameService {
 
   private initializePlayerPieces(game: GameState): void {
     for (const player of game.players.values()) {
-      // Give current piece
-      player.currentPiece = { ...game.pieceSequence[game.currentPieceIndex] };
+      // Give current piece from player's individual piece index
+      player.currentPiece = { ...game.pieceSequence[player.pieceIndex] };
       
       // Give next pieces
       player.nextPieces = [];
       for (let i = 1; i <= this.PIECES_AHEAD; i++) {
-        const pieceIndex = (game.currentPieceIndex + i) % game.pieceSequence.length;
+        const pieceIndex = (player.pieceIndex + i) % game.pieceSequence.length;
         player.nextPieces.push({ ...game.pieceSequence[pieceIndex] });
       }
     }
@@ -307,25 +315,27 @@ export class GameService {
     
     // Send penalty lines to other players if lines were cleared
     if (clearedLines > 0) {
-      this.sendPenaltyLines(game, player.playerId, clearedLines - 1);
+      this.sendPenaltyLines(game, player.playerId, clearedLines);
     }
 
     // Update spectrum
     this.updateSpectrum(player);
 
+    // Give next piece from this player's individual sequence
+    player.pieceIndex = (player.pieceIndex + 1) % game.pieceSequence.length;
+    const nextPiece = { ...game.pieceSequence[player.pieceIndex] };
+
     // Check if player topped out
-    if (!this.canSpawnPiece(player)) {
+    if (!this.canSpawnPiece(player, nextPiece)) {
       player.isAlive = false;
       return;
     }
 
-    // Give next piece
-    game.currentPieceIndex = (game.currentPieceIndex + 1) % game.pieceSequence.length;
-    player.currentPiece = { ...game.pieceSequence[game.currentPieceIndex] };
+    player.currentPiece = nextPiece;
     
     // Update next pieces queue
     player.nextPieces.shift();
-    const nextPieceIndex = (game.currentPieceIndex + this.PIECES_AHEAD) % game.pieceSequence.length;
+    const nextPieceIndex = (player.pieceIndex + this.PIECES_AHEAD) % game.pieceSequence.length;
     player.nextPieces.push({ ...game.pieceSequence[nextPieceIndex] });
   }
 
@@ -333,7 +343,11 @@ export class GameService {
     let linesCleared = 0;
     
     for (let y = this.BOARD_HEIGHT - 1; y >= 0; y--) {
-      if (player.board[y].every(cell => cell !== 0)) {
+      // Check if line is complete AND doesn't contain penalty blocks (value 9)
+      const lineComplete = player.board[y].every(cell => cell !== 0);
+      const hasPenaltyBlocks = player.board[y].some(cell => cell === 9);
+      
+      if (lineComplete && !hasPenaltyBlocks) {
         // Remove completed line
         player.board.splice(y, 1);
         // Add new empty line at top
@@ -349,21 +363,28 @@ export class GameService {
 
   private applyPenalties(player: PlayerGameState): void {
     while (player.penalties > 0) {
-      // Remove top line and add penalty line at bottom
+      // Remove top line (this shifts all pieces up)
       player.board.shift();
-      const penaltyLine = Array(this.BOARD_WIDTH).fill(8); // 8 = penalty block
-      // Leave one random gap in penalty line
-      const gapIndex = Math.floor(Math.random() * this.BOARD_WIDTH);
-      penaltyLine[gapIndex] = 0;
+      
+      // Add penalty line at bottom - these are permanent obstacles
+      // Make penalty lines completely solid to prevent pieces from falling through gaps
+      const penaltyLine = Array(this.BOARD_WIDTH).fill(9); // 9 = penalty block (unclearable)
+      
+      // No gaps - penalty lines are solid barriers that force pieces to stack above them
       player.board.push(penaltyLine);
       player.penalties--;
     }
   }
 
-  private sendPenaltyLines(game: GameState, senderId: string, count: number): void {
-    for (const [playerId, player] of game.players) {
-      if (playerId !== senderId && player.isAlive) {
-        player.penalties += count;
+  private sendPenaltyLines(game: GameState, senderId: string, linesCleared: number): void {
+    // Calculate penalty lines: n lines cleared = n-1 penalty lines
+    const penaltyLines = Math.max(0, linesCleared - 1);
+    
+    if (penaltyLines > 0) {
+      for (const [playerId, player] of game.players) {
+        if (playerId !== senderId && player.isAlive) {
+          player.penalties += penaltyLines;
+        }
       }
     }
   }
@@ -381,18 +402,34 @@ export class GameService {
     }
   }
 
-  private canSpawnPiece(player: PlayerGameState): boolean {
-    if (!player.currentPiece) return false;
-    const spawnPiece = { ...player.currentPiece };
-    return this.isValidPosition(player.board, spawnPiece);
+  private canSpawnPiece(player: PlayerGameState, newPiece: Piece): boolean {
+    // Create a test piece at spawn position
+    const testPiece = {
+      ...newPiece,
+      x: Math.floor(this.BOARD_WIDTH / 2) - 1,
+      y: 0
+    };
+    return this.isValidPosition(player.board, testPiece);
   }
 
   private checkGameOver(game: GameState): void {
     const alivePlayers = Array.from(game.players.values()).filter(p => p.isAlive);
+    const totalPlayers = game.players.size;
     
-    if (alivePlayers.length <= 1) {
+    // Game over conditions:
+    // 1. No players alive (everyone lost)
+    // 2. Multiple players started but only one remains (multiplayer victory)
+    // Note: Single player games continue until the player loses
+    
+    if (alivePlayers.length === 0) {
+      // Everyone lost - no winner
       game.gameOver = true;
-      game.winner = alivePlayers.length === 1 ? alivePlayers[0].playerId : null;
+      game.winner = null;
+    } else if (totalPlayers > 1 && alivePlayers.length === 1) {
+      // Multiplayer game with one survivor - they win
+      game.gameOver = true;
+      game.winner = alivePlayers[0].playerId;
     }
+    // Single player games (totalPlayers === 1) continue until player loses
   }
 }

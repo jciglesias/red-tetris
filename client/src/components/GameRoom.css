@@ -1,0 +1,263 @@
+.game-room {
+  max-width: 800px;
+  margin: 10px auto;
+  padding: 20px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  font-family: Arial, sans-serif;
+  position: relative;
+}
+.room-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.score-panel {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.score-indicator {
+  padding: 4px 8px;
+  background: transparent;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #555;
+  text-align: left;
+}
+.score-indicator p {
+  margin: 0;
+  text-align: left;
+}
+.status-panel {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.status-indicator {
+  padding: 4px 8px;
+  background: transparent;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #555;
+}
+.status-indicator p {
+  margin: 0;
+  text-align: right;
+}
+.button-group {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.button-group button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  background-color: #1976d2;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.button-group button:hover {
+  background-color: #115293;
+}
+.error-container {
+  background-color: #ffe6e6;
+  color: #d32f2f;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+.game-container {
+  border-top: 1px solid #ccc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.player-container, .opponent-column {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+.player-container {
+  width: 277px;
+}
+.opponent-column
+{
+  margin: 50px 100px;
+}
+.tetris-board {
+    display: grid;
+    grid-template-columns: repeat(10, 25px);
+    grid-template-rows: repeat(20, 25px);
+    gap: 1px;
+    border: 3px solid #333;
+    background-color: #222;
+    margin: 10px 0;
+    padding: 5px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.tetris-opponent-board {
+    display: grid;
+    grid-template-columns: repeat(10, 10px);
+    grid-template-rows: repeat(20, 10px);
+    gap: 1px;
+    border: 3px solid #333;
+    background-color: #222;
+    margin: 10px 0;
+    padding: 5px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+.tetris-opponent-cell {
+    width: 10px;
+    height: 10px;
+    border: 1px solid #444;
+    background-color: #111;
+    transition: all 0.1s ease;
+}
+.tetris-opponent-cell.filled {
+    background: linear-gradient(145deg, #4CAF50, #45a049);
+    border: 1px solid #66BB6A;
+    box-shadow: inset 1px 1px 2px rgba(255,255,255,0.3);
+}
+.tetris-cell {
+    width: 25px;
+    height: 25px;
+    border: 1px solid #444;
+    background-color: #111;
+    transition: all 0.1s ease;
+ }
+.tetris-cell.filled {
+    background: linear-gradient(145deg, #4CAF50, #45a049);
+    border: 1px solid #66BB6A;
+    box-shadow: inset 1px 1px 2px rgba(255,255,255,0.3);
+}
+.tetris-cell.current {
+    background: linear-gradient(145deg, #FF9800, #F57C00);
+    border: 1px solid #FFB74D;
+    box-shadow: inset 1px 1px 2px rgba(255,255,255,0.3);
+    animation: pulse 0.5s ease-in-out infinite alternate;
+}
+.tetris-cell.ghost {
+    background-color: rgba(255, 152, 0, 0.3);
+    border: 1px dashed #FF9800;
+}
+.tetris-cell.line-clear {
+    background: linear-gradient(45deg, #FFD700, #FFA000);
+    animation: line-clear 0.5s ease-in-out;
+}
+@keyframes pulse {
+    from { opacity: 0.7; }
+    to { opacity: 1; }
+}
+@keyframes line-clear {
+    0% { background: linear-gradient(45deg, #FFD700, #FFA000); }
+    50% { background: linear-gradient(45deg, #FFEB3B, #FF6F00); }
+    100% { background: linear-gradient(45deg, #FFD700, #FFA000); }
+}
+.next-piece {
+    display: grid;
+    grid-template-columns: repeat(4, 20px);
+    grid-template-rows: repeat(4, 20px);
+    gap: 1px;
+    border: 2px solid #333;
+    background-color: #222;
+    margin: 10px 0;
+    padding: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+.next-cell {
+    width: 20px;
+    height: 20px;
+    border: 1px solid #444;
+    background-color: #111;
+}
+.next-cell.filled {
+    background: linear-gradient(145deg, #2196F3, #1976D2);
+    border: 1px solid #42A5F5;
+    box-shadow: inset 1px 1px 2px rgba(255,255,255,0.3);
+}
+.tetris-cell.piece-I { background: linear-gradient(145deg, #00BCD4, #0097A7); border-color: #26C6DA; } /* Cyan */
+.tetris-cell.piece-O { background: linear-gradient(145deg, #FFEB3B, #F57F17); border-color: #FFEE58; } /* Yellow */
+.tetris-cell.piece-T { background: linear-gradient(145deg, #9C27B0, #7B1FA2); border-color: #BA68C8; } /* Purple */
+.tetris-cell.piece-S { background: linear-gradient(145deg, #4CAF50, #388E3C); border-color: #66BB6A; } /* Green */
+.tetris-cell.piece-Z { background: linear-gradient(145deg, #F44336, #D32F2F); border-color: #EF5350; } /* Red */
+.tetris-cell.piece-J { background: linear-gradient(145deg, #2196F3, #1976D2); border-color: #42A5F5; } /* Blue */
+.tetris-cell.piece-L { background: linear-gradient(145deg, #FF9800, #F57C00); border-color: #FFB74D; } /* Orange */
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 17px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The slider */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 13px;
+  width: 13px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #2196F3;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(13px);
+  -ms-transform: translateX(13px);
+  transform: translateX(13px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 17px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}

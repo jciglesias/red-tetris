@@ -42,7 +42,7 @@ export class RoomService {
       name: roomName,
       players: new Map(),
       gameState: 'waiting',
-      maxPlayers: 2, // Configurable max players
+      maxPlayers: 5, // Configurable max players
     };
 
     this.rooms.set(roomName, room);
@@ -141,18 +141,18 @@ export class RoomService {
       return false;
     }
 
-    // Room must be full
-    if (room.players.size != room.maxPlayers) {
+    // At least 1 player must be in the room
+    if (room.players.size < 1) {
       return false;
     }
 
-    // All players must be ready and connected
+    // All players currently in the room must be ready and connected
     return Array.from(room.players.values()).every(player => 
       player.isReady && player.isConnected
     );
   }
 
-  startGame(roomName: string): boolean {
+  startGame(roomName: string, fastMode: boolean = false): boolean {
     const room = this.getRoom(roomName);
     if (!room || !this.canStartGame(roomName)) {
       return false;
@@ -160,12 +160,12 @@ export class RoomService {
 
     room.gameState = 'playing';
     
-    // Initialize game through GameService
+    // Initialize game through GameService with fast mode
     const playerIds = Array.from(room.players.keys());
-    this.gameService.createGame(roomName, playerIds);
+    this.gameService.createGame(roomName, playerIds, fastMode);
     
-    // Add to active games for game loop
-    this.gameLoopService.addActiveGame(roomName);
+    // Add to active games for game loop with fast mode
+    this.gameLoopService.addActiveGame(roomName, fastMode);
     
     return true;
   }

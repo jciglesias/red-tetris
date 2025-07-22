@@ -10,7 +10,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Injectable } from '@nestjs/common';
 import { RoomService, Player } from './room.service';
-import { GameService } from '../game/game.service';
+import { GameService, GameState } from '../game/game.service';
 
 interface JoinRoomMessage {
   roomName: string;
@@ -20,6 +20,10 @@ interface JoinRoomMessage {
 
 interface PlayerReadyMessage {
   ready: boolean;
+}
+
+interface StartGameMessage {
+  fast?: boolean;
 }
 
 interface GameActionMessage {
@@ -41,6 +45,19 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private roomService: RoomService,
     private gameService: GameService,
   ) {}
+
+  /**
+   * Helper function to serialize GameState for JSON transmission
+   * Converts Map to plain object so it can be properly serialized
+   */
+  private serializeGameState(gameState: GameState | null) {
+    if (!gameState) return null;
+    
+    return {
+      ...gameState,
+      players: gameState.players ? Object.fromEntries(gameState.players) : {}
+    };
+  }
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
@@ -112,7 +129,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
         players: this.roomService.getRoomPlayers(roomName),
         gameState: room?.gameState,
       },
-      gameState, // Include current game state for reconnections
+      gameState: this.serializeGameState(gameState), // Serialize the game state
       isReconnection: !!reconnectionToken,
     });
 
@@ -148,7 +165,10 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('start-game')
-  handleStartGame(@ConnectedSocket() client: Socket) {
+  handleStartGame(
+    @MessageBody() data: StartGameMessage,
+    @ConnectedSocket() client: Socket,
+  ) {
     const playerData = this.roomService.getPlayerBySocketId(client.id);
     if (!playerData) {
       client.emit('error', { message: 'Player not found in any room' });
@@ -181,15 +201,20 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    const gameStarted = this.roomService.startGame(room.name);
+    // Extract the fast mode parameter (default to false if not provided)
+    const fastMode = data?.fast || false;
+    console.log(`Starting game in ${fastMode ? 'fast' : 'normal'} mode`);
+
+    const gameStarted = this.roomService.startGame(room.name, fastMode);
     if (gameStarted) {
       // Get initial game state
       const gameState = this.gameService.getGameState(room.name);
       
       // Notify all players that game has started
       this.server.to(room.name).emit('game-started', {
-        gameState,
+        gameState: this.serializeGameState(gameState),
         players: this.roomService.getRoomPlayers(room.name),
+        fastMode: fastMode, // Include fast mode info in the response
       });
     }
   }
@@ -219,14 +244,14 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Broadcast updated game state to all players in room
       const gameState = this.gameService.getGameState(room.name);
       if (gameState) {
-        this.server.to(room.name).emit('game-state-update', gameState);
+        this.server.to(room.name).emit('game-state-update', this.serializeGameState(gameState));
 
         // Check if game ended
         if (gameState.gameOver) {
           this.roomService.endGame(room.name);
           this.server.to(room.name).emit('game-ended', {
             winner: gameState.winner,
-            finalState: gameState,
+            finalState: this.serializeGameState(gameState),
           });
         }
       }
@@ -274,7 +299,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
         gameState: room.gameState,
         players: this.roomService.getRoomPlayers(room.name),
       },
-      gameState,
+      gameState: this.serializeGameState(gameState),
     });
   }
 
@@ -340,7 +365,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
           players: this.roomService.getRoomPlayers(roomName),
           gameState: room.gameState,
         },
-        gameState,
+        gameState: this.serializeGameState(gameState),
       });
 
       // Notify other players

@@ -9,6 +9,7 @@ export class GameLoopService implements OnModuleInit, OnModuleDestroy {
   private tickInterval = 1000; // 1 second per tick (adjustable)
   private cleanupInterval = 30000; // 30 seconds cleanup interval
   private activeGames = new Set<string>(); // Track active games
+  private fastModeGames = new Set<string>(); // Track games in fast mode
 
   constructor(
     private gameService: GameService,
@@ -25,12 +26,17 @@ export class GameLoopService implements OnModuleInit, OnModuleDestroy {
     this.stopCleanupLoop();
   }
 
-  addActiveGame(roomName: string) {
+  addActiveGame(roomName: string, fastMode: boolean = false) {
     this.activeGames.add(roomName);
+    if (fastMode) {
+      this.fastModeGames.add(roomName);
+    }
+    console.log(`Added ${roomName} to active games with fast mode: ${fastMode}`);
   }
 
   removeActiveGame(roomName: string) {
     this.activeGames.delete(roomName);
+    this.fastModeGames.delete(roomName);
   }
 
   private startGameLoop() {
@@ -64,10 +70,12 @@ export class GameLoopService implements OnModuleInit, OnModuleDestroy {
     for (const roomName of this.activeGames) {
       const gameState = this.gameService.getGameState(roomName);
       if (gameState && !gameState.gameOver) {
-        this.gameService.tick(roomName);
+        const isFastMode = this.fastModeGames.has(roomName);
+        this.gameService.tick(roomName, isFastMode);
       } else {
         // Remove inactive games
         this.activeGames.delete(roomName);
+        this.fastModeGames.delete(roomName);
       }
     }
   }
@@ -81,6 +89,7 @@ export class GameLoopService implements OnModuleInit, OnModuleDestroy {
       const gameState = this.gameService.getGameState(roomName);
       if (!gameState || gameState.gameOver) {
         this.activeGames.delete(roomName);
+        this.fastModeGames.delete(roomName);
       }
     }
   }

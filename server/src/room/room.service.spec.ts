@@ -104,14 +104,14 @@ describe('RoomService', () => {
       expect(canStart).toBe(false);
     });
 
-    it('should return false for single ready host (room not full)', () => {
+    it('should return true for single ready host', () => {
       const roomName = 'test-room';
       const player = service.addPlayerToRoom(roomName, 'player1', 'socket1');
       service.setPlayerReady(roomName, player!.id, true);
 
       const canStart = service.canStartGame(roomName);
 
-      expect(canStart).toBe(false);
+      expect(canStart).toBe(true);
     });
 
     it('should return true when all players are ready', () => {
@@ -152,8 +152,8 @@ describe('RoomService', () => {
       const result = service.startGame(roomName);
 
       expect(result).toBe(true);
-      expect(gameService.createGame).toHaveBeenCalledWith(roomName, [player1!.id, player2!.id]);
-      expect(gameLoopService.addActiveGame).toHaveBeenCalledWith(roomName);
+      expect(gameService.createGame).toHaveBeenCalledWith(roomName, [player1!.id, player2!.id], false);
+      expect(gameLoopService.addActiveGame).toHaveBeenCalledWith(roomName, false);
     });
 
     it('should not start game when conditions are not met', () => {
@@ -339,8 +339,8 @@ describe('RoomService', () => {
     it('should not add player when room is full', () => {
       const roomName = 'test-room';
       
-      // Add max players (8)
-      for (let i = 0; i < 8; i++) {
+      // Add max players (5)
+      for (let i = 0; i < 5; i++) {
         service.addPlayerToRoom(roomName, `player${i}`, `socket${i}`);
       }
       

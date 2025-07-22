@@ -195,9 +195,9 @@ describe('RoomGateway', () => {
       (gameService.getGameState as jest.Mock).mockReturnValue(mockGameState);
       (roomService.getRoomPlayers as jest.Mock).mockReturnValue(mockPlayers);
       
-      gateway.handleStartGame(mockClient as Socket);
+      gateway.handleStartGame({}, mockClient as Socket);
       
-      expect(roomService.startGame).toHaveBeenCalledWith('test-room');
+      expect(roomService.startGame).toHaveBeenCalledWith('test-room', false);
       expect(mockServer.to).toHaveBeenCalledWith('test-room');
       expect(mockServer.emit).toHaveBeenCalledWith('game-started', expect.any(Object));
     });
@@ -210,7 +210,7 @@ describe('RoomGateway', () => {
       
       (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(mockPlayerData);
       
-      gateway.handleStartGame(mockClient as Socket);
+      gateway.handleStartGame({}, mockClient as Socket);
       
       expect(mockClient.emit).toHaveBeenCalledWith('error', expect.objectContaining({
         message: 'Only host can start the game'
@@ -220,23 +220,23 @@ describe('RoomGateway', () => {
     it('should reject start game when conditions not met', () => {
       const mockPlayerData = {
         player: { id: 'player1', isHost: true },
-        room: { name: 'test-room', maxPlayers: 2, players: new Map() }
+        room: { name: 'test-room', maxPlayers: 5, players: new Map() }
       };
       
       (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(mockPlayerData);
       (roomService.canStartGame as jest.Mock).mockReturnValue(false);
       
-      gateway.handleStartGame(mockClient as Socket);
+      gateway.handleStartGame({}, mockClient as Socket);
       
       expect(mockClient.emit).toHaveBeenCalledWith('error', expect.objectContaining({
-        message: 'Waiting for more players (0/2)'
+        message: 'Waiting for more players (0/5)'
       }));
     });
 
     it('should handle start-game error when player not found', () => {
       (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(null);
       
-      gateway.handleStartGame(mockClient as Socket);
+      gateway.handleStartGame({}, mockClient as Socket);
       
       expect(mockClient.emit).toHaveBeenCalledWith('error', {
         message: 'Player not found in any room'
@@ -251,7 +251,7 @@ describe('RoomGateway', () => {
       
       (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(mockPlayerData);
       
-      gateway.handleStartGame(mockClient as Socket);
+      gateway.handleStartGame({}, mockClient as Socket);
       
       expect(mockClient.emit).toHaveBeenCalledWith('error', {
         message: 'Only host can start the game'
@@ -276,7 +276,7 @@ describe('RoomGateway', () => {
       
       expect(gameService.processPlayerAction).toHaveBeenCalledWith('test-room', 'player1', 'move-left');
       expect(mockServer.to).toHaveBeenCalledWith('test-room');
-      expect(mockServer.emit).toHaveBeenCalledWith('game-state-update', mockGameState);
+      expect(mockServer.emit).toHaveBeenCalledWith('game-state-update', { gameOver: false, players: {} });
     });
 
     it('should handle game action when game is over', () => {
@@ -438,7 +438,9 @@ describe('RoomGateway', () => {
         room: expect.objectContaining({
           gameState: 'playing'
         }),
-        gameState: mockGameState
+        gameState: expect.objectContaining({
+          gameOver: false
+        })
       }));
     });
 
@@ -588,7 +590,7 @@ describe('RoomGateway', () => {
       
       expect(mockClient.emit).toHaveBeenCalledWith('join-room-success', expect.objectContaining({
         isReconnection: true,
-        gameState: mockGameState
+        gameState: { gameOver: false, players: {} }
       }));
     });
   });
