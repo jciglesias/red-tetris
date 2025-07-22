@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { io, Socket } from 'socket.io-client';
-import { GameState } from '../components/Interfaces';
+import { GameState, ChatMessage } from '../components/Interfaces';
 
 let socket: Socket | null = null;
 
@@ -26,6 +26,7 @@ export interface SocketState {
   gameWon: boolean;
   score: number;
   level: number;
+  messages: ChatMessage[];
 }
 
 const initialState: SocketState = { 
@@ -44,7 +45,8 @@ const initialState: SocketState = {
   gameOver: false,
   gameWon: false,
   score: 0,
-  level: 0
+  level: 0,
+  messages: []
 };
 
 export const connectSocket = createAsyncThunk(
@@ -96,6 +98,11 @@ export const connectSocket = createAsyncThunk(
     socket.on('game-reset', (data) => {
       console.log('Game reset: ' + JSON.stringify(data, null, 2));
       dispatch(onJoinRoomSuccess());
+    });
+
+    socket.on('chat-message', (data) => {
+      console.log('Chat message: ' + JSON.stringify(data, null, 2));
+      dispatch(addMessage(data));
     });
 
     socket.on('game-started', (data) => {
@@ -200,6 +207,16 @@ export const gameAction = createAsyncThunk<void, { action: string }>(
   }
 );
 
+
+export const sendMessage = createAsyncThunk<void, { message: string }>(
+  'socket/sendMessage',
+  async ({ message }) => {
+    if (socket) {
+      socket.emit('chat-message', { message });
+    }
+  }
+);
+
 export const relaunchGame = createAsyncThunk(
   'socket/relaunchGame',
   async () => {
@@ -297,8 +314,14 @@ const socketSlice = createSlice({
       state.isError = true;
       state.contentError = action.payload;
     },
+    addMessage(state, action) {
+      state.messages.push(action.payload)
+    },
+    addMessages(state, action) {
+      state.messages = [...state.messages, ...action.payload]
+    },
   },
 });
 
-export const { onConnect, onDisconnect, onJoinRoomSuccess, onJoinRoomError, onSetReadySuccess, onStartGameSuccess, onUpdateData, onUpdatedData, onGameOver, onGameWon, onScoreUpdate, onError } = socketSlice.actions;
+export const { onConnect, onDisconnect, onJoinRoomSuccess, onJoinRoomError, onSetReadySuccess, onStartGameSuccess, onUpdateData, onUpdatedData, onGameOver, onGameWon, onScoreUpdate, onError, addMessage, addMessages } = socketSlice.actions;
 export default socketSlice.reducer;

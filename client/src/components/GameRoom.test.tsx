@@ -6,7 +6,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import socketReducer, { SocketState } from '../store/socketSlice';
 import GameRoom from './GameRoom';
 import * as router from 'react-router-dom';
-import { GameState, PlayerGameState, Piece } from './Interfaces';
+import { GameState, PlayerGameState, Piece, ChatMessage } from './Interfaces';
 
 // Mock useParams to provide roomName and playerName
 jest.mock('react-router-dom', () => ({
@@ -49,7 +49,8 @@ const defaultState: SocketState = {
   gameOver: false,
   gameWon: false,
   score: 0,
-  level: 1
+  level: 1,
+  messages: []
 };
 
 // Helper function to create complete player state

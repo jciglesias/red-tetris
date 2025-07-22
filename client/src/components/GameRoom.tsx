@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { connectSocket, disconnectSocket, joinRoom, readyPlayer, startGame, gameAction, getRoomInfo, relaunchGame } from '../store/socketSlice';
+import { connectSocket, disconnectSocket, joinRoom, readyPlayer, startGame, gameAction, getRoomInfo, relaunchGame, sendMessage } from '../store/socketSlice';
 import { RootState, AppDispatch } from '../store';
 import './GameRoom.css';
 import LeaderboardModal from './LeaderboardModal';
 import LeaderboardStatsModal from './LeaderboardStatsModal';
+import { ChatMessage } from '../components/Interfaces';
 
 function GameRoom() {
   const { roomName } = useParams<{ roomName: string }>();
@@ -33,6 +34,8 @@ function GameRoom() {
   const board3Ref = useRef<HTMLDivElement>(null);
   const board4Ref = useRef<HTMLDivElement>(null);
   const [blindMode, setBlindMode] = useState(false);
+  const [messageVar, setMessageVar] = useState('')
+  const messages = useSelector((state: RootState) => state.socket.messages)
 
   initializeNextPiece();
   initializeBoards();
@@ -222,6 +225,15 @@ function GameRoom() {
     }
     console.log('relaunch-game');
   }
+
+  function handleMessage(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (joined && !started && messageVar.trim()) {
+      dispatch(sendMessage({ message: messageVar.trim() }));
+      setMessageVar('');
+    }
+    console.log('send-message');
+  }
     
   function initializeNextPiece() {
     const nextPiece = nextRef.current;
@@ -323,6 +335,29 @@ function GameRoom() {
         <div className="success-container">
           <p>VICTORY !!!</p>
           <p>Congratulations! You are the champion!</p>
+        </div>
+      )}
+      {joined && !started && (
+        <div className="game-container">
+            <ul>
+              {messages.map((message) => (
+                <li key={message.playerId + '-' + message.timestamp}>
+                  <strong>{message.playerName}:</strong> {message.message}
+                  <span style={{ fontSize: '0.8em', color: '#666', marginLeft: '10px' }}>
+                    {new Date(message.timestamp).toLocaleTimeString()}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <form onSubmit={handleMessage}>
+              <input
+                type="text"
+                value={messageVar}
+                onChange={(e) => setMessageVar(e.target.value)}
+                placeholder="Type your message..."
+              />
+              <button type="submit">Send</button>
+            </form>
         </div>
       )}
       <div className="game-container">

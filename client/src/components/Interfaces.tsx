@@ -49,3 +49,10 @@ export interface LeaderboardStats {
   longestGamePlayer: string;
   totalGames: number;
 }
+
+export interface ChatMessage {
+  playerId: string,
+  playerName: string,
+  message: string,
+  timestamp: string
+}
