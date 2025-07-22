@@ -27,7 +27,7 @@ interface StartGameMessage {
 }
 
 interface GameActionMessage {
-  action: 'move-left' | 'move-right' | 'rotate' | 'soft-drop' | 'hard-drop';
+  action: 'move-left' | 'move-right' | 'rotate' | 'soft-drop' | 'hard-drop' | 'skip-piece';
 }
 
 @Injectable()
@@ -241,10 +241,16 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const result = this.gameService.processPlayerAction(room.name, player.id, data.action);
     
     if (result) {
+      // Update player stats from game state
+      this.roomService.updatePlayerStats(room.name);
+      
       // Broadcast updated game state to all players in room
       const gameState = this.gameService.getGameState(room.name);
       if (gameState) {
-        this.server.to(room.name).emit('game-state-update', this.serializeGameState(gameState));
+        this.server.to(room.name).emit('game-state-update', {
+          gameState: this.serializeGameState(gameState),
+          players: this.roomService.getRoomPlayers(room.name), // Include updated player stats
+        });
 
         // Check if game ended
         if (gameState.gameOver) {

@@ -11,6 +11,8 @@ describe('LeaderboardController', () => {
     getTopScores: jest.fn(),
     getPlayerBestScore: jest.fn(),
     getAllTimeStats: jest.fn(),
+    getPlayerStatistics: jest.fn(),
+    getTopWinners: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -113,6 +115,133 @@ describe('LeaderboardController', () => {
 
       expect(mockLeaderboardService.getAllTimeStats).toHaveBeenCalled();
       expect(result).toEqual(mockStats);
+    });
+  });
+
+  describe('getPlayerStatistics', () => {
+    it('should return player statistics when player name is provided', async () => {
+      const mockStats = {
+        totalGames: 5,
+        gamesWon: 3,
+        bestScore: 2000,
+        totalLinesCleared: 50,
+        averageGameDuration: 300,
+        winRate: 60,
+      };
+      mockLeaderboardService.getPlayerStatistics.mockResolvedValue(mockStats);
+
+      const result = await controller.getPlayerStatistics('TestPlayer');
+
+      expect(mockLeaderboardService.getPlayerStatistics).toHaveBeenCalledWith('TestPlayer');
+      expect(result).toEqual(mockStats);
+    });
+
+    it('should return error when player name is not provided', async () => {
+      const result = await controller.getPlayerStatistics('');
+
+      expect(mockLeaderboardService.getPlayerStatistics).not.toHaveBeenCalled();
+      expect(result).toEqual({ error: 'Player name is required' });
+    });
+
+    it('should return error when player name is undefined', async () => {
+      const result = await controller.getPlayerStatistics(undefined as any);
+
+      expect(mockLeaderboardService.getPlayerStatistics).not.toHaveBeenCalled();
+      expect(result).toEqual({ error: 'Player name is required' });
+    });
+
+    it('should return error when player name is null', async () => {
+      const result = await controller.getPlayerStatistics(null as any);
+
+      expect(mockLeaderboardService.getPlayerStatistics).not.toHaveBeenCalled();
+      expect(result).toEqual({ error: 'Player name is required' });
+    });
+  });
+
+  describe('getTopWinners', () => {
+    it('should return top winners with default limit', async () => {
+      const mockWinners = [
+        { playerName: 'Winner1', gamesWon: 10, winRate: 80.0, bestScore: 3000 },
+        { playerName: 'Winner2', gamesWon: 8, winRate: 75.5, bestScore: 2500 },
+      ];
+      mockLeaderboardService.getTopWinners.mockResolvedValue(mockWinners);
+
+      const result = await controller.getTopWinners();
+
+      expect(mockLeaderboardService.getTopWinners).toHaveBeenCalledWith(10);
+      expect(result).toEqual(mockWinners);
+    });
+
+    it('should return top winners with custom limit', async () => {
+      const mockWinners = [
+        { playerName: 'Winner1', gamesWon: 10, winRate: 80.0, bestScore: 3000 },
+      ];
+      mockLeaderboardService.getTopWinners.mockResolvedValue(mockWinners);
+
+      const result = await controller.getTopWinners('5');
+
+      expect(mockLeaderboardService.getTopWinners).toHaveBeenCalledWith(5);
+      expect(result).toEqual(mockWinners);
+    });
+
+    it('should handle invalid limit parameter', async () => {
+      const mockWinners = [
+        { playerName: 'Winner1', gamesWon: 10, winRate: 80.0, bestScore: 3000 },
+      ];
+      mockLeaderboardService.getTopWinners.mockResolvedValue(mockWinners);
+
+      const result = await controller.getTopWinners('invalid');
+
+      expect(mockLeaderboardService.getTopWinners).toHaveBeenCalledWith(10);
+      expect(result).toEqual(mockWinners);
+    });
+
+    it('should handle negative limit parameter', async () => {
+      const mockWinners = [
+        { playerName: 'Winner1', gamesWon: 10, winRate: 80.0, bestScore: 3000 },
+      ];
+      mockLeaderboardService.getTopWinners.mockResolvedValue(mockWinners);
+
+      const result = await controller.getTopWinners('-5');
+
+      expect(mockLeaderboardService.getTopWinners).toHaveBeenCalledWith(10);
+      expect(result).toEqual(mockWinners);
+    });
+
+    it('should handle zero limit parameter', async () => {
+      const mockWinners = [
+        { playerName: 'Winner1', gamesWon: 10, winRate: 80.0, bestScore: 3000 },
+      ];
+      mockLeaderboardService.getTopWinners.mockResolvedValue(mockWinners);
+
+      const result = await controller.getTopWinners('0');
+
+      expect(mockLeaderboardService.getTopWinners).toHaveBeenCalledWith(0);
+      expect(result).toEqual(mockWinners);
+    });
+  });
+
+  describe('edge cases for getTopScores', () => {
+    it('should handle negative limit parameter', async () => {
+      const mockEntries = [
+        { id: 1, playerName: 'Player1', score: 2000 },
+      ];
+      mockLeaderboardService.getTopScores.mockResolvedValue(mockEntries);
+
+      const result = await controller.getTopScores('-5');
+
+      expect(mockLeaderboardService.getTopScores).toHaveBeenCalledWith(10);
+      expect(result).toEqual(mockEntries);
+    });
+
+    it('should handle zero limit parameter', async () => {
+      const mockEntries = [];
+      mockLeaderboardService.getTopScores.mockResolvedValue(mockEntries);
+
+      const result = await controller.getTopScores('0');
+
+      expect(mockLeaderboardService.getTopScores).toHaveBeenCalledWith(0);
+      expect(result).toEqual(mockEntries);
     });
   });
 });

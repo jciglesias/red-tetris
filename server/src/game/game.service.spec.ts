@@ -801,4 +801,116 @@ describe('GameService', () => {
       expect(finalGameState?.gameOver).toBe(true);
     });
   });
+
+  describe('skip piece action', () => {
+    let gameState: any;
+    const roomName = 'test-room';
+    const playerId = 'player1';
+
+    beforeEach(() => {
+      gameState = service.createGame(roomName, [playerId]);
+    });
+
+    it('should initialize skipPieceUsed as false', () => {
+      const player = gameState.players.get(playerId);
+      expect(player.skipPieceUsed).toBe(false);
+    });
+
+    it('should allow skip piece action when not used before', () => {
+      const player = gameState.players.get(playerId);
+      const originalPieceIndex = player.pieceIndex;
+      const originalPieceType = player.currentPiece.type;
+
+      const result = service.processPlayerAction(roomName, playerId, 'skip-piece');
+
+      expect(result).toBe(true);
+      expect(player.skipPieceUsed).toBe(true);
+      expect(player.pieceIndex).toBe(originalPieceIndex + 1);
+      // Current piece should change to next piece in sequence
+      expect(player.currentPiece.type).not.toBe(originalPieceType);
+    });
+
+    it('should not allow skip piece action when already used', () => {
+      const player = gameState.players.get(playerId);
+      
+      // First use should work
+      const firstResult = service.processPlayerAction(roomName, playerId, 'skip-piece');
+      expect(firstResult).toBe(true);
+      expect(player.skipPieceUsed).toBe(true);
+      
+      const pieceIndexAfterFirstSkip = player.pieceIndex;
+      const pieceTypeAfterFirstSkip = player.currentPiece.type;
+
+      // Second use should not work
+      const secondResult = service.processPlayerAction(roomName, playerId, 'skip-piece');
+      expect(secondResult).toBe(false);
+      expect(player.pieceIndex).toBe(pieceIndexAfterFirstSkip); // Should not advance
+      expect(player.currentPiece.type).toBe(pieceTypeAfterFirstSkip); // Should not change
+    });
+
+    it('should update next pieces queue correctly after skip', () => {
+      const player = gameState.players.get(playerId);
+      const originalNextPieces = [...player.nextPieces];
+
+      service.processPlayerAction(roomName, playerId, 'skip-piece');
+
+      // Next pieces should have shifted (first one removed, new one added at end)
+      expect(player.nextPieces[0].type).toBe(originalNextPieces[1].type);
+      expect(player.nextPieces[1].type).toBe(originalNextPieces[2].type);
+      expect(player.nextPieces[2].type).toBe(originalNextPieces[3].type);
+      expect(player.nextPieces[3].type).toBe(originalNextPieces[4].type);
+      // The 5th piece should be a new one from the sequence
+      expect(player.nextPieces).toHaveLength(5);
+    });
+
+    it('should handle skip piece when player would top out with new piece', () => {
+      const player = gameState.players.get(playerId);
+      
+      // Fill the top of the board to simulate potential top out
+      for (let x = 0; x < 10; x++) {
+        player.board[0][x] = 1; // Fill top row
+        player.board[1][x] = 1; // Fill second row
+      }
+
+      const result = service.processPlayerAction(roomName, playerId, 'skip-piece');
+
+      // Should still process the action and mark as used
+      expect(result).toBe(true);
+      expect(player.skipPieceUsed).toBe(true);
+      
+      // Player should be marked as dead if new piece can't spawn
+      expect(player.isAlive).toBe(false);
+    });
+
+    it('should not allow skip piece for dead players', () => {
+      const player = gameState.players.get(playerId);
+      player.isAlive = false;
+
+      const result = service.processPlayerAction(roomName, playerId, 'skip-piece');
+
+      expect(result).toBe(false);
+      expect(player.skipPieceUsed).toBe(false); // Should not mark as used
+    });
+
+    it('should work independently for multiple players', () => {
+      const multiGameState = service.createGame('multi-room', ['player1', 'player2']);
+      const player1 = multiGameState.players.get('player1')!;
+      const player2 = multiGameState.players.get('player2')!;
+
+      // Player 1 uses skip
+      const result1 = service.processPlayerAction('multi-room', 'player1', 'skip-piece');
+      expect(result1).toBe(true);
+      expect(player1.skipPieceUsed).toBe(true);
+      expect(player2.skipPieceUsed).toBe(false);
+
+      // Player 2 can still use skip
+      const result2 = service.processPlayerAction('multi-room', 'player2', 'skip-piece');
+      expect(result2).toBe(true);
+      expect(player2.skipPieceUsed).toBe(true);
+
+      // Player 1 cannot use skip again
+      const result3 = service.processPlayerAction('multi-room', 'player1', 'skip-piece');
+      expect(result3).toBe(false);
+    });
+  });
 });
