@@ -91,6 +91,8 @@ describe('Interfaces', () => {
         ],
         spectrum: Array(10).fill(0),
         lines: 5,
+        score: 1500,
+        level: 3,
         isAlive: true,
         penalties: 2
       };
@@ -102,6 +104,8 @@ describe('Interfaces', () => {
       expect(playerState.nextPieces).toHaveLength(1);
       expect(playerState.spectrum).toHaveLength(10);
       expect(playerState.lines).toBe(5);
+      expect(playerState.score).toBe(1500);
+      expect(playerState.level).toBe(3);
       expect(playerState.isAlive).toBe(true);
       expect(playerState.penalties).toBe(2);
     });
@@ -114,6 +118,8 @@ describe('Interfaces', () => {
         nextPieces: [],
         spectrum: Array(10).fill(0),
         lines: 0,
+        score: 0,
+        level: 1,
         isAlive: true,
         penalties: 0
       };
@@ -129,6 +135,8 @@ describe('Interfaces', () => {
         nextPieces: [],
         spectrum: Array(10).fill(20), // Full spectrum
         lines: 10,
+        score: 5000,
+        level: 2,
         isAlive: false,
         penalties: 0
       };
@@ -145,6 +153,8 @@ describe('Interfaces', () => {
         nextPieces: [],
         spectrum: Array(10).fill(0),
         lines: 0,
+        score: 0,
+        level: 1,
         isAlive: true,
         penalties: 0
       };
@@ -166,6 +176,8 @@ describe('Interfaces', () => {
         nextPieces,
         spectrum: Array(10).fill(0),
         lines: 0,
+        score: 0,
+        level: 1,
         isAlive: true,
         penalties: 0
       };
@@ -174,6 +186,26 @@ describe('Interfaces', () => {
       expect(playerState.nextPieces[0].type).toBe('I');
       expect(playerState.nextPieces[1].type).toBe('O');
       expect(playerState.nextPieces[2].type).toBe('T');
+    });
+
+    it('should handle score and level properties', () => {
+      const playerState: PlayerGameState = {
+        playerId: 'room1_player1',
+        board: Array(20).fill(null).map(() => Array(10).fill(0)),
+        currentPiece: null,
+        nextPieces: [],
+        spectrum: Array(10).fill(0),
+        lines: 15,
+        score: 7500,
+        level: 4,
+        isAlive: true,
+        penalties: 0
+      };
+
+      expect(playerState.score).toBe(7500);
+      expect(playerState.level).toBe(4);
+      expect(typeof playerState.score).toBe('number');
+      expect(typeof playerState.level).toBe('number');
     });
   });
 
@@ -187,6 +219,8 @@ describe('Interfaces', () => {
         nextPieces: [],
         spectrum: Array(10).fill(0),
         lines: 0,
+        score: 0,
+        level: 1,
         isAlive: true,
         penalties: 0
       });
@@ -222,6 +256,8 @@ describe('Interfaces', () => {
           nextPieces: [],
           spectrum: Array(10).fill(0),
           lines: 0,
+          score: 0,
+          level: 1,
           isAlive: true,
           penalties: 0
         });
@@ -251,6 +287,8 @@ describe('Interfaces', () => {
         nextPieces: [],
         spectrum: Array(10).fill(0),
         lines: 50,
+        score: 25000,
+        level: 5,
         isAlive: true,
         penalties: 0
       });
