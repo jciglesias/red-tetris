@@ -21,7 +21,7 @@ import socketReducer, {
   onGameOver,
   relaunchGame,
 } from './socketSlice';
-import { GameState } from '../components/Interfaces';
+import { GameState, ChatMessage } from '../components/Interfaces';
 
 // Mock socket.io-client
 const mockSocket = {
@@ -775,7 +775,10 @@ describe('socketSlice', () => {
         startTime: Date.now()
       },
       gameOver: false,
-      gameWon: false
+      gameWon: false,
+      score: 0,
+      level: 1,
+      messages: []
     };
 
     const finalGameState = {
@@ -821,7 +824,10 @@ describe('socketSlice', () => {
         startTime: Date.now()
       },
       gameOver: false,
-      gameWon: false
+      gameWon: false,
+      score: 0,
+      level: 1,
+      messages: []
     };
 
     const finalGameState = {
@@ -868,7 +874,10 @@ describe('socketSlice', () => {
         startTime: Date.now()
       },
       gameOver: false,
-      gameWon: false
+      gameWon: false,
+      score: 0,
+      level: 1,
+      messages: []
     };
 
     const gameState = {
@@ -922,7 +931,10 @@ describe('socketSlice', () => {
         startTime: Date.now()
       },
       gameOver: false,
-      gameWon: false
+      gameWon: false,
+      score: 0,
+      level: 1,
+      messages: []
     };
 
     const gameState = {
