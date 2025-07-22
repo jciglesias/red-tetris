@@ -35,6 +35,7 @@ function GameRoom() {
   const [blindMode, setBlindMode] = useState(false);
   const [messageVar, setMessageVar] = useState('')
   const messages = useSelector((state: RootState) => state.socket.messages)
+  const chatMessagesRef = useRef<HTMLUListElement>(null);
 
   initializeNextPiece();
   initializeBoards();
@@ -168,6 +169,13 @@ function GameRoom() {
     return () => clearInterval(intervalId);
   }, [started, dispatch]);
   
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (chatMessagesRef.current) {
+      chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   function renderSpectrum(opponentState: any, boardReference: HTMLDivElement | null, number: number) {
     const board = boardReference;
@@ -351,7 +359,7 @@ function GameRoom() {
                   💬 Chat 💬
                 </h3>
               </div>
-              <ul>
+              <ul ref={chatMessagesRef}>
                 {messages.length === 0 ? (
                   <li className="welcome-message" style={{ 
                     textAlign: 'center', 
