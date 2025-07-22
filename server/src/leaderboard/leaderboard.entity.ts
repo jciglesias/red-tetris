@@ -20,6 +20,12 @@ export class LeaderboardEntry {
   @Column({ type: 'float' })
   gameDuration: number; // in seconds
 
+  @Column({ default: false })
+  fastMode: boolean; // Whether the game was played in fast mode
+
+  @Column({ default: false })
+  isWin: boolean; // Whether this game was won
+
   @CreateDateColumn()
   createdAt: Date;
 

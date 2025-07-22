@@ -279,21 +279,23 @@ describe('RoomGateway', () => {
       expect(mockServer.emit).toHaveBeenCalledWith('game-state-update', { gameOver: false, players: {} });
     });
 
-    it('should handle game action when game is over', () => {
+    it('should handle game action when game is over', async () => {
       const actionData = { action: 'move-left' as const };
       const mockPlayerData = {
         player: { id: 'player1' },
         room: { name: 'test-room', gameState: 'playing' }
       };
-      const mockGameState = { gameOver: true, winner: 'player2' };
+      const mockGameState = { gameOver: true, winner: 'player2', players: new Map() };
       
       (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(mockPlayerData);
       (gameService.processPlayerAction as jest.Mock).mockReturnValue(true);
       (gameService.getGameState as jest.Mock).mockReturnValue(mockGameState);
+      (roomService.endGame as jest.Mock).mockResolvedValue(true);
       
-      gateway.handleGameAction(actionData, mockClient as Socket);
+      await gateway.handleGameAction(actionData, mockClient as Socket);
       
       expect(roomService.endGame).toHaveBeenCalledWith('test-room');
+      expect(mockServer.to).toHaveBeenCalledWith('test-room');
       expect(mockServer.emit).toHaveBeenCalledWith('game-ended', expect.objectContaining({
         winner: 'player2'
       }));

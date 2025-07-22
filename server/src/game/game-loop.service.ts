@@ -40,8 +40,8 @@ export class GameLoopService implements OnModuleInit, OnModuleDestroy {
   }
 
   private startGameLoop() {
-    this.intervalId = setInterval(() => {
-      this.tick();
+    this.intervalId = setInterval(async () => {
+      await this.tick();
     }, this.tickInterval);
   }
 
@@ -65,15 +65,31 @@ export class GameLoopService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private tick() {
+  private async tick() {
     // Process each active game
     for (const roomName of this.activeGames) {
       const gameState = this.gameService.getGameState(roomName);
-      if (gameState && !gameState.gameOver) {
-        const isFastMode = this.fastModeGames.has(roomName);
-        this.gameService.tick(roomName, isFastMode);
+      if (gameState) {
+        if (!gameState.gameOver) {
+          // Game is still running, tick it
+          const isFastMode = this.fastModeGames.has(roomName);
+          this.gameService.tick(roomName, isFastMode);
+          
+          // Check if the game ended during this tick
+          if (gameState.gameOver) {
+            // Game just ended, save results to leaderboard
+            await this.roomService.endGame(roomName);
+            this.activeGames.delete(roomName);
+            this.fastModeGames.delete(roomName);
+          }
+        } else {
+          // Game is already over, save results and remove from active games
+          await this.roomService.endGame(roomName);
+          this.activeGames.delete(roomName);
+          this.fastModeGames.delete(roomName);
+        }
       } else {
-        // Remove inactive games
+        // Remove games with null state
         this.activeGames.delete(roomName);
         this.fastModeGames.delete(roomName);
       }

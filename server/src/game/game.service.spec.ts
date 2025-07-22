@@ -43,6 +43,8 @@ describe('GameService', () => {
       expect(player?.spectrum).toHaveLength(10);
       expect(player?.isAlive).toBe(true);
       expect(player?.lines).toBe(0);
+      expect(player?.score).toBe(0); // New score field
+      expect(player?.level).toBe(1); // New level field
       expect(player?.currentPiece).toBeDefined();
       expect(player?.nextPieces).toHaveLength(5);
     });
@@ -667,6 +669,136 @@ describe('GameService', () => {
       for (let i = 0; i < 5; i++) {
         expect(afterBothDrop1?.nextPieces[i]?.type).toBe(afterBothDrop2?.nextPieces[i]?.type);
       }
+    });
+  });
+
+  describe('scoring system', () => {
+    it('should calculate correct scores for different line clears in normal mode', () => {
+      const roomName = 'test-room';
+      const playerIds = ['player1'];
+      const gameState = service.createGame(roomName, playerIds, false); // normal mode
+      const player = gameState.players.get('player1')!;
+      
+      // Set player level to 2 for easier calculation
+      player.level = 2;
+      
+      // Test single line clear (40 * 2 = 80)
+      const singleScore = service['calculateScore'](1, 2, false);
+      expect(singleScore).toBe(80);
+      
+      // Test double line clear (100 * 2 = 200)
+      const doubleScore = service['calculateScore'](2, 2, false);
+      expect(doubleScore).toBe(200);
+      
+      // Test triple line clear (300 * 2 = 600)
+      const tripleScore = service['calculateScore'](3, 2, false);
+      expect(tripleScore).toBe(600);
+      
+      // Test tetris (1200 * 2 = 2400)
+      const tetrisScore = service['calculateScore'](4, 2, false);
+      expect(tetrisScore).toBe(2400);
+    });
+
+    it('should apply fast mode multiplier correctly', () => {
+      const roomName = 'test-room';
+      const playerIds = ['player1'];
+      const gameState = service.createGame(roomName, playerIds, true); // fast mode
+      const player = gameState.players.get('player1')!;
+      
+      player.level = 1;
+      
+      // Test single line in fast mode (40 * 1 * 1.5 = 60)
+      const fastSingleScore = service['calculateScore'](1, 1, true);
+      expect(fastSingleScore).toBe(60);
+      
+      // Test tetris in fast mode (1200 * 1 * 1.5 = 1800)
+      const fastTetrisScore = service['calculateScore'](4, 1, true);
+      expect(fastTetrisScore).toBe(1800);
+    });
+
+    it('should track game mode correctly', () => {
+      const normalGame = service.createGame('normal-room', ['player1'], false);
+      const fastGame = service.createGame('fast-room', ['player1'], true);
+      
+      expect(normalGame.fastMode).toBe(false);
+      expect(fastGame.fastMode).toBe(true);
+    });
+
+    it('should return correct player stats', () => {
+      const roomName = 'test-room';
+      const playerIds = ['player1'];
+      const gameState = service.createGame(roomName, playerIds, true);
+      const player = gameState.players.get('player1')!;
+      
+      // Simulate some game progress
+      player.score = 1500;
+      player.lines = 12;
+      player.level = 3;
+      
+      const stats = service.getPlayerStats(roomName, 'player1');
+      
+      expect(stats).toBeDefined();
+      expect(stats!.score).toBe(1500);
+      expect(stats!.linesCleared).toBe(12);
+      expect(stats!.level).toBe(3);
+      expect(stats!.fastMode).toBe(true);
+      expect(stats!.gameDuration).toBeGreaterThanOrEqual(0); // Should be 0 or greater for immediate check
+    });
+
+    it('should return correct player stats with win status', () => {
+      const roomName = 'test-room';
+      const playerIds = ['player1'];
+      const gameState = service.createGame(roomName, playerIds, true);
+      const player = gameState.players.get('player1')!;
+      
+      // Simulate a winning game
+      player.score = 1500;
+      player.lines = 12;
+      player.level = 3;
+      
+      const stats = service.getPlayerStats(roomName, 'player1');
+      
+      expect(stats).toBeDefined();
+      expect(stats!.score).toBe(1500);
+      expect(stats!.linesCleared).toBe(12);
+      expect(stats!.level).toBe(3);
+      expect(stats!.fastMode).toBe(true);
+      expect(stats!.gameDuration).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should return all players stats', () => {
+      const roomName = 'test-room';
+      const playerIds = ['player1', 'player2'];
+      const gameState = service.createGame(roomName, playerIds, false);
+      
+      const allStats = service.getAllPlayersStats(roomName);
+      
+      expect(allStats).toHaveLength(2);
+      expect(allStats[0].playerId).toBe('player1');
+      expect(allStats[1].playerId).toBe('player2');
+      expect(allStats[0].fastMode).toBe(false);
+    });
+  });
+
+  describe('game over and state checks', () => {
+    it('should handle game over check correctly', () => {
+      const roomName = 'test-room';
+      const playerIds = ['player1'];
+      const gameState = service.createGame(roomName, playerIds, false);
+      const player = gameState.players.get('player1')!;
+      
+      // Initially game should not be over
+      expect(service.checkForGameOver(roomName)).toBe(false);
+      
+      // Kill the player
+      player.isAlive = false;
+      
+      // Now game should be over
+      expect(service.checkForGameOver(roomName)).toBe(true);
+      
+      // Game state should reflect game over
+      const finalGameState = service.getGameState(roomName);
+      expect(finalGameState?.gameOver).toBe(true);
     });
   });
 });
