@@ -152,8 +152,8 @@ describe('RoomService', () => {
       const result = service.startGame(roomName);
 
       expect(result).toBe(true);
-      expect(gameService.createGame).toHaveBeenCalledWith(roomName, [player1!.id, player2!.id]);
-      expect(gameLoopService.addActiveGame).toHaveBeenCalledWith(roomName);
+      expect(gameService.createGame).toHaveBeenCalledWith(roomName, [player1!.id, player2!.id], false);
+      expect(gameLoopService.addActiveGame).toHaveBeenCalledWith(roomName, false);
     });
 
     it('should not start game when conditions are not met', () => {

@@ -152,7 +152,7 @@ export class RoomService {
     );
   }
 
-  startGame(roomName: string): boolean {
+  startGame(roomName: string, fastMode: boolean = false): boolean {
     const room = this.getRoom(roomName);
     if (!room || !this.canStartGame(roomName)) {
       return false;
@@ -160,12 +160,12 @@ export class RoomService {
 
     room.gameState = 'playing';
     
-    // Initialize game through GameService
+    // Initialize game through GameService with fast mode
     const playerIds = Array.from(room.players.keys());
-    this.gameService.createGame(roomName, playerIds);
+    this.gameService.createGame(roomName, playerIds, fastMode);
     
-    // Add to active games for game loop
-    this.gameLoopService.addActiveGame(roomName);
+    // Add to active games for game loop with fast mode
+    this.gameLoopService.addActiveGame(roomName, fastMode);
     
     return true;
   }
