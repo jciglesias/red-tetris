@@ -6,7 +6,6 @@ import { RootState, AppDispatch } from '../store';
 import './GameRoom.css';
 import LeaderboardModal from './LeaderboardModal';
 import LeaderboardStatsModal from './LeaderboardStatsModal';
-import { ChatMessage } from '../components/Interfaces';
 
 function GameRoom() {
   const { roomName } = useParams<{ roomName: string }>();
@@ -59,11 +58,11 @@ function GameRoom() {
             event.preventDefault();
             dispatch(gameAction({action: 'soft-drop'}));
             break;
-        case ' ':
+        case 'End':
             event.preventDefault();
             dispatch(gameAction({action: 'hard-drop'}));
             break;
-        case 's':
+        case 'Delete':
             event.preventDefault();
             dispatch(gameAction({action: 'skip-piece'}));
             break;
@@ -249,7 +248,7 @@ function GameRoom() {
     }
   }
 
-    function initializePlayerBoard(ref: HTMLDivElement | null) {
+  function initializePlayerBoard(ref: HTMLDivElement | null) {
     const board = ref;
     if (!board) return;
     board.innerHTML = '';
@@ -339,16 +338,15 @@ function GameRoom() {
       )}
       {joined && !started && (
         <div className="game-container">
-            <ul>
-              {messages.map((message) => (
-                <li key={message.playerId + '-' + message.timestamp}>
-                  <strong>{message.playerName}:</strong> {message.message}
-                  <span style={{ fontSize: '0.8em', color: '#666', marginLeft: '10px' }}>
-                    {new Date(message.timestamp).toLocaleTimeString()}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <div className="chat-container">
+              <ul>
+                {messages.map((message) => (
+                  <li key={message.playerId + '-' + message.timestamp}>
+                    <strong>{message.playerName}:</strong> {message.message}
+                  </li>
+                ))}
+              </ul>
+            </div>
             <form onSubmit={handleMessage}>
               <input
                 type="text"

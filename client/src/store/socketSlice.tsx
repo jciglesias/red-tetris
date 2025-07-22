@@ -133,7 +133,7 @@ export const connectSocket = createAsyncThunk(
     });
     
     socket.on('room-info', (data) => {
-      //console.log('Room info: ' + JSON.stringify(data, null, 2));
+      console.log('Room info: ' + JSON.stringify(data, null, 2));
       if (data && data.gameState) {
         const key = `${payload.room}_${payload.playerName}`;
         const playerState = (data.gameState.players as Record<string, any>)[key];
