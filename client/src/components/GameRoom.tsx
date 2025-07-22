@@ -24,6 +24,8 @@ function GameRoom() {
   const opponent3 = useSelector((state: RootState) => state.socket.opponent3);
   const opponent4 = useSelector((state: RootState) => state.socket.opponent4);
   const gamestate = useSelector((state: RootState) => state.socket.gamestate);
+  const score = useSelector((state: RootState) => state.socket.score);
+  const level = useSelector((state: RootState) => state.socket.level);
   const boardRef = useRef<HTMLDivElement>(null);
   const nextRef = useRef<HTMLDivElement>(null);
   const board1Ref = useRef<HTMLDivElement>(null);
@@ -293,9 +295,9 @@ function GameRoom() {
           <p>Connected: {connected ? 'Yes' : 'No'}</p>
           <p>Joined: {joined ? 'Yes' : 'No'}</p>
           <p>Ready: {playerReady ? 'Yes' : 'No'}</p>
-          <p></p>
-          {started && <p>Score: 20</p>}
-          {started && <p>Level: 20</p>}
+          <p><br /></p>
+          {started && <p>Score: {score}</p>}
+          {started && <p>Level: {level}</p>}
         </div>
       </div>
       <div className="button-group">

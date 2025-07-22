@@ -118,6 +118,9 @@ export const connectSocket = createAsyncThunk(
         if (data.winner && data.winner === key) {
           dispatch(onGameWon(data));
         }
+        if (playerState.score && playerState.level) {
+          dispatch(onScoreUpdate({ score: playerState.score, level: playerState.level }));
+        }
       }
       dispatch(onUpdatedData(data));
     });
@@ -133,6 +136,9 @@ export const connectSocket = createAsyncThunk(
         }
         if (data.gameState.winner && data.gameState.winner === key) {
           dispatch(onGameWon(data.gameState));
+        }
+        if (playerState.score && playerState.level) {
+          dispatch(onScoreUpdate({ score: playerState.score, level: playerState.level }));
         }
       }
       dispatch(onUpdateData(data.gameState));
@@ -263,6 +269,10 @@ const socketSlice = createSlice({
       if (action.payload[2]) state.opponent3 = action.payload[2].split('_')[1];
       if (action.payload[3]) state.opponent4 = action.payload[3].split('_')[1];
     },
+    onScoreUpdate(state, action) {
+      state.score = action.payload.score;
+      state.level = action.payload.level;
+    },
     onUpdateData(state, action) {
       state.gamestate = action.payload;
     },
@@ -290,5 +300,5 @@ const socketSlice = createSlice({
   },
 });
 
-export const { onConnect, onDisconnect, onJoinRoomSuccess, onJoinRoomError, onSetReadySuccess, onStartGameSuccess, onUpdateData, onUpdatedData, onGameOver, onGameWon, onError } = socketSlice.actions;
+export const { onConnect, onDisconnect, onJoinRoomSuccess, onJoinRoomError, onSetReadySuccess, onStartGameSuccess, onUpdateData, onUpdatedData, onGameOver, onGameWon, onScoreUpdate, onError } = socketSlice.actions;
 export default socketSlice.reducer;
