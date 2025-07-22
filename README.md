@@ -49,8 +49,8 @@ red-tetris/
 
 3. Test:
    ```bash
-   npm test
-   npm test -- --coverage
+   npm run test
+   npm run test:cov
    ```
 
 3. Open your browser to `http://localhost:3000`
