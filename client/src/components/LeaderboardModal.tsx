@@ -21,7 +21,7 @@ const LeaderboardModal = () => {
 
   return (
     <div>
-      <button onClick={fetchData}>Leaderboard</button>
+      <button className="modal-button" onClick={fetchData}>Best Scores</button>
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <h2>Leaderboard</h2>
         <table>

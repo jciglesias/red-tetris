@@ -5,6 +5,7 @@ import { connectSocket, disconnectSocket, joinRoom, readyPlayer, startGame, game
 import { RootState, AppDispatch } from '../store';
 import './GameRoom.css';
 import LeaderboardModal from './LeaderboardModal';
+import LeaderboardStatsModal from './LeaderboardStatsModal';
 
 function GameRoom() {
   const { roomName } = useParams<{ roomName: string }>();
@@ -276,6 +277,7 @@ function GameRoom() {
             <span className="slider round"></span>
           </label>
           <LeaderboardModal />
+          <LeaderboardStatsModal />
         </div>
       </div>
       <div className="room-header">
