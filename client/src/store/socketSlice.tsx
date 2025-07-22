@@ -22,6 +22,8 @@ export interface SocketState {
   opponent4: string;
   playerId: string;
   gamestate: GameState;
+  gameOver: boolean;
+  gameWon: boolean;
 }
 
 const initialState: SocketState = { 
@@ -36,7 +38,9 @@ const initialState: SocketState = {
   opponent3: '',
   opponent4: '',
   playerId: '',
-  gamestate: {} as GameState
+  gamestate: {} as GameState,
+  gameOver: false,
+  gameWon: false
 };
 
 export const connectSocket = createAsyncThunk(
@@ -85,6 +89,11 @@ export const connectSocket = createAsyncThunk(
       dispatch(onError(message));
     });
 
+    socket.on('game-reset', (data) => {
+      console.log('Game reset: ' + JSON.stringify(data, null, 2));
+      dispatch(onJoinRoomSuccess());
+    });
+
     socket.on('game-started', (data) => {
       console.log('Game started: ' + JSON.stringify(data, null, 2));
       const playersMap = data.gameState.players as Record<string, any>;
@@ -94,13 +103,47 @@ export const connectSocket = createAsyncThunk(
     });
 
     socket.on('game-state-update', (data) => {
-      console.log('Game state update: ' + JSON.stringify(data, null, 2));
+      //console.log('Game state update: ' + JSON.stringify(data, null, 2));
+      if (data) {
+        const key = `${payload.room}_${payload.playerName}`;
+        const playerState = (data.players as Record<string, any>)[key];
+        //console.log('Game state update: ' + JSON.stringify(playerState, null, 2));
+        if (playerState.isAlive === false) {
+            dispatch(onGameOver(data));
+        }
+        if (data.winner === key) {
+          dispatch(onGameWon(data));
+        }
+      }
       dispatch(onUpdatedData(data));
     });
     
     socket.on('room-info', (data) => {
-      console.log('Room info: ' + JSON.stringify(data, null, 2));
+      //console.log('Room info: ' + JSON.stringify(data, null, 2));
+      if (data && data.gameState) {
+        const key = `${payload.room}_${payload.playerName}`;
+        const playerState = (data.gameState.players as Record<string, any>)[key];
+        //console.log('Game state update: ' + JSON.stringify(playerState, null, 2));
+        if (playerState.isAlive === false) {
+          dispatch(onGameOver(data.gameState));
+        }
+        if (data.gameState.winner === key) {
+          dispatch(onGameWon(data.gameState));
+        }
+      }
       dispatch(onUpdateData(data.gameState));
+    });
+
+    socket.on('game-ended', (data) => {
+      console.log('Game ended: ' + JSON.stringify(data, null, 2));
+      if (data.winner){
+        console.log('Winner : ' + data.winner);
+        if (data.winner === `${payload.room}_${payload.playerName}`) {
+          dispatch(onGameWon(data.finalState));
+        } else {
+          dispatch(onGameOver(data.finalState));
+        }
+      }
     });
 
   }
@@ -147,6 +190,14 @@ export const gameAction = createAsyncThunk<void, { action: string }>(
   }
 );
 
+export const relaunchGame = createAsyncThunk(
+  'socket/relaunchGame',
+  async () => {
+    if (socket) {
+      socket.emit('restart-game');
+    }
+  }
+);
 
 export const getRoomInfo = createAsyncThunk(
   'socket/getRoomInfo',
@@ -179,6 +230,8 @@ const socketSlice = createSlice({
     onDisconnect(state) {
       state.connected = false;
       state.joined = false;
+      state.playerReady = false;
+      state.started = false;
     },
     onJoinRoomError(state, action) {
       state.joined = false;
@@ -187,22 +240,44 @@ const socketSlice = createSlice({
     },
     onJoinRoomSuccess(state) {
       state.joined = true;
+      state.isError = false;
+      state.contentError = '';
+      state.gameOver = false;
+      state.gameWon = false;
     },
     onSetReadySuccess(state) {
       state.playerReady = true;
+      state.isError = false;
+      state.contentError = '';
     },
     onStartGameSuccess(state, action) {
       state.started = true;
-      if (action.payload[0]) state.opponent1 = action.payload[0];
-      if (action.payload[1]) state.opponent2 = action.payload[1];
-      if (action.payload[2]) state.opponent3 = action.payload[2];
-      if (action.payload[3]) state.opponent4 = action.payload[3];
+      state.isError = false;
+      state.contentError = '';
+      if (action.payload[0]) state.opponent1 = action.payload[0].split('_')[1];
+      if (action.payload[1]) state.opponent2 = action.payload[1].split('_')[1];
+      if (action.payload[2]) state.opponent3 = action.payload[2].split('_')[1];
+      if (action.payload[3]) state.opponent4 = action.payload[3].split('_')[1];
     },
     onUpdateData(state, action) {
       state.gamestate = action.payload;
     },
     onUpdatedData(state, action) {
       state.gamestate = action.payload;
+    },
+    onGameOver(state, action) {
+      state.gamestate = action.payload;
+      state.gameOver = true;
+      state.joined = false;
+      state.playerReady = false;
+      state.started = false;
+    },
+    onGameWon(state, action) {
+      state.gamestate = action.payload;
+      state.gameWon = true;
+      state.joined = false;
+      state.playerReady = false;
+      state.started = false;
     },
     onError(state, action) {
       state.isError = true;
@@ -211,5 +286,5 @@ const socketSlice = createSlice({
   },
 });
 
-export const { onConnect, onDisconnect, onJoinRoomSuccess, onJoinRoomError, onSetReadySuccess, onStartGameSuccess, onUpdateData, onUpdatedData, onError } = socketSlice.actions;
+export const { onConnect, onDisconnect, onJoinRoomSuccess, onJoinRoomError, onSetReadySuccess, onStartGameSuccess, onUpdateData, onUpdatedData, onGameOver, onGameWon, onError } = socketSlice.actions;
 export default socketSlice.reducer;

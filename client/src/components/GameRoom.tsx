@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { connectSocket, disconnectSocket, joinRoom, readyPlayer, startGame, gameAction, getRoomInfo } from '../store/socketSlice';
+import { connectSocket, disconnectSocket, joinRoom, readyPlayer, startGame, gameAction, getRoomInfo, relaunchGame } from '../store/socketSlice';
 import { RootState, AppDispatch } from '../store';
 import './GameRoom.css';
+import LeaderboardModal from './LeaderboardModal';
+import LeaderboardStatsModal from './LeaderboardStatsModal';
 
 function GameRoom() {
   const { roomName } = useParams<{ roomName: string }>();
@@ -13,6 +15,8 @@ function GameRoom() {
   const joined = useSelector((state: RootState) => state.socket.joined);
   const playerReady = useSelector((state: RootState) => state.socket.playerReady);
   const started = useSelector((state: RootState) => state.socket.started);
+  const gameOver = useSelector((state: RootState) => state.socket.gameOver);
+  const gameWon = useSelector((state: RootState) => state.socket.gameWon);
   const isError = useSelector((state: RootState) => state.socket.isError);
   const contentError = useSelector((state: RootState) => state.socket.contentError);
   const opponent1 = useSelector((state: RootState) => state.socket.opponent1);
@@ -64,12 +68,10 @@ function GameRoom() {
 
 
   useEffect(() => {
-
     dispatch(connectSocket({ room: roomName!, playerName: playerName! }));
     return () => {
       dispatch(disconnectSocket());
     };
-
   }, [roomName, playerName, dispatch]);
 
 
@@ -142,7 +144,7 @@ function GameRoom() {
       }
     }
 
-  }, [gamestate, roomName, playerName]);
+  }, [gamestate, roomName, playerName, blindMode]);
 
   useEffect(() => {
     renderBoard();
@@ -207,6 +209,13 @@ function GameRoom() {
     }
     console.log('start-fast-game')
   }
+
+  function handleRelaunch() {
+    if (gameOver || gameWon) {
+      dispatch(relaunchGame());
+    }
+    console.log('relaunch-game');
+  }
     
   function initializeNextPiece() {
     const nextPiece = nextRef.current;
@@ -267,6 +276,8 @@ function GameRoom() {
             <input type="checkbox" checked={blindMode} onChange={handleBlindMode} />
             <span className="slider round"></span>
           </label>
+          <LeaderboardModal />
+          <LeaderboardStatsModal />
         </div>
       </div>
       <div className="room-header">
@@ -281,15 +292,28 @@ function GameRoom() {
         </div>
       </div>
       <div className="button-group">
-        {!joined && <button onClick={handleJoin}>Join Room</button>}
+        {!joined && !gameOver && !gameWon && <button onClick={handleJoin}>Join Room</button>}
         {joined && !playerReady && <button onClick={handleReady}>Set Ready</button>}
         {playerReady && !started && <button onClick={handleStart}>Start Game</button>}
         {playerReady && !started && <button onClick={handleFastStart}>Start Fast Game</button>}
+        {(gameOver || gameWon) && <button onClick={handleRelaunch}>Relaunch Game</button>}
       </div>
       {isError && (
         <div className="error-container">
           <p>Error :</p>
           <p>{contentError}</p>
+        </div>
+      )}
+      {gameOver && (
+        <div className="error-container">
+          <p>GAME OVER</p>
+          <p>Wait for the game to end and the host to relaunch the game</p>
+        </div>
+      )}
+      {gameWon && (
+        <div className="success-container">
+          <p>VICTORY !!!</p>
+          <p>Congratulations! You are the champion!</p>
         </div>
       )}
       <div className="game-container">

@@ -3,32 +3,16 @@
   padding: 2rem;
 }
 
-.home {
-  padding: 2rem;
-}
-
-.join-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  max-width: 300px;
-  margin: 0 auto;
-}
-
-.join-form input {
-  padding: 0.5rem;
+.modal-button {
+  padding: 0.5rem 1rem;
+  background-color: #1976d2;
   border: none;
   border-radius: 4px;
-}
-
-.join-form button {
-  padding: 0.5rem;
-  background-color: #61dafb;
-  border: none;
-  border-radius: 4px;
+  color: #fff;
   cursor: pointer;
+  margin: 10px 0px 0px 0px;
 }
 
-.join-form button:hover {
-  background-color: #21a1c4;
+.modal-button:hover {
+  background-color: #115293;
 }

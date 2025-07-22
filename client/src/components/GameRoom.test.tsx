@@ -46,6 +46,8 @@ const defaultState: SocketState = {
   opponent4: '',
   playerId: '',
   gamestate: defaultGameState,
+  gameOver: false,
+  gameWon: false
 };
 
 // Helper function to create complete player state
