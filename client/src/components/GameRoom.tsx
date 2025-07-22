@@ -142,7 +142,7 @@ function GameRoom() {
       }
     }
 
-  }, [gamestate, roomName, playerName]);
+  }, [gamestate, roomName, playerName, blindMode]);
 
   useEffect(() => {
     renderBoard();
@@ -294,7 +294,7 @@ function GameRoom() {
         {playerReady && !started && <button onClick={handleFastStart}>Start Fast Game</button>}
         {(gameOver || gameWon) && <button onClick={handleRelaunch}>Relaunch Game</button>}
       </div>
-      {isError && !gameWon && (
+      {isError && (
         <div className="error-container">
           <p>Error :</p>
           <p>{contentError}</p>
@@ -308,7 +308,7 @@ function GameRoom() {
       )}
       {gameWon && (
         <div className="success-container">
-          <p>GAME WON</p>
+          <p>VICTORY !!!</p>
           <p>Congratulations! You are the champion!</p>
         </div>
       )}

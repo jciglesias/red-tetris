@@ -103,36 +103,32 @@ export const connectSocket = createAsyncThunk(
     });
 
     socket.on('game-state-update', (data) => {
-      console.log('Game state update: ' + JSON.stringify(data, null, 2));
+      //console.log('Game state update: ' + JSON.stringify(data, null, 2));
       if (data) {
         const key = `${payload.room}_${payload.playerName}`;
         const playerState = (data.players as Record<string, any>)[key];
         //console.log('Game state update: ' + JSON.stringify(playerState, null, 2));
         if (playerState.isAlive === false) {
-          console.log('Winner : ' + data.winner);
-          if (data.winner === key) {
-            dispatch(onGameWon(data));
-          } else {
             dispatch(onGameOver(data));
-          }
+        }
+        if (data.winner === key) {
+          dispatch(onGameWon(data));
         }
       }
       dispatch(onUpdatedData(data));
     });
     
     socket.on('room-info', (data) => {
-      console.log('Room info: ' + JSON.stringify(data, null, 2));
+      //console.log('Room info: ' + JSON.stringify(data, null, 2));
       if (data && data.gameState) {
         const key = `${payload.room}_${payload.playerName}`;
         const playerState = (data.gameState.players as Record<string, any>)[key];
         //console.log('Game state update: ' + JSON.stringify(playerState, null, 2));
         if (playerState.isAlive === false) {
-          console.log('Winner : ' + data.gameState.winner);
-          if (data.gameState.winner === key) {
-            dispatch(onGameWon(data.gameState));
-          } else {
-            dispatch(onGameOver(data.gameState));
-          }
+          dispatch(onGameOver(data.gameState));
+        }
+        if (data.gameState.winner === key) {
+          dispatch(onGameWon(data.gameState));
         }
       }
       dispatch(onUpdateData(data.gameState));
