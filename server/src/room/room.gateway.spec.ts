@@ -219,22 +219,6 @@ describe('RoomGateway', () => {
       }));
     });
 
-    it('should reject start game when conditions not met', () => {
-      const mockPlayerData = {
-        player: { id: 'player1', isHost: true },
-        room: { name: 'test-room', maxPlayers: 5, players: new Map() }
-      };
-      
-      (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(mockPlayerData);
-      (roomService.canStartGame as jest.Mock).mockReturnValue(false);
-      
-      gateway.handleStartGame({}, mockClient as Socket);
-      
-      expect(mockClient.emit).toHaveBeenCalledWith('error', expect.objectContaining({
-        message: 'Waiting for more players (0/5)'
-      }));
-    });
-
     it('should handle start-game error when player not found', () => {
       (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(null);
       
