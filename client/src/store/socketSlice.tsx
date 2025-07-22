@@ -89,6 +89,11 @@ export const connectSocket = createAsyncThunk(
       dispatch(onError(message));
     });
 
+    socket.on('game-reset', (data) => {
+      console.log('Game reset: ' + JSON.stringify(data, null, 2));
+      dispatch(onJoinRoomSuccess());
+    });
+
     socket.on('game-started', (data) => {
       console.log('Game started: ' + JSON.stringify(data, null, 2));
       const playersMap = data.gameState.players as Record<string, any>;
@@ -189,6 +194,14 @@ export const gameAction = createAsyncThunk<void, { action: string }>(
   }
 );
 
+export const relaunchGame = createAsyncThunk(
+  'socket/relaunchGame',
+  async () => {
+    if (socket) {
+      socket.emit('restart-game');
+    }
+  }
+);
 
 export const getRoomInfo = createAsyncThunk(
   'socket/getRoomInfo',
@@ -259,7 +272,6 @@ const socketSlice = createSlice({
     onGameOver(state, action) {
       state.gamestate = action.payload;
       state.gameOver = true;
-      state.connected = false;
       state.joined = false;
       state.playerReady = false;
       state.started = false;
@@ -267,7 +279,6 @@ const socketSlice = createSlice({
     onGameWon(state, action) {
       state.gamestate = action.payload;
       state.gameWon = true;
-      state.connected = false;
       state.joined = false;
       state.playerReady = false;
       state.started = false;

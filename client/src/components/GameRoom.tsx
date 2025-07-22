@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { connectSocket, disconnectSocket, joinRoom, readyPlayer, startGame, gameAction, getRoomInfo } from '../store/socketSlice';
+import { connectSocket, disconnectSocket, joinRoom, readyPlayer, startGame, gameAction, getRoomInfo, relaunchGame } from '../store/socketSlice';
 import { RootState, AppDispatch } from '../store';
 import './GameRoom.css';
 
@@ -207,6 +207,13 @@ function GameRoom() {
     }
     console.log('start-fast-game')
   }
+
+  function handleRelaunch() {
+    if (gameOver || gameWon) {
+      dispatch(relaunchGame());
+    }
+    console.log('relaunch-game');
+  }
     
   function initializeNextPiece() {
     const nextPiece = nextRef.current;
@@ -281,12 +288,13 @@ function GameRoom() {
         </div>
       </div>
       <div className="button-group">
-        {!joined && <button onClick={handleJoin}>Join Room</button>}
+        {!joined && !gameOver && !gameWon && <button onClick={handleJoin}>Join Room</button>}
         {joined && !playerReady && <button onClick={handleReady}>Set Ready</button>}
         {playerReady && !started && <button onClick={handleStart}>Start Game</button>}
         {playerReady && !started && <button onClick={handleFastStart}>Start Fast Game</button>}
+        {(gameOver || gameWon) && <button onClick={handleRelaunch}>Relaunch Game</button>}
       </div>
-      {isError && (
+      {isError && !gameWon && (
         <div className="error-container">
           <p>Error :</p>
           <p>{contentError}</p>
@@ -295,7 +303,7 @@ function GameRoom() {
       {gameOver && (
         <div className="error-container">
           <p>GAME OVER</p>
-          <p>Wait for the game to end and the host to rejoin the game</p>
+          <p>Wait for the game to end and the host to relaunch the game</p>
         </div>
       )}
       {gameWon && (
