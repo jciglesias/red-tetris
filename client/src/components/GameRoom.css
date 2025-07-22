@@ -80,6 +80,13 @@
   border-radius: 4px;
   margin-bottom: 20px;
 }
+.success-container {
+  background-color: #ffe6e6;
+  color: #23f707;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
 .game-container {
   border-top: 1px solid #ccc;
   display: flex;

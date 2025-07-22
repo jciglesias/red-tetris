@@ -14,6 +14,7 @@ function GameRoom() {
   const playerReady = useSelector((state: RootState) => state.socket.playerReady);
   const started = useSelector((state: RootState) => state.socket.started);
   const gameOver = useSelector((state: RootState) => state.socket.gameOver);
+  const gameWon = useSelector((state: RootState) => state.socket.gameWon);
   const isError = useSelector((state: RootState) => state.socket.isError);
   const contentError = useSelector((state: RootState) => state.socket.contentError);
   const opponent1 = useSelector((state: RootState) => state.socket.opponent1);
@@ -294,7 +295,13 @@ function GameRoom() {
       {gameOver && (
         <div className="error-container">
           <p>GAME OVER</p>
-          <p>Wait for the host to relaunch the game</p>
+          <p>Wait for the game to end and the host to rejoin the game</p>
+        </div>
+      )}
+      {gameWon && (
+        <div className="success-container">
+          <p>GAME WON</p>
+          <p>Congratulations! You are the champion!</p>
         </div>
       )}
       <div className="game-container">

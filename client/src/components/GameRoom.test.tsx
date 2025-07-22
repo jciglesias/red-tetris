@@ -119,7 +119,8 @@ const defaultState: SocketState = {
   opponent4: '',
   playerId: '',
   gamestate: defaultGameState,
-  gameOver: false
+  gameOver: false,
+  gameWon: false
 };
 
 type PreloadedSocketState = SocketState;
