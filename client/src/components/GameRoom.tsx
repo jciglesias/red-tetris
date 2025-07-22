@@ -254,7 +254,7 @@ function GameRoom() {
       dispatch(requestReconnection({
         room: roomName,
         playerName: playerName,
-        reconnectionToken: storedToken || reconnectionToken ||undefined
+        reconnectionToken: storedToken || reconnectionToken || undefined
       }));
     }
     console.log('request-reconnection');

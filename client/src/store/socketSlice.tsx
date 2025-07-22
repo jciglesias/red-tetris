@@ -251,7 +251,8 @@ export const joinRoom = createAsyncThunk(
     if (socket) {
       socket.emit('join-room', {
         roomName: payload.room,
-        playerName: payload.playerName
+        playerName: payload.playerName,
+        reconnectionToken: getReconnectionData().token || ''
       });
     }
   }
@@ -414,7 +415,6 @@ const socketSlice = createSlice({
       // Restaurer l'état du jeu si fourni
       if (action.payload.gameState) {
         state.gamestate = action.payload.gameState;
-        state.started = action.payload.gameState.started || false;
         state.gameOver = action.payload.gameState.gameOver || false;
         state.gameWon = action.payload.gameState.gameWon || false;
         if (action.payload.opponents) {
