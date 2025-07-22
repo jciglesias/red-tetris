@@ -301,11 +301,13 @@ function GameRoom() {
     <div className="game-room">
        <div className="score-panel">
         <div className="score-indicator">
-          <p>Blind mode</p>
-          <label className="switch">
-            <input type="checkbox" checked={blindMode} onChange={handleBlindMode} />
-            <span className="slider round"></span>
-          </label>
+          <div className="blind-mode-container">
+            <p>Blind mode</p>
+            <label className="switch">
+              <input type="checkbox" checked={blindMode} onChange={handleBlindMode} />
+              <span className="slider round"></span>
+            </label>
+          </div>
           <LeaderboardModal />
           <LeaderboardStatsModal />
           <KeysModal />

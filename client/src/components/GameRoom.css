@@ -24,16 +24,30 @@
   margin-bottom: 20px;
 }
 .score-indicator {
-  padding: 4px 8px;
+  padding: 2px 2px;
   background: transparent;
   border-radius: 4px;
   font-size: 0.9rem;
   color: #555;
   text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 .score-indicator p {
   margin: 0;
   text-align: left;
+}
+
+.blind-mode-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.blind-mode-container p {
+  margin: 0;
+  font-weight: 500;
 }
 .status-panel {
   position: absolute;
