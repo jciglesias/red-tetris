@@ -27,7 +27,7 @@ interface StartGameMessage {
 }
 
 interface GameActionMessage {
-  action: 'move-left' | 'move-right' | 'rotate' | 'soft-drop' | 'hard-drop';
+  action: 'move-left' | 'move-right' | 'rotate' | 'soft-drop' | 'hard-drop' | 'skip-piece';
 }
 
 @Injectable()

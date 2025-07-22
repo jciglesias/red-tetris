@@ -20,6 +20,7 @@ export interface PlayerGameState {
   isAlive: boolean;
   penalties: number;
   pieceIndex: number; // Individual piece index for this player
+  skipPieceUsed: boolean; // Whether player has used their one skip piece per game
 }
 
 export interface GameState {
@@ -98,6 +99,7 @@ export class GameService {
         isAlive: true,
         penalties: 0,
         pieceIndex: 0, // Each player starts at the beginning of the sequence
+        skipPieceUsed: false, // Each player gets one skip per game
       });
     });
 
@@ -175,6 +177,15 @@ export class GameService {
         }
         this.lockPiece(game, player);
         moved = true;
+        break;
+
+      case 'skip-piece':
+        // Skip piece action: can only be used once per game per player
+        if (!player.skipPieceUsed) {
+          player.skipPieceUsed = true;
+          this.skipCurrentPiece(game, player);
+          moved = true;
+        }
         break;
     }
 
@@ -562,5 +573,26 @@ export class GameService {
     }
     
     return stats;
+  }
+
+  private skipCurrentPiece(game: GameState, player: PlayerGameState): void {
+    if (!player.currentPiece) return;
+
+    // Advance to next piece in sequence
+    player.pieceIndex = (player.pieceIndex + 1) % game.pieceSequence.length;
+    const nextPiece = { ...game.pieceSequence[player.pieceIndex] };
+
+    // Check if player topped out with the new piece
+    if (!this.canSpawnPiece(player, nextPiece)) {
+      player.isAlive = false;
+      return;
+    }
+
+    player.currentPiece = nextPiece;
+    
+    // Update next pieces queue
+    player.nextPieces.shift();
+    const nextPieceIndex = (player.pieceIndex + this.PIECES_AHEAD) % game.pieceSequence.length;
+    player.nextPieces.push({ ...game.pieceSequence[nextPieceIndex] });
   }
 }

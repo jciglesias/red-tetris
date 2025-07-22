@@ -32,6 +32,7 @@ Red Tetris is a real-time multiplayer Tetris game built with NestJS and Socket.I
 - **Live scoring system** - see player scores, levels, and lines cleared in real-time
 - **Comprehensive leaderboard** with player statistics, win rates, and all-time records
 - **Penalty system** - clearing multiple lines sends penalty blocks to opponents
+- **Skip piece action** - each player can skip one piece per game strategically
 - **Fast mode support** - games with 4x speed for experienced players
 - **Reconnection support** with game state restoration
 - **Spectrum view** showing opponent's board height profile
@@ -214,6 +215,7 @@ The `game-action` event accepts the following action types:
 | `rotate` | Rotate current piece clockwise | During active game | `{ action: "rotate" }` |
 | `soft-drop` | Accelerate piece downward | During active game | `{ action: "soft-drop" }` |
 | `hard-drop` | Instantly drop piece to bottom | During active game | `{ action: "hard-drop" }` |
+| `skip-piece` | Skip current piece (one use per game) | During active game | `{ action: "skip-piece" }` |
 
 **Usage:**
 ```javascript
@@ -221,6 +223,7 @@ The `game-action` event accepts the following action types:
 socket.emit('game-action', { action: 'move-left' });
 socket.emit('game-action', { action: 'rotate' });
 socket.emit('game-action', { action: 'hard-drop' });
+socket.emit('game-action', { action: 'skip-piece' }); // Can only be used once per game
 ```
 
 ### REST API Endpoints
@@ -299,7 +302,7 @@ interface Piece {
 #### GameActionMessage Object (WebSocket)
 ```typescript
 interface GameActionMessage {
-  action: 'move-left' | 'move-right' | 'rotate' | 'soft-drop' | 'hard-drop';
+  action: 'move-left' | 'move-right' | 'rotate' | 'soft-drop' | 'hard-drop' | 'skip-piece';
 }
 ```
 
@@ -824,7 +827,7 @@ socket.emit('start-game');
 Send game actions (movement, rotation, dropping).
 ```javascript
 socket.emit('game-action', {
-  action: 'move-left' | 'move-right' | 'rotate' | 'soft-drop' | 'hard-drop'
+  action: 'move-left' | 'move-right' | 'rotate' | 'soft-drop' | 'hard-drop' | 'skip-piece'
 });
 ```
 

@@ -350,6 +350,32 @@ describe('RoomGateway', () => {
         message: 'Game is not currently in progress'
       });
     });
+
+    it('should handle skip-piece action', () => {
+      const actionData = { action: 'skip-piece' as const };
+      const mockPlayerData = {
+        player: { id: 'player1' },
+        room: { name: 'test-room', gameState: 'playing' }
+      };
+      const mockGameState = { gameOver: false, players: new Map() };
+      const mockPlayers = [{ id: 'player1', name: 'Test Player', score: 100 }];
+      
+      (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(mockPlayerData);
+      (gameService.processPlayerAction as jest.Mock).mockReturnValue(true);
+      (gameService.getGameState as jest.Mock).mockReturnValue(mockGameState);
+      (roomService.updatePlayerStats as jest.Mock).mockReturnValue(true);
+      (roomService.getRoomPlayers as jest.Mock).mockReturnValue(mockPlayers);
+      
+      gateway.handleGameAction(actionData, mockClient as Socket);
+      
+      expect(gameService.processPlayerAction).toHaveBeenCalledWith('test-room', 'player1', 'skip-piece');
+      expect(roomService.updatePlayerStats).toHaveBeenCalledWith('test-room');
+      expect(mockServer.to).toHaveBeenCalledWith('test-room');
+      expect(mockServer.emit).toHaveBeenCalledWith('game-state-update', {
+        gameState: { gameOver: false, players: {} },
+        players: mockPlayers
+      });
+    });
   });
 
   describe('restart-game event', () => {
