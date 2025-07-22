@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { connectSocket, disconnectSocket, joinRoom, readyPlayer, startGame, gameAction, getRoomInfo, relaunchGame } from '../store/socketSlice';
 import { RootState, AppDispatch } from '../store';
 import './GameRoom.css';
+import LeaderboardModal from './LeaderboardModal';
 
 function GameRoom() {
   const { roomName } = useParams<{ roomName: string }>();
@@ -274,6 +275,7 @@ function GameRoom() {
             <input type="checkbox" checked={blindMode} onChange={handleBlindMode} />
             <span className="slider round"></span>
           </label>
+          <LeaderboardModal />
         </div>
       </div>
       <div className="room-header">

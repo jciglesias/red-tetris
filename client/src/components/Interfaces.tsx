@@ -26,3 +26,24 @@ export interface GameState {
   winner: string | null;
   startTime: number;
 }
+
+export interface LeaderboardEntry {
+  id: number;
+  playerName: string;
+  score: number;
+  linesCleared: number;
+  level: number;
+  gameDuration: number; // in milliseconds
+  roomName?: string;
+  createdAt: Date;
+}
+
+export interface LeaderboardStats {
+  topScore: number;
+  topScorePlayer: string;
+  mostLinesCleared: number;
+  mostLinesClearedPlayer: string;
+  longestGameDuration: number;
+  longestGamePlayer: string;
+  totalGames: number;
+}
