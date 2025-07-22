@@ -348,38 +348,47 @@ function GameRoom() {
                   fontSize: '18px',
                   fontWeight: '600'
                 }}>
-                  💬 Chat Room
+                  💬 Chat 💬
                 </h3>
               </div>
               <ul>
                 {messages.length === 0 ? (
-                  <li style={{ 
+                  <li className="welcome-message" style={{ 
                     textAlign: 'center', 
                     fontStyle: 'italic', 
                     color: '#666',
                     background: 'linear-gradient(135deg, #f0f2f5 0%, #e4e6ea 100%)',
                     borderLeft: '4px solid #ddd'
                   }}>
-                    🎮 Welcome to the chat! Start a conversation while waiting for the game...
+                    🎮 Welcome to the chat! Start a conversation while waiting for the game 🎮 
                   </li>
                 ) : (
-                  messages.map((message) => (
-                    <li key={message.playerId + '-' + message.timestamp}>
-                      <strong>{message.playerName}:</strong> {message.message}
-                      <span style={{ 
-                        fontSize: '0.75em', 
-                        color: '#888', 
-                        float: 'right',
-                        marginTop: '2px',
-                        opacity: 0.7
-                      }}>
-                        {new Date(message.timestamp).toLocaleTimeString([], { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
-                      </span>
-                    </li>
-                  ))
+                  messages.map((message) => {
+                    const isCurrentPlayer = message.playerName === playerName;
+                    return (
+                      <li 
+                        key={message.playerId + '-' + message.timestamp}
+                        className={isCurrentPlayer ? 'current-player-message' : 'other-message'}
+                      >
+                        <strong>{isCurrentPlayer ? 'You' : message.playerName}:</strong> {message.message}
+                        <span 
+                          className="timestamp"
+                          style={{ 
+                            fontSize: '0.75em', 
+                            float: 'right',
+                            marginTop: '2px',
+                            opacity: 0.8,
+                            marginLeft: '8px'
+                          }}
+                        >
+                          {new Date(message.timestamp).toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </span>
+                      </li>
+                    );
+                  })
                 )}
               </ul>
               <form onSubmit={handleMessage}>
@@ -387,7 +396,7 @@ function GameRoom() {
                   type="text"
                   value={messageVar}
                   onChange={(e) => setMessageVar(e.target.value)}
-                  placeholder="💭 Type your message..."
+                  placeholder="Type your message here ..."
                   maxLength={200}
                 />
                 <button type="submit" disabled={!messageVar.trim()}>
