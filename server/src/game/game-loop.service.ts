@@ -89,15 +89,18 @@ export class GameLoopService implements OnModuleInit, OnModuleDestroy {
           
           // Check if the game ended during this tick
           if (gameState.gameOver) {
+            // Capture final state before ending the game
+            const finalGameState = this.gameService.getGameState(roomName);
+            const winner = finalGameState?.winner || null;
+            
             // Game just ended, save results to leaderboard
             await this.roomService.endGame(roomName);
             
             // Emit game-ended event to clients
             if (this.gameEndEventEmitter) {
-              const finalGameState = this.gameService.getGameState(roomName);
               this.gameEndEventEmitter.emitGameEnded(
                 roomName,
-                finalGameState?.winner || null,
+                winner,
                 finalGameState
               );
             }
@@ -107,14 +110,17 @@ export class GameLoopService implements OnModuleInit, OnModuleDestroy {
           }
         } else {
           // Game is already over, save results and remove from active games
+          // Capture final state before ending the game
+          const finalGameState = this.gameService.getGameState(roomName);
+          const winner = finalGameState?.winner || null;
+          
           await this.roomService.endGame(roomName);
           
           // Emit game-ended event to clients if not already sent
           if (this.gameEndEventEmitter) {
-            const finalGameState = this.gameService.getGameState(roomName);
             this.gameEndEventEmitter.emitGameEnded(
               roomName,
-              finalGameState?.winner || null,
+              winner,
               finalGameState
             );
           }
