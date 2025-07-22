@@ -29,11 +29,12 @@ Red Tetris is a real-time multiplayer Tetris game built with NestJS and Socket.I
 
 - **Real-time multiplayer gameplay** with Socket.IO
 - **Room-based system** for multiple concurrent games
+- **In-room chat** - simple, non-persistent messaging within each room
 - **Live scoring system** - see player scores, levels, and lines cleared in real-time
 - **Comprehensive leaderboard** with player statistics, win rates, and all-time records
 - **Penalty system** - clearing multiple lines sends penalty blocks to opponents
 - **Skip piece action** - each player can skip one piece per game strategically
-- **Fast mode support** - games with 4x speed for experienced players
+- **Fast mode support** - games with 2x speed for experienced players
 - **Reconnection support** with game state restoration
 - **Spectrum view** showing opponent's board height profile
 - **Full game state synchronization** across all clients
@@ -178,6 +179,7 @@ For production deployments:
 | `restart-game` | `{}` | Restart current game | `{}` |
 | `get-room-info` | `{}` | Get room information | `{}` |
 | `heartbeat` | `{}` | Send heartbeat | `{}` |
+| `chat-message` | `{ message: string }` | Send chat message to room | `{ message: "Hello everyone!" }` |
 | `quit-game` | `{}` | Quit current game (saves progress for solo games) | `{}` |
 | `request-reconnection` | `{ roomName: string, playerName: string, reconnectionToken?: string }` | Request reconnection | `{ roomName: "room1", playerName: "player1", reconnectionToken: "abc123" }` |
 
@@ -202,6 +204,7 @@ For production deployments:
 | `reconnection-success` | `{ player: object, room: object, gameState?: object }` | Reconnection successful | See example below |
 | `reconnection-error` | `{ message: string }` | Reconnection failed | `{ message: "Invalid reconnection token" }` |
 | `heartbeat-ack` | `{}` | Heartbeat acknowledged | `{}` |
+| `chat-message` | `{ playerId: string, playerName: string, message: string, timestamp: string }` | Chat message from player | See example below |
 | `error` | `{ message: string }` | Error occurred | `{ message: "Player not found in any room" }` |
 
 ### Game Actions (WebSocket)
@@ -284,7 +287,7 @@ interface GameState {
   gameOver: boolean;
   winner: string | null;
   startTime: number;
-  fastMode: boolean; // true for fast mode (pieces fall 4x faster), false for normal mode
+  fastMode: boolean; // true for fast mode (pieces fall 2x faster), false for normal mode
 }
 ```
 
@@ -319,6 +322,13 @@ interface JoinRoomMessage {
 ```typescript
 interface PlayerReadyMessage {
   ready: boolean;
+}
+```
+
+#### ChatMessage Object (WebSocket)
+```typescript
+interface ChatMessage {
+  message: string; // Max 500 characters, will be trimmed
 }
 ```
 
@@ -779,6 +789,16 @@ curl "http://localhost:3001/health"
 }
 ```
 
+#### chat-message
+```json
+{
+  "playerId": "room1_player1",
+  "playerName": "Player1",
+  "message": "Good luck everyone!",
+  "timestamp": "2025-07-22T14:30:00.000Z"
+}
+```
+
 ### WebSocket API Documentation
 
 The Red Tetris server uses Socket.IO for real-time communication. Below is the complete WebSocket API reference:
@@ -816,7 +836,7 @@ Start the game (only works if all players are ready). Supports normal and fast m
 // Start normal game
 socket.emit('start-game', { fast: false });
 
-// Start fast game (pieces fall 4x faster)
+// Start fast game (pieces fall 2x faster)
 socket.emit('start-game', { fast: true });
 
 // Default behavior (normal mode)
@@ -847,6 +867,14 @@ socket.emit('get-room-info');
 Send heartbeat to maintain connection.
 ```javascript
 socket.emit('heartbeat');
+```
+
+#### `chat-message`
+Send a chat message to all players in the current room.
+```javascript
+socket.emit('chat-message', {
+  message: 'Hello everyone!'
+});
 ```
 
 #### `request-reconnection`
@@ -920,7 +948,7 @@ Fired when the game starts.
 socket.on('game-started', (data) => {
   console.log('Game started with state:', data.gameState);
   console.log('Players:', data.players);
-  console.log('Fast mode:', data.gameState.fastMode); // true for fast mode (4x speed), false for normal
+  console.log('Fast mode:', data.gameState.fastMode); // true for fast mode (2x speed), false for normal
 });
 ```
 
@@ -1017,6 +1045,15 @@ socket.on('heartbeat-ack', () => {
 });
 ```
 
+#### `chat-message`
+Fired when a player sends a chat message.
+```javascript
+socket.on('chat-message', (data) => {
+  console.log(`${data.playerName}: ${data.message}`);
+  console.log('Timestamp:', data.timestamp);
+});
+```
+
 #### `error`
 Fired when an error occurs.
 ```javascript
@@ -1055,7 +1092,7 @@ interface GameState {
   gameOver: boolean;
   winner: string | null;
   startTime: number;
-  fastMode: boolean; // true for fast mode (4x speed), false for normal
+  fastMode: boolean; // true for fast mode (2x speed), false for normal
 }
 ```
 
@@ -1162,6 +1199,10 @@ class TetrisClient {
       this.updateGameState(data.gameState, data.players);
     });
 
+    this.socket.on('chat-message', (data) => {
+      this.displayChatMessage(data);
+    });
+
     this.socket.on('error', (error) => {
       console.error('Socket error:', error);
     });
@@ -1173,6 +1214,10 @@ class TetrisClient {
 
   sendGameAction(action) {
     this.socket.emit('game-action', { action });
+  }
+
+  sendChatMessage(message) {
+    this.socket.emit('chat-message', { message });
   }
 
   // Leaderboard methods
@@ -1205,6 +1250,12 @@ class TetrisClient {
     this.renderNextPiece(gameState.players[this.playerId].nextPieces[0]);
     this.updateSpectrum(gameState.players);
     this.updateLiveScores(players); // Show live player scores
+  }
+
+  displayChatMessage(chatData) {
+    // Display chat message in your UI
+    console.log(`[${chatData.timestamp}] ${chatData.playerName}: ${chatData.message}`);
+    // Add to chat display, scroll to bottom, etc.
   }
 }
 ```
