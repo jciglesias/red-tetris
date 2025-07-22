@@ -189,7 +189,9 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const readyPlayers = connectedPlayers.filter(p => p.isReady);
       
       let message = '';
-      if (readyPlayers.length < connectedPlayers.length) {
+      if (connectedPlayers.length < room.maxPlayers) {
+        message = `Waiting for more players (${connectedPlayers.length}/${room.maxPlayers})`;
+      } else if (readyPlayers.length < connectedPlayers.length) {
         message = `Waiting for all players to be ready (${readyPlayers.length}/${connectedPlayers.length} ready)`;
       } else {
         message = 'Cannot start game. Unknown reason.';
@@ -239,10 +241,16 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const result = this.gameService.processPlayerAction(room.name, player.id, data.action);
     
     if (result) {
+      // Update player stats from game state
+      this.roomService.updatePlayerStats(room.name);
+      
       // Broadcast updated game state to all players in room
       const gameState = this.gameService.getGameState(room.name);
       if (gameState) {
-        this.server.to(room.name).emit('game-state-update', this.serializeGameState(gameState));
+        this.server.to(room.name).emit('game-state-update', {
+          gameState: this.serializeGameState(gameState),
+          players: this.roomService.getRoomPlayers(room.name), // Include updated player stats
+        });
 
         // Check if game ended
         if (gameState.gameOver) {

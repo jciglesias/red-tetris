@@ -549,4 +549,85 @@ describe('RoomService', () => {
       expect(oldPlayerData).toBeNull();
     });
   });
+
+  describe('updatePlayerStats', () => {
+    it('should update player scores from game state', () => {
+      const roomName = 'test-room';
+      service.createRoom(roomName);
+      const player = service.addPlayerToRoom(roomName, 'TestPlayer', 'socket1');
+      
+      // Mock game state
+      const mockGameState = {
+        players: new Map([
+          [player!.id, {
+            playerId: player!.id,
+            score: 1500,
+            level: 3,
+            lines: 10,
+          }]
+        ])
+      };
+
+      jest.spyOn(gameService, 'getGameState').mockReturnValue(mockGameState as any);
+      
+      const room = service.getRoom(roomName);
+      room!.gameState = 'playing';
+
+      const result = service.updatePlayerStats(roomName);
+
+      expect(result).toBe(true);
+      expect(player!.score).toBe(1500);
+      expect(player!.level).toBe(3);
+      expect(player!.linesCleared).toBe(10);
+    });
+
+    it('should return false for non-playing game', () => {
+      const roomName = 'test-room';
+      service.createRoom(roomName);
+      
+      const result = service.updatePlayerStats(roomName);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false for non-existent room', () => {
+      const result = service.updatePlayerStats('non-existent');
+
+      expect(result).toBe(false);
+    });
+
+    it('should handle missing game state gracefully', () => {
+      const roomName = 'test-room';
+      service.createRoom(roomName);
+      const room = service.getRoom(roomName);
+      room!.gameState = 'playing';
+
+      jest.spyOn(gameService, 'getGameState').mockReturnValue(null);
+
+      const result = service.updatePlayerStats(roomName);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('resetRoom with score reset', () => {
+    it('should reset player scores when resetting room', () => {
+      const roomName = 'test-room';
+      service.createRoom(roomName);
+      const player = service.addPlayerToRoom(roomName, 'TestPlayer', 'socket1');
+      
+      // Set some scores
+      player!.score = 1000;
+      player!.level = 5;
+      player!.linesCleared = 20;
+      player!.isReady = true;
+
+      service.resetRoom(roomName);
+
+      expect(player!.score).toBe(0);
+      expect(player!.level).toBe(1);
+      expect(player!.linesCleared).toBe(0);
+      expect(player!.isReady).toBe(false);
+    });
+  });
 });

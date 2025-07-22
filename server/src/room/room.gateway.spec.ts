@@ -42,6 +42,7 @@ describe('RoomGateway', () => {
             resetRoom: jest.fn(),
             reconnectPlayer: jest.fn(),
             markPlayerDisconnected: jest.fn(),
+            updatePlayerStats: jest.fn(),
           },
         },
         {
@@ -268,16 +269,23 @@ describe('RoomGateway', () => {
         room: { name: 'test-room', gameState: 'playing' }
       };
       const mockGameState = { gameOver: false };
+      const mockPlayers = [{ id: 'player1', name: 'Test Player', score: 100 }];
       
       (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(mockPlayerData);
       (gameService.processPlayerAction as jest.Mock).mockReturnValue(true);
       (gameService.getGameState as jest.Mock).mockReturnValue(mockGameState);
+      (roomService.updatePlayerStats as jest.Mock).mockReturnValue(true);
+      (roomService.getRoomPlayers as jest.Mock).mockReturnValue(mockPlayers);
       
       gateway.handleGameAction(actionData, mockClient as Socket);
       
       expect(gameService.processPlayerAction).toHaveBeenCalledWith('test-room', 'player1', 'move-left');
+      expect(roomService.updatePlayerStats).toHaveBeenCalledWith('test-room');
       expect(mockServer.to).toHaveBeenCalledWith('test-room');
-      expect(mockServer.emit).toHaveBeenCalledWith('game-state-update', { gameOver: false, players: {} });
+      expect(mockServer.emit).toHaveBeenCalledWith('game-state-update', { 
+        gameState: { gameOver: false, players: {} }, 
+        players: mockPlayers 
+      });
     });
 
     it('should handle game action when game is over', async () => {

@@ -12,6 +12,9 @@ export interface Player {
   isConnected: boolean;
   lastSeen: Date;
   reconnectionToken?: string;
+  score: number;
+  level: number;
+  linesCleared: number;
 }
 
 export interface Room {
@@ -90,6 +93,9 @@ export class RoomService {
       isConnected: true,
       lastSeen: new Date(),
       reconnectionToken: this.generateReconnectionToken(),
+      score: 0,
+      level: 1,
+      linesCleared: 0,
     };
 
     if (player.isHost) {
@@ -267,6 +273,9 @@ export class RoomService {
     room.gameState = 'waiting';
     room.players.forEach(player => {
       player.isReady = false;
+      player.score = 0;
+      player.level = 1;
+      player.linesCleared = 0;
     });
 
     return true;
@@ -395,5 +404,38 @@ export class RoomService {
     if (!room || !player) return null;
 
     return { player, room };
+  }
+
+  /**
+   * Update player scores and stats from the game service
+   */
+  updatePlayerStats(roomName: string): boolean {
+    const room = this.getRoom(roomName);
+    if (!room || room.gameState !== 'playing') {
+      return false;
+    }
+
+    try {
+      // Get current game state from the game service
+      const gameState = this.gameService.getGameState(roomName);
+      if (!gameState) {
+        return false;
+      }
+
+      // Update each player's stats from the game state
+      for (const [playerId, gamePlayer] of gameState.players) {
+        const roomPlayer = room.players.get(playerId);
+        if (roomPlayer) {
+          roomPlayer.score = gamePlayer.score;
+          roomPlayer.level = gamePlayer.level;
+          roomPlayer.linesCleared = gamePlayer.lines;
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error(`Error updating player stats for room ${roomName}:`, error);
+      return false;
+    }
   }
 }
