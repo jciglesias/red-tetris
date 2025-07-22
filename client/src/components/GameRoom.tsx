@@ -337,7 +337,7 @@ function GameRoom() {
         </div>
       )}
       {joined && !started && (
-        <div className="game-container">
+        <div className="game-container chat-mode">
             <div className="chat-container">
               <div className="chat-header">
                 <h3 style={{ 
