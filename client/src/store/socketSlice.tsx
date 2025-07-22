@@ -61,6 +61,14 @@ export const connectSocket = createAsyncThunk(
       dispatch(onJoinRoomSuccess());
     });
 
+    socket.on('join-room-error', (data) => {
+      console.log('Join room error: ' + JSON.stringify(data, null, 2));
+      const message = typeof data === 'object' && data !== null && 'message' in data
+        ? (data as any).message
+        : String(data);
+      dispatch(onJoinRoomError(message));
+    });
+
     socket.on('player-ready-changed', (data) => {
       console.log('Player ready changed: ' + JSON.stringify(data, null, 2));
       if (data.playerId === payload.room + "_" + payload.playerName) {
@@ -172,6 +180,11 @@ const socketSlice = createSlice({
       state.connected = false;
       state.joined = false;
     },
+    onJoinRoomError(state, action) {
+      state.joined = false;
+      state.isError = true;
+      state.contentError = action.payload;
+    },
     onJoinRoomSuccess(state) {
       state.joined = true;
     },
@@ -198,5 +211,5 @@ const socketSlice = createSlice({
   },
 });
 
-export const { onConnect, onDisconnect, onJoinRoomSuccess, onSetReadySuccess, onStartGameSuccess, onUpdateData, onUpdatedData, onError } = socketSlice.actions;
+export const { onConnect, onDisconnect, onJoinRoomSuccess, onJoinRoomError, onSetReadySuccess, onStartGameSuccess, onUpdateData, onUpdatedData, onError } = socketSlice.actions;
 export default socketSlice.reducer;
