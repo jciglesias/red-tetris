@@ -13,6 +13,7 @@ function GameRoom() {
   const joined = useSelector((state: RootState) => state.socket.joined);
   const playerReady = useSelector((state: RootState) => state.socket.playerReady);
   const started = useSelector((state: RootState) => state.socket.started);
+  const gameOver = useSelector((state: RootState) => state.socket.gameOver);
   const isError = useSelector((state: RootState) => state.socket.isError);
   const contentError = useSelector((state: RootState) => state.socket.contentError);
   const opponent1 = useSelector((state: RootState) => state.socket.opponent1);
@@ -64,12 +65,10 @@ function GameRoom() {
 
 
   useEffect(() => {
-
     dispatch(connectSocket({ room: roomName!, playerName: playerName! }));
     return () => {
       dispatch(disconnectSocket());
     };
-
   }, [roomName, playerName, dispatch]);
 
 
@@ -290,6 +289,12 @@ function GameRoom() {
         <div className="error-container">
           <p>Error :</p>
           <p>{contentError}</p>
+        </div>
+      )}
+      {gameOver && (
+        <div className="error-container">
+          <p>GAME OVER</p>
+          <p>Wait for the host to relaunch the game</p>
         </div>
       )}
       <div className="game-container">

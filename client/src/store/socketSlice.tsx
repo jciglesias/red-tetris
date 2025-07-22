@@ -22,6 +22,7 @@ export interface SocketState {
   opponent4: string;
   playerId: string;
   gamestate: GameState;
+  gameOver: boolean;
 }
 
 const initialState: SocketState = { 
@@ -36,7 +37,8 @@ const initialState: SocketState = {
   opponent3: '',
   opponent4: '',
   playerId: '',
-  gamestate: {} as GameState
+  gamestate: {} as GameState,
+  gameOver: false
 };
 
 export const connectSocket = createAsyncThunk(
@@ -94,12 +96,28 @@ export const connectSocket = createAsyncThunk(
     });
 
     socket.on('game-state-update', (data) => {
-      console.log('Game state update: ' + JSON.stringify(data, null, 2));
+      //console.log('Game state update: ' + JSON.stringify(data, null, 2));
+      if (data) {
+        const key = `${payload.room}_${payload.playerName}`;
+        const playerState = (data.players as Record<string, any>)[key];
+        console.log('Game state update: ' + JSON.stringify(playerState, null, 2));
+        if (playerState.isAlive === false) {
+          dispatch(onGameOver(data));
+        }
+      }
       dispatch(onUpdatedData(data));
     });
     
     socket.on('room-info', (data) => {
-      console.log('Room info: ' + JSON.stringify(data, null, 2));
+      //console.log('Room info: ' + JSON.stringify(data, null, 2));
+      if (data && data.gameState) {
+        const key = `${payload.room}_${payload.playerName}`;
+        const playerState = (data.gameState.players as Record<string, any>)[key];
+        console.log('Game state update: ' + JSON.stringify(playerState, null, 2));
+        if (playerState.isAlive === false) {
+          dispatch(onGameOver(data.gameState));
+        }
+      }
       dispatch(onUpdateData(data.gameState));
     });
 
@@ -179,6 +197,8 @@ const socketSlice = createSlice({
     onDisconnect(state) {
       state.connected = false;
       state.joined = false;
+      state.playerReady = false;
+      state.started = false;
     },
     onJoinRoomError(state, action) {
       state.joined = false;
@@ -187,12 +207,18 @@ const socketSlice = createSlice({
     },
     onJoinRoomSuccess(state) {
       state.joined = true;
+      state.isError = false;
+      state.contentError = '';
     },
     onSetReadySuccess(state) {
       state.playerReady = true;
+      state.isError = false;
+      state.contentError = '';
     },
     onStartGameSuccess(state, action) {
       state.started = true;
+      state.isError = false;
+      state.contentError = '';
       if (action.payload[0]) state.opponent1 = action.payload[0];
       if (action.payload[1]) state.opponent2 = action.payload[1];
       if (action.payload[2]) state.opponent3 = action.payload[2];
@@ -204,6 +230,14 @@ const socketSlice = createSlice({
     onUpdatedData(state, action) {
       state.gamestate = action.payload;
     },
+    onGameOver(state, action) {
+      state.gamestate = action.payload;
+      state.gameOver = true;
+      state.connected = false;
+      state.joined = false;
+      state.playerReady = false;
+      state.started = false;
+    },
     onError(state, action) {
       state.isError = true;
       state.contentError = action.payload;
@@ -211,5 +245,5 @@ const socketSlice = createSlice({
   },
 });
 
-export const { onConnect, onDisconnect, onJoinRoomSuccess, onJoinRoomError, onSetReadySuccess, onStartGameSuccess, onUpdateData, onUpdatedData, onError } = socketSlice.actions;
+export const { onConnect, onDisconnect, onJoinRoomSuccess, onJoinRoomError, onSetReadySuccess, onStartGameSuccess, onUpdateData, onUpdatedData, onGameOver, onError } = socketSlice.actions;
 export default socketSlice.reducer;
