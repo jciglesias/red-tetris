@@ -30,6 +30,10 @@ interface GameActionMessage {
   action: 'move-left' | 'move-right' | 'rotate' | 'soft-drop' | 'hard-drop' | 'skip-piece';
 }
 
+interface ChatMessage {
+  message: string;
+}
+
 @Injectable()
 @WebSocketGateway({
   cors: {
@@ -442,5 +446,35 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
       }
     }
+  }
+
+  @SubscribeMessage('chat-message')
+  handleChatMessage(
+    @MessageBody() data: ChatMessage,
+    @ConnectedSocket() client: Socket,
+  ) {
+    const playerData = this.roomService.getPlayerBySocketId(client.id);
+    if (!playerData) {
+      client.emit('error', { message: 'Player not found in any room' });
+      return;
+    }
+
+    const { player, room } = playerData;
+    
+    if (!data.message || !data.message.trim()) {
+      client.emit('error', { message: 'Message cannot be empty' });
+      return;
+    }
+
+    // Limit message length to prevent spam
+    const trimmedMessage = data.message.trim().substring(0, 500);
+    
+    // Broadcast chat message to all players in the room
+    this.server.to(room.name).emit('chat-message', {
+      playerId: player.id,
+      playerName: player.name,
+      message: trimmedMessage,
+      timestamp: new Date().toISOString(),
+    });
   }
 }

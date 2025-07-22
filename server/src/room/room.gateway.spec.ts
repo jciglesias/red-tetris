@@ -967,4 +967,91 @@ describe('RoomGateway', () => {
       });
     });
   });
+
+  describe('chat-message event', () => {
+    it('should broadcast chat message to room', () => {
+      const chatData = { message: 'Hello everyone!' };
+      const mockPlayerData = {
+        player: { id: 'player1', name: 'TestPlayer' },
+        room: { name: 'test-room' }
+      };
+      
+      (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(mockPlayerData);
+      
+      gateway.handleChatMessage(chatData, mockClient as Socket);
+      
+      expect(mockServer.to).toHaveBeenCalledWith('test-room');
+      expect(mockServer.emit).toHaveBeenCalledWith('chat-message', {
+        playerId: 'player1',
+        playerName: 'TestPlayer',
+        message: 'Hello everyone!',
+        timestamp: expect.any(String)
+      });
+    });
+
+    it('should handle empty message', () => {
+      const chatData = { message: '' };
+      const mockPlayerData = {
+        player: { id: 'player1', name: 'TestPlayer' },
+        room: { name: 'test-room' }
+      };
+      
+      (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(mockPlayerData);
+      
+      gateway.handleChatMessage(chatData, mockClient as Socket);
+      
+      expect(mockClient.emit).toHaveBeenCalledWith('error', {
+        message: 'Message cannot be empty'
+      });
+      expect(mockServer.emit).not.toHaveBeenCalledWith('chat-message', expect.anything());
+    });
+
+    it('should handle chat message when player not found', () => {
+      const chatData = { message: 'Hello!' };
+      
+      (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(null);
+      
+      gateway.handleChatMessage(chatData, mockClient as Socket);
+      
+      expect(mockClient.emit).toHaveBeenCalledWith('error', {
+        message: 'Player not found in any room'
+      });
+    });
+
+    it('should trim long messages', () => {
+      const longMessage = 'a'.repeat(600); // 600 characters
+      const chatData = { message: longMessage };
+      const mockPlayerData = {
+        player: { id: 'player1', name: 'TestPlayer' },
+        room: { name: 'test-room' }
+      };
+      
+      (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(mockPlayerData);
+      
+      gateway.handleChatMessage(chatData, mockClient as Socket);
+      
+      expect(mockServer.emit).toHaveBeenCalledWith('chat-message', {
+        playerId: 'player1',
+        playerName: 'TestPlayer',
+        message: 'a'.repeat(500), // Should be trimmed to 500 characters
+        timestamp: expect.any(String)
+      });
+    });
+
+    it('should handle whitespace-only message', () => {
+      const chatData = { message: '   \n\t   ' };
+      const mockPlayerData = {
+        player: { id: 'player1', name: 'TestPlayer' },
+        room: { name: 'test-room' }
+      };
+      
+      (roomService.getPlayerBySocketId as jest.Mock).mockReturnValue(mockPlayerData);
+      
+      gateway.handleChatMessage(chatData, mockClient as Socket);
+      
+      expect(mockClient.emit).toHaveBeenCalledWith('error', {
+        message: 'Message cannot be empty'
+      });
+    });
+  });
 });

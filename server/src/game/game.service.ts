@@ -206,7 +206,7 @@ export class GameService {
       if (!player.isAlive || !player.currentPiece) continue;
 
       // In fast mode, move pieces down much faster per tick
-      const movesPerTick = fastMode ? 4 : 1; // 4x faster instead of 2x
+      const movesPerTick = fastMode ? 2 : 1; // 2x faster
       
       for (let i = 0; i < movesPerTick; i++) {
         // Try to move piece down
