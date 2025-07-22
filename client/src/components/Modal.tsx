@@ -7,6 +7,8 @@ interface ModalProps {
 }
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children }) => {
+  const [isHovered, setIsHovered] = React.useState(false);
+
   if (!isOpen) return null;
 
   return (
@@ -27,9 +29,37 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children }) => {
         padding: '20px',
         borderRadius: '5px',
         maxWidth: '500px',
-        width: '100%'
+        width: '100%',
+        position: 'relative'
       }}>
-        <button onClick={onClose} style={{ float: 'right' }}>Close</button>
+        <button 
+          onClick={onClose} 
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          style={{ 
+            position: 'absolute',
+            top: '10px',
+            right: '10px',
+            background: isHovered ? '#d32f2f' : '#f44336',
+            color: 'white',
+            border: 'none',
+            borderRadius: '50%',
+            width: '30px',
+            height: '30px',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.3s ease',
+            transform: isHovered ? 'scale(1.1)' : 'scale(1)',
+            zIndex: 1,
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+          }}
+        >
+          ×
+        </button>
         {children}
       </div>
     </div>

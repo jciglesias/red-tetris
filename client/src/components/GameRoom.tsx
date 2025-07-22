@@ -58,6 +58,10 @@ function GameRoom() {
             event.preventDefault();
             dispatch(gameAction({action: 'hard-drop'}));
             break;
+        case 's':
+            event.preventDefault();
+            dispatch(gameAction({action: 'skip-piece'}));
+            break;
       }
     };
     document.addEventListener('keydown', handleKey);

@@ -26,9 +26,16 @@ const LeaderboardStatsModal = () => {
 
   return (
     <div>
-      <button className="modal-button" onClick={fetchStats}>All Stats</button>
+      <button className="modal-button" onClick={fetchStats}>World Records</button>
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        <h2>Leaderboard Statistics</h2>
+        <h2 style={{ 
+          textAlign: 'center', 
+          marginBottom: '20px', 
+          color: '#333',
+          fontSize: '24px'
+        }}>
+            🏆 World Records 🏆
+        </h2>
         {statsData ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
