@@ -155,13 +155,11 @@ export const connectSocket = createAsyncThunk(
 
     socket.on('game-ended', (data) => {
       console.log('Game ended: ' + JSON.stringify(data, null, 2));
-      if (data.winner){
-        console.log('Winner : ' + data.winner);
-        if (data.winner === `${payload.room}_${payload.playerName}`) {
-          dispatch(onGameWon(data.finalState));
-        } else {
-          dispatch(onGameOver(data.finalState));
-        }
+      if (data.winner && data.winner === `${payload.room}_${payload.playerName}`) 
+      {
+        dispatch(onGameWon(data.finalState));
+      } else {
+        dispatch(onGameOver(data.finalState));
       }
     });
 
