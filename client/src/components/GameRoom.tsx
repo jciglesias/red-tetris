@@ -6,6 +6,7 @@ import { RootState, AppDispatch } from '../store';
 import './GameRoom.css';
 import LeaderboardModal from './LeaderboardModal';
 import LeaderboardStatsModal from './LeaderboardStatsModal';
+import KeysModal from './KeysModal';
 
 function GameRoom() {
   const { roomName } = useParams<{ roomName: string }>();
@@ -307,6 +308,7 @@ function GameRoom() {
           </label>
           <LeaderboardModal />
           <LeaderboardStatsModal />
+          <KeysModal />
         </div>
       </div>
       <div className="room-header">
