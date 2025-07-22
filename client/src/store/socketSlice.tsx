@@ -108,10 +108,10 @@ export const connectSocket = createAsyncThunk(
         const key = `${payload.room}_${payload.playerName}`;
         const playerState = (data.players as Record<string, any>)[key];
         //console.log('Game state update: ' + JSON.stringify(playerState, null, 2));
-        if (playerState.isAlive === false) {
+        if (playerState.isAlive && playerState.isAlive === false) {
             dispatch(onGameOver(data));
         }
-        if (data.winner === key) {
+        if (data.winner && data.winner === key) {
           dispatch(onGameWon(data));
         }
       }
@@ -124,10 +124,10 @@ export const connectSocket = createAsyncThunk(
         const key = `${payload.room}_${payload.playerName}`;
         const playerState = (data.gameState.players as Record<string, any>)[key];
         //console.log('Game state update: ' + JSON.stringify(playerState, null, 2));
-        if (playerState.isAlive === false) {
+        if (playerState.isAlive && playerState.isAlive === false) {
           dispatch(onGameOver(data.gameState));
         }
-        if (data.gameState.winner === key) {
+        if (data.gameState.winner && data.gameState.winner === key) {
           dispatch(onGameWon(data.gameState));
         }
       }
