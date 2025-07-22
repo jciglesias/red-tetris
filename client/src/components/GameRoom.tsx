@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { connectSocket, disconnectSocket, joinRoom, readyPlayer, startGame, gameAction, getRoomInfo } from '../store/socketSlice';
@@ -26,6 +26,7 @@ function GameRoom() {
   const board2Ref = useRef<HTMLDivElement>(null);
   const board3Ref = useRef<HTMLDivElement>(null);
   const board4Ref = useRef<HTMLDivElement>(null);
+  const [blindMode, setBlindMode] = useState(false);
 
   initializeNextPiece();
   initializeBoards();
@@ -126,7 +127,7 @@ function GameRoom() {
     if (!nextPiece) return;
     nextPiece.querySelectorAll('.next-cell').forEach(c => c.className = 'next-cell');
 
-    if (!playerState?.nextPieces?.[0]) return;
+    if (!playerState?.nextPieces?.[0] || blindMode) return;
     const np = playerState.nextPieces[0];
     for (let row = 0; row < np.shape.length; row++) {
       for (let col = 0; col < np.shape[row].length; col++) {
@@ -172,6 +173,11 @@ function GameRoom() {
           }
         }
       }
+  }
+
+  function handleBlindMode() {
+    setBlindMode(!blindMode);
+    console.log('toggle blind mode', blindMode);
   }
 
   function handleJoin() {
@@ -254,6 +260,15 @@ function GameRoom() {
 
   return (
     <div className="game-room">
+       <div className="score-panel">
+        <div className="score-indicator">
+          <p>Blind mode</p>
+          <label className="switch">
+            <input type="checkbox" checked={blindMode} onChange={handleBlindMode} />
+            <span className="slider round"></span>
+          </label>
+        </div>
+      </div>
       <div className="room-header">
         <h2>Room: {roomName}</h2>
         <h2>Player: {playerName}</h2>
