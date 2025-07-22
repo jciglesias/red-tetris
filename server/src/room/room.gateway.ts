@@ -189,9 +189,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const readyPlayers = connectedPlayers.filter(p => p.isReady);
       
       let message = '';
-      if (connectedPlayers.length < room.maxPlayers) {
-        message = `Waiting for more players (${connectedPlayers.length}/${room.maxPlayers})`;
-      } else if (readyPlayers.length < connectedPlayers.length) {
+      if (readyPlayers.length < connectedPlayers.length) {
         message = `Waiting for all players to be ready (${readyPlayers.length}/${connectedPlayers.length} ready)`;
       } else {
         message = 'Cannot start game. Unknown reason.';
