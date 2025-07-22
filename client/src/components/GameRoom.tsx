@@ -259,6 +259,13 @@ function GameRoom() {
     }
     console.log('request-reconnection');
   }
+
+    function handleDisconnect() {
+    if (gameOver || gameWon) {
+      dispatch(disconnectSocket());
+    }
+    console.log('disconnect-socket');
+  }
     
   function initializeNextPiece() {
     const nextPiece = nextRef.current;
@@ -341,6 +348,7 @@ function GameRoom() {
         </div>
       </div>
       <div className="button-group">
+        {joined && <button onClick={handleDisconnect}>Disconnect</button>}
         {!connected && !joined && <button onClick={handleReconnect}>Reconnect</button>}
         {!joined && !gameOver && !gameWon && <button onClick={handleJoin}>Join Room</button>}
         {joined && !playerReady && <button onClick={handleReady}>Set Ready</button>}

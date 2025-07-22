@@ -86,6 +86,8 @@ export const requestReconnection = createAsyncThunk(
       socket = io("http://localhost:3001");
     }
 
+    console.log('request-reconnection: ' + payload.room + ' ' + payload.playerName + ' ' + payload.reconnectionToken);
+
     socket.emit('request-reconnection', {
       roomName: payload.room,
       playerName: payload.playerName,
@@ -144,9 +146,10 @@ export const connectSocket = createAsyncThunk(
       console.log('Join room success: ' + JSON.stringify(data, null, 2));
       dispatch(onJoinRoomSuccess());
       // Sauvegarder le token de reconnexion si fourni
-      if (data.reconnectionToken) {
-        saveReconnectionToken(payload.room, payload.playerName, data.reconnectionToken);
-        dispatch(setReconnectionToken(data.reconnectionToken));
+      console.log('reconnectionToken: ' + data.player.reconnectionToken);
+      if (data.player.reconnectionToken) {
+        saveReconnectionToken(payload.room, payload.playerName, data.player.reconnectionToken);
+        dispatch(setReconnectionToken(data.player.reconnectionToken));
       }
     });
 
@@ -321,8 +324,6 @@ export const disconnectSocket = createAsyncThunk(
       socket.disconnect();
       socket = null;
       dispatch(onDisconnect());
-      // Nettoyer les données de reconnexion lors de la déconnexion manuelle
-      clearReconnectionData();
     }
   }
 );
