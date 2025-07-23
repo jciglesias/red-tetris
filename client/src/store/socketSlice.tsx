@@ -181,10 +181,10 @@ export const connectSocket = createAsyncThunk(
     });
 
     socket.on('host-changed', (data) => {
-      console.log('Host changed: ' + JSON.stringify(data, null, 2));
+      //console.log('Host changed: ' + JSON.stringify(data, null, 2));
       if (data.newHostId === payload.room + "_" + payload.playerName) {
         dispatch(onHostChanged());
-        console.log('Host changed! ' + data.newHostId);
+        //console.log('Host changed! ' + data.newHostId);
       }
     });
 
