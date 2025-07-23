@@ -261,9 +261,7 @@ function GameRoom() {
   }
 
     function handleDisconnect() {
-    if (gameOver || gameWon) {
-      dispatch(disconnectSocket());
-    }
+    dispatch(disconnectSocket());
     console.log('disconnect-socket');
   }
     
