@@ -630,4 +630,83 @@ describe('RoomService', () => {
       expect(player!.isReady).toBe(false);
     });
   });
+
+  describe('transferHostOnDisconnect', () => {
+    it('should transfer host to another connected player when host disconnects', () => {
+      const roomName = 'test-room';
+      
+      // Add multiple players to the room
+      const hostPlayer = service.addPlayerToRoom(roomName, 'Host', 'socket1');
+      const player2 = service.addPlayerToRoom(roomName, 'Player2', 'socket2');
+      const player3 = service.addPlayerToRoom(roomName, 'Player3', 'socket3');
+      
+      expect(hostPlayer?.isHost).toBe(true);
+      expect(player2?.isHost).toBe(false);
+      expect(player3?.isHost).toBe(false);
+      
+      // Mark player2 as ready
+      service.setPlayerReady(roomName, player2!.id, true);
+      
+      // Transfer host when host disconnects
+      const newHost = service.transferHostOnDisconnect(roomName, hostPlayer!.id);
+      
+      expect(newHost).toBeTruthy();
+      expect(newHost?.id).toBe(player2!.id); // Should prioritize ready players
+      expect(newHost?.isHost).toBe(true);
+      expect(hostPlayer?.isHost).toBe(false);
+      
+      const room = service.getRoom(roomName);
+      expect(room?.hostId).toBe(player2!.id);
+    });
+
+    it('should transfer host to any connected player if no ready players available', () => {
+      const roomName = 'test-room';
+      
+      // Add multiple players to the room (none ready)
+      const hostPlayer = service.addPlayerToRoom(roomName, 'Host', 'socket1');
+      const player2 = service.addPlayerToRoom(roomName, 'Player2', 'socket2');
+      
+      expect(hostPlayer?.isHost).toBe(true);
+      expect(player2?.isHost).toBe(false);
+      
+      // Transfer host when host disconnects
+      const newHost = service.transferHostOnDisconnect(roomName, hostPlayer!.id);
+      
+      expect(newHost).toBeTruthy();
+      expect(newHost?.id).toBe(player2!.id);
+      expect(newHost?.isHost).toBe(true);
+      expect(hostPlayer?.isHost).toBe(false);
+    });
+
+    it('should return null when no connected players available for host transfer', () => {
+      const roomName = 'test-room';
+      
+      // Add only one player (the host)
+      const hostPlayer = service.addPlayerToRoom(roomName, 'Host', 'socket1');
+      
+      expect(hostPlayer?.isHost).toBe(true);
+      
+      // Transfer host when host disconnects (no other players)
+      const newHost = service.transferHostOnDisconnect(roomName, hostPlayer!.id);
+      
+      expect(newHost).toBeNull();
+    });
+
+    it('should return null when disconnected player is not the host', () => {
+      const roomName = 'test-room';
+      
+      // Add multiple players to the room
+      const hostPlayer = service.addPlayerToRoom(roomName, 'Host', 'socket1');
+      const player2 = service.addPlayerToRoom(roomName, 'Player2', 'socket2');
+      
+      expect(hostPlayer?.isHost).toBe(true);
+      expect(player2?.isHost).toBe(false);
+      
+      // Try to transfer host for non-host player
+      const newHost = service.transferHostOnDisconnect(roomName, player2!.id);
+      
+      expect(newHost).toBeNull();
+      expect(hostPlayer?.isHost).toBe(true); // Host should remain unchanged
+    });
+  });
 });

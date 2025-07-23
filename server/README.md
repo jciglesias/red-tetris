@@ -29,6 +29,7 @@ Red Tetris is a real-time multiplayer Tetris game built with NestJS and Socket.I
 
 - **Real-time multiplayer gameplay** with Socket.IO
 - **Room-based system** for multiple concurrent games
+- **Automatic host transfer** - seamless host management when hosts disconnect
 - **In-room chat** - simple, non-persistent messaging within each room
 - **Live scoring system** - see player scores, levels, and lines cleared in real-time
 - **Comprehensive leaderboard** with player statistics, win rates, and all-time records
@@ -122,6 +123,7 @@ Manages game rooms and player sessions:
 - Player join/leave logic
 - Ready state management
 - Reconnection handling
+- **Automatic host transfer** when the host disconnects
 
 #### GameService
 Handles core Tetris game logic:
@@ -147,6 +149,22 @@ The server implements a sophisticated reconnection system:
 2. **State Preservation**: Game state is preserved for disconnected players
 3. **Graceful Reconnection**: Players can rejoin mid-game with full state restoration
 4. **Timeout Handling**: Automatic cleanup after extended disconnections
+
+### Host Transfer System
+
+The server automatically handles host transfers when the current host disconnects:
+
+1. **Smart Host Selection**: When a host disconnects, the system intelligently selects a new host:
+   - **Priority 1**: Connected players who are ready
+   - **Priority 2**: Any connected player (if no ready players available)
+2. **Seamless Transfer**: Host privileges are automatically transferred without game interruption
+3. **Real-time Notifications**: All players receive immediate notifications about host changes
+4. **State Consistency**: Host status is properly updated across all game components
+5. **Fallback Handling**: Gracefully handles edge cases like empty rooms or all players disconnected
+
+**Events Emitted:**
+- `host-changed`: Detailed information about the host transfer
+- `player-disconnected`: Enhanced with host change information for backward compatibility
 
 ### Spectator Mode
 
@@ -191,7 +209,8 @@ For production deployments:
 | `join-room-error` | `{ message: string }` | Failed to join room | `{ message: "Room name and player name are required" }` |
 | `player-joined` | `{ player: object, players: object[] }` | Player joined room | See example below |
 | `player-left` | `{ player: object, players: object[] }` | Player left room | See example below |
-| `player-disconnected` | `{ playerId: string, playerName: string, players: object[], canReconnect: boolean }` | Player disconnected | `{ playerId: "room1_player1", playerName: "Player 1", players: [...], canReconnect: true }` |
+| `player-disconnected` | `{ playerId: string, playerName: string, players: object[], canReconnect: boolean, hostChanged?: boolean, newHost?: { id: string, name: string } }` | Player disconnected with optional host transfer info | `{ playerId: "room1_player1", playerName: "Player 1", players: [...], canReconnect: true, hostChanged: true, newHost: { id: "room1_player2", name: "Player 2" } }` |
+| `host-changed` | `{ newHostId: string, newHostName: string, previousHostId: string, previousHostName: string, players: object[] }` | Host transferred to another player | `{ newHostId: "room1_player2", newHostName: "Player 2", previousHostId: "room1_player1", previousHostName: "Player 1", players: [...] }` |
 | `player-ready-changed` | `{ playerId: string, ready: boolean, players: object[], canStart: boolean }` | Player ready state changed | `{ playerId: "room1_player1", ready: true, players: [...], canStart: true }` |
 | `game-started` | `{ gameState: object, players: object[] }` | Game started | See GameState structure |
 | `game-state-update` | `{ gameState: object, players: object[] }` | Game state updated with live player scores | See GameState structure |
@@ -1012,11 +1031,25 @@ socket.on('room-info', (data) => {
 ```
 
 #### `player-disconnected`
-Fired when a player disconnects.
+Fired when a player disconnects. May include host transfer information if the disconnected player was the host.
 ```javascript
 socket.on('player-disconnected', (data) => {
   console.log('Player disconnected:', data.playerId, data.playerName);
   console.log('Can reconnect:', data.canReconnect);
+  
+  if (data.hostChanged) {
+    console.log('Host transferred from', data.playerId, 'to', data.newHost.name);
+  }
+});
+```
+
+#### `host-changed`
+Fired when room host is transferred to another player (e.g., when the current host disconnects).
+```javascript
+socket.on('host-changed', (data) => {
+  console.log('Host changed from', data.previousHostName, 'to', data.newHostName);
+  console.log('New host ID:', data.newHostId);
+  console.log('Updated players:', data.players);
 });
 ```
 
