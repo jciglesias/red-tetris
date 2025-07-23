@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Modal from './Modal';
 import { LeaderboardEntry } from './Interfaces';
+import { NetworkUtils } from '../utils/NetworkUtils';
 
 const LeaderboardModal = () => {
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
@@ -15,7 +16,8 @@ const LeaderboardModal = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/leaderboard/top?limit=10');
+      const serverUrl = await NetworkUtils.findWorkingServerUrl();
+      const response = await fetch(`${serverUrl}/api/leaderboard/top?limit=10`);
       const data = await response.json();
       //console.log('Fetched leaderboard data:', data); // Debugging line
       setLeaderboardData(data);
