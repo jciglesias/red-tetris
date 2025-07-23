@@ -218,7 +218,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
         message = `Waiting for all players to be ready (${readyPlayers.length}/${connectedPlayers.length} ready)`;
       } else if (connectedPlayers.length < room.players.size) {
         message = `Waiting for all players to connect (${connectedPlayers.length}/${room.players.size} connected)`;
-      } else if (room.gameState !== 'waiting') {
+      } else if (room.gameState && room.gameState !== 'waiting') {
         message = `Cannot start game. game state: ${room.gameState}.`;
       } else {
         message = 'Cannot start game. Unknown reason.';

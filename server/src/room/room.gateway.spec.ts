@@ -267,8 +267,7 @@ describe('RoomGateway', () => {
       expect(roomService.updatePlayerStats).toHaveBeenCalledWith('test-room');
       expect(mockServer.to).toHaveBeenCalledWith('test-room');
       expect(mockServer.emit).toHaveBeenCalledWith('game-state-update', { 
-        gameState: { gameOver: false, players: {} }, 
-        players: mockPlayers 
+        gameOver: false, players: {} 
       });
     });
 
@@ -356,8 +355,7 @@ describe('RoomGateway', () => {
       expect(roomService.updatePlayerStats).toHaveBeenCalledWith('test-room');
       expect(mockServer.to).toHaveBeenCalledWith('test-room');
       expect(mockServer.emit).toHaveBeenCalledWith('game-state-update', {
-        gameState: { gameOver: false, players: {} },
-        players: mockPlayers
+        gameOver: false, players: {}
       });
     });
   });
