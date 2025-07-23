@@ -760,8 +760,8 @@ describe('GameRoom component', () => {
         gamestate: {
           ...defaultGameState,
           gameOver: true,
-          players: new Map([
-            ['room1_player1', {
+          players: {
+            'room1_player1': {
               playerId: 'room1_player1',
               board: Array(20).fill(null).map(() => Array(10).fill(0)),
               currentPiece: { shape: [[1]], type: 'I' as const, rotation: 0, x: 0, y: 0 },
@@ -772,8 +772,8 @@ describe('GameRoom component', () => {
               level: 1,
               isAlive: false,
               penalties: 0
-            }]
-          ])
+            }
+          }
         }
       };
 
@@ -819,8 +819,8 @@ describe('GameRoom component', () => {
         gamestate: {
           ...defaultGameState,
           winner: 'room1_player1',
-          players: new Map([
-            ['room1_player1', {
+          players: {
+            'room1_player1': {
               playerId: 'room1_player1',
               board: Array(20).fill(null).map(() => Array(10).fill(0)),
               currentPiece: { shape: [[1]], type: 'I' as const, rotation: 0, x: 0, y: 0 },
@@ -831,8 +831,8 @@ describe('GameRoom component', () => {
               level: 1,
               isAlive: true,
               penalties: 0
-            }]
-          ])
+            }
+          }
         }
       };
 
@@ -887,8 +887,8 @@ describe('GameRoom component', () => {
         started: true,
         gamestate: {
           ...defaultGameState,
-          players: new Map([
-            ['room1_player1', {
+          players: {
+            'room1_player1': {
               playerId: 'room1_player1',
               board: boardWithPieces,
               currentPiece: { 
@@ -905,8 +905,8 @@ describe('GameRoom component', () => {
               level: 2,
               isAlive: true,
               penalties: 0
-            }]
-          ])
+            }
+          }
         }
       };
 
@@ -954,8 +954,8 @@ describe('GameRoom component', () => {
         opponent2: 'player3',
         gamestate: {
           ...defaultGameState,
-          players: new Map([
-            ['room1_player1', {
+          players: {
+            'room1_player1': {
               playerId: 'room1_player1',
               board: Array(20).fill(null).map(() => Array(10).fill(0)),
               currentPiece: { shape: [[1]], type: 'I' as const, rotation: 0, x: 0, y: 0 },
@@ -966,8 +966,8 @@ describe('GameRoom component', () => {
               level: 1,
               isAlive: true,
               penalties: 0
-            }],
-            ['room1_player2', {
+            },
+            'room1_player2': {
               playerId: 'room1_player2',
               board: Array(20).fill(null).map(() => Array(10).fill(0)),
               currentPiece: { shape: [[1]], type: 'I' as const, rotation: 0, x: 0, y: 0 },
@@ -978,8 +978,8 @@ describe('GameRoom component', () => {
               level: 1,
               isAlive: true,
               penalties: 0
-            }],
-            ['room1_player3', {
+            },
+            'room1_player3': {
               playerId: 'room1_player3',
               board: Array(20).fill(null).map(() => Array(10).fill(0)),
               currentPiece: { shape: [[1]], type: 'I' as const, rotation: 0, x: 0, y: 0 },
@@ -990,8 +990,8 @@ describe('GameRoom component', () => {
               level: 1,
               isAlive: true,
               penalties: 0
-            }]
-          ]),
+            }
+          },
           pieceSequence: [],
           currentPieceIndex: 0,
           gameOver: false,
@@ -1048,13 +1048,13 @@ describe('GameRoom component', () => {
     it('should handle spectrum rendering when no board reference exists', async () => {
       const gameStateWithSpectrum = {
         ...defaultGameState,
-        players: new Map([
-          ['room1_player1', createPlayerState()],
-          ['room1_player2', createPlayerState({
+        players: {
+          'room1_player1': createPlayerState(),
+          'room1_player2': createPlayerState({
             playerId: 'room1_player2',
             spectrum: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-          })]
-        ])
+          })
+        }
       };
 
       const store = configureStore({
@@ -1714,25 +1714,25 @@ describe('GameRoom component', () => {
 
       const completeGameState = {
         ...defaultGameState,
-        players: new Map([
-          ['room1_player1', completePlayerState],
-          ['room1_player2', createPlayerState({
+        players: {
+          'room1_player1': completePlayerState,
+          'room1_player2': createPlayerState({
             playerId: 'room1_player2',
             spectrum: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-          })],
-          ['room1_player3', createPlayerState({
+          }),
+          'room1_player3': createPlayerState({
             playerId: 'room1_player3',
             spectrum: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-          })],
-          ['room1_player4', createPlayerState({
+          }),
+          'room1_player4': createPlayerState({
             playerId: 'room1_player4',
             spectrum: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
-          })],
-          ['room1_player5', createPlayerState({
+          }),
+          'room1_player5': createPlayerState({
             playerId: 'room1_player5',
             spectrum: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-          })]
-        ])
+          })
+        }
       };
 
       const store = configureStore({
@@ -1833,13 +1833,13 @@ describe('GameRoom component', () => {
             started: true,
             gamestate: {
               ...defaultGameState,
-              players: new Map([
-                ['room1_player1', createPlayerState({
+              players: {
+                'room1_player1': createPlayerState({
                   board: Array(20).fill(null).map(() => Array(10).fill(0)),
                   currentPiece: null, // Test null piece case
                   nextPieces: []
-                })]
-              ])
+                })
+              }
             }
           }
         },
