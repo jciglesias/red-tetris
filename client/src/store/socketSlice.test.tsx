@@ -44,6 +44,14 @@ jest.mock('socket.io-client', () => ({
   io: jest.fn(() => mockSocket),
 }));
 
+// Mock NetworkUtils to avoid real network calls
+jest.mock('../utils/NetworkUtils', () => ({
+  NetworkUtils: {
+    findWorkingServerUrl: jest.fn().mockResolvedValue('http://localhost:3001'),
+    testConnection: jest.fn().mockResolvedValue(true),
+  },
+}));
+
 const defaultGameState: GameState = {
   roomName: 'room1',
   players: {} as any,
@@ -710,27 +718,46 @@ describe('socketSlice', () => {
     });
   });
 
-  it('should handle game-ended event with winner matching current player', () => {
+  it('should handle game-ended event with winner matching current player', async () => {
     const store = configureStore({
-      reducer: { socket: socketReducer }
+      reducer: { socket: socketReducer },
+      middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware({
+          serializableCheck: {
+            ignoredActions: [
+              'socket/onUpdateData', 
+              'socket/onUpdatedData',
+              'socket/onGameWon',
+              'socket/onGameOver',
+              'socket/connectSocket/fulfilled',
+              'socket/connectSocket/pending',
+              'socket/connectSocket/rejected'
+            ],
+            ignoredPaths: ['socket.gamestate.players'],
+            ignoredActionsPaths: ['payload.players', 'meta.arg', 'payload'],
+          },
+        }),
     });
 
     // Mock socket with winner scenario
     const mockSocket = {
       on: jest.fn((event, callback) => {
         if (event === 'game-ended') {
-          callback({
-            winner: 'room1_player1',
-            finalState: {
-              roomName: 'room1',
-              players: {},
-              pieceSequence: [],
-              currentPieceIndex: 0,
-              gameOver: true,
+          // Immediately call the callback to simulate the event
+          setTimeout(() => {
+            callback({
               winner: 'room1_player1',
-              startTime: Date.now()
-            }
-          });
+              finalState: {
+                roomName: 'room1',
+                players: {},
+                pieceSequence: [],
+                currentPieceIndex: 0,
+                gameOver: true,
+                winner: 'room1_player1',
+                startTime: Date.now()
+              }
+            });
+          }, 0);
         }
       }),
       emit: jest.fn(),
@@ -739,34 +766,56 @@ describe('socketSlice', () => {
 
     (require('socket.io-client').io as jest.Mock).mockReturnValue(mockSocket);
 
-    store.dispatch(connectSocket({ room: 'room1', playerName: 'player1' }));
+    await store.dispatch(connectSocket({ room: 'room1', playerName: 'player1' }));
+    
+    // Wait for the async callback to be processed
+    await new Promise(resolve => setTimeout(resolve, 10));
     
     // Check that onGameWon was dispatched
     const state = store.getState().socket;
     expect(state.gameWon).toBe(true);
   });
 
-  it('should handle game-ended event with winner not matching current player', () => {
+  it('should handle game-ended event with winner not matching current player', async () => {
     const store = configureStore({
-      reducer: { socket: socketReducer }
+      reducer: { socket: socketReducer },
+      middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware({
+          serializableCheck: {
+            ignoredActions: [
+              'socket/onUpdateData', 
+              'socket/onUpdatedData',
+              'socket/onGameWon',
+              'socket/onGameOver',
+              'socket/connectSocket/fulfilled',
+              'socket/connectSocket/pending',
+              'socket/connectSocket/rejected'
+            ],
+            ignoredPaths: ['socket.gamestate.players'],
+            ignoredActionsPaths: ['payload.players', 'meta.arg', 'payload'],
+          },
+        }),
     });
 
     // Mock socket with losing scenario
     const mockSocket = {
       on: jest.fn((event, callback) => {
         if (event === 'game-ended') {
-          callback({
-            winner: 'room1_player2',
-            finalState: {
-              roomName: 'room1',
-              players: {},
-              pieceSequence: [],
-              currentPieceIndex: 0,
-              gameOver: true,
+          // Immediately call the callback to simulate the event
+          setTimeout(() => {
+            callback({
               winner: 'room1_player2',
-              startTime: Date.now()
-            }
-          });
+              finalState: {
+                roomName: 'room1',
+                players: {},
+                pieceSequence: [],
+                currentPieceIndex: 0,
+                gameOver: true,
+                winner: 'room1_player2',
+                startTime: Date.now()
+              }
+            });
+          }, 0);
         }
       }),
       emit: jest.fn(),
@@ -775,7 +824,10 @@ describe('socketSlice', () => {
 
     (require('socket.io-client').io as jest.Mock).mockReturnValue(mockSocket);
 
-    store.dispatch(connectSocket({ room: 'room1', playerName: 'player1' }));
+    await store.dispatch(connectSocket({ room: 'room1', playerName: 'player1' }));
+    
+    // Wait for the async callback to be processed
+    await new Promise(resolve => setTimeout(resolve, 10));
     
     // Check that onGameOver was dispatched
     const state = store.getState().socket;
