@@ -49,7 +49,15 @@ const initialState: SocketState = {
   opponent3: '',
   opponent4: '',
   playerId: '',
-  gamestate: {} as GameState,
+  gamestate: {
+    roomName: '',
+    players: {},
+    pieceSequence: [],
+    currentPieceIndex: 0,
+    gameOver: false,
+    winner: null,
+    startTime: 0
+  } as GameState,
   gameOver: false,
   gameWon: false,
   score: 0,
@@ -215,7 +223,7 @@ export const connectSocket = createAsyncThunk(
         if (data.winner && data.winner === key) {
           dispatch(onGameWon(data));
         }
-        if (playerState.score && playerState.level) {
+        if (playerState && typeof playerState.score === 'number' && typeof playerState.level === 'number') {
           dispatch(onScoreUpdate({ score: playerState.score, level: playerState.level }));
         }
       }
@@ -234,7 +242,7 @@ export const connectSocket = createAsyncThunk(
         if (data.gameState.winner && data.gameState.winner === key) {
           dispatch(onGameWon(data.gameState));
         }
-        if (playerState && playerState.score && playerState.level) {
+        if (playerState && typeof playerState.score === 'number' && typeof playerState.level === 'number') {
           dispatch(onScoreUpdate({ score: playerState.score, level: playerState.level }));
         }
       }
@@ -452,6 +460,7 @@ const socketSlice = createSlice({
           state.playerReady = false;
           state.started = false;
         }
+        //console.log('TEST WINNER: ' + action.payload.gameState.winner);
         if (action.payload.gameState.winner && action.payload.gameState.winner === action.payload.player.id) {
           state.gameWon = true;
           state.joined = false;

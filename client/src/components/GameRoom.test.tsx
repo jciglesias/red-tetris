@@ -25,7 +25,7 @@ jest.mock('socket.io-client', () => ({
 
 const defaultGameState: GameState = {
   roomName: 'room1',
-  players: new Map(),
+  players: {},
   pieceSequence: [],
   currentPieceIndex: 0,
   gameOver: false,
@@ -74,6 +74,8 @@ function createPlayerState(overrides?: Partial<PlayerGameState>): PlayerGameStat
 type PreloadedSocketState = SocketState;
 
 function renderWithState(preloadedState: PreloadedSocketState) {
+  const actions: any[] = [];
+  
   const store = configureStore({
     reducer: { socket: socketReducer },
     preloadedState: { socket: preloadedState },
@@ -92,8 +94,14 @@ function renderWithState(preloadedState: PreloadedSocketState) {
             'payload.gamestate.players'
           ],
         },
+      }).concat((store) => (next) => (action) => {
+        actions.push(action);
+        return next(action);
       }),
   });
+  
+  // Add getActions method to store
+  (store as any).getActions = () => actions;
   
   const { container } = render(
     <Provider store={store}>
@@ -182,19 +190,14 @@ describe('GameRoom component', () => {
     });
 
     it('dispatches actions when buttons are clicked', () => {
-      // Mock the console.log to verify the function is called
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      
       const { store } = renderWithState({ ...defaultState, joined: false, connected: true });
       
       const joinButton = screen.getByRole('button', { name: /Join Room/i });
       fireEvent.click(joinButton);
       
-      // Verify that handleJoin was called (evidenced by console.log)
-      expect(consoleSpy).toHaveBeenCalledWith('joinRoom');
-      
-      // Clean up
-      consoleSpy.mockRestore();
+      // Verify that joinRoom action was dispatched
+      const actions = store.getActions();
+      expect(actions.some(action => action.type === 'socket/joinRoom/pending')).toBe(true);
     });
   });
 
@@ -510,9 +513,7 @@ describe('GameRoom component', () => {
 
   describe('Additional button interactions', () => {
     it('handles Ready button click', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      
-      renderWithState({ 
+      const { store } = renderWithState({ 
         ...defaultState, 
         connected: true, 
         joined: true, 
@@ -522,47 +523,45 @@ describe('GameRoom component', () => {
       const readyButton = screen.getByRole('button', { name: /Set Ready/i });
       fireEvent.click(readyButton);
       
-      expect(consoleSpy).toHaveBeenCalledWith('player-ready');
-      
-      consoleSpy.mockRestore();
+      // Verify that readyPlayer action was dispatched
+      const actions = store.getActions();
+      expect(actions.some(action => action.type === 'socket/readyPlayer/pending')).toBe(true);
     });
 
     it('handles Start Game button click for normal speed', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      
-      renderWithState({ 
+      const { store } = renderWithState({ 
         ...defaultState, 
         connected: true, 
         joined: true, 
         playerReady: true,
-        started: false
+        started: false,
+        isHost: true
       });
       
       const startButton = screen.getByRole('button', { name: /Start Game/i });
       fireEvent.click(startButton);
       
-      expect(consoleSpy).toHaveBeenCalledWith('start-game');
-      
-      consoleSpy.mockRestore();
+      // Verify that startGame action was dispatched
+      const actions = store.getActions();
+      expect(actions.some(action => action.type === 'socket/startGame/pending')).toBe(true);
     });
 
     it('handles Start Game Fast button click', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      
-      renderWithState({ 
+      const { store } = renderWithState({ 
         ...defaultState, 
         connected: true, 
         joined: true, 
         playerReady: true,
-        started: false
+        started: false,
+        isHost: true
       });
       
       const startFastButton = screen.getByRole('button', { name: /Start Fast Game/i });
       fireEvent.click(startFastButton);
       
-      expect(consoleSpy).toHaveBeenCalledWith('start-fast-game');
-      
-      consoleSpy.mockRestore();
+      // Verify that startGame action was dispatched
+      const actions = store.getActions();
+      expect(actions.some(action => action.type === 'socket/startGame/pending')).toBe(true);
     });
   });
 

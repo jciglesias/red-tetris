@@ -46,7 +46,7 @@ jest.mock('socket.io-client', () => ({
 
 const defaultGameState: GameState = {
   roomName: 'room1',
-  players: new Map(),
+  players: {} as any,
   pieceSequence: [],
   currentPieceIndex: 0,
   gameOver: false,
@@ -723,7 +723,7 @@ describe('socketSlice', () => {
             winner: 'room1_player1',
             finalState: {
               roomName: 'room1',
-              players: new Map(),
+              players: {},
               pieceSequence: [],
               currentPieceIndex: 0,
               gameOver: true,
@@ -759,7 +759,7 @@ describe('socketSlice', () => {
             winner: 'room1_player2',
             finalState: {
               roomName: 'room1',
-              players: new Map(),
+              players: {},
               pieceSequence: [],
               currentPieceIndex: 0,
               gameOver: true,
@@ -798,7 +798,7 @@ describe('socketSlice', () => {
       playerId: 'room1_player1',
       gamestate: {
         roomName: 'room1',
-        players: new Map(),
+        players: {},
         pieceSequence: [],
         currentPieceIndex: 0,
         gameOver: false,
@@ -814,7 +814,7 @@ describe('socketSlice', () => {
 
     const finalGameState = {
       roomName: 'room1',
-      players: new Map(),
+      players: {},
       pieceSequence: [],
       currentPieceIndex: 0,
       gameOver: true,
@@ -848,7 +848,7 @@ describe('socketSlice', () => {
       playerId: 'room1_player1',
       gamestate: {
         roomName: 'room1',
-        players: new Map(),
+        players: {},
         pieceSequence: [],
         currentPieceIndex: 0,
         gameOver: false,
@@ -864,7 +864,7 @@ describe('socketSlice', () => {
 
     const finalGameState = {
       roomName: 'room1',
-      players: new Map(),
+      players: {},
       pieceSequence: [],
       currentPieceIndex: 0,
       gameOver: true,
@@ -899,7 +899,7 @@ describe('socketSlice', () => {
       playerId: 'room1_player1',
       gamestate: {
         roomName: 'room1',
-        players: new Map(),
+        players: {},
         pieceSequence: [],
         currentPieceIndex: 0,
         gameOver: false,
@@ -915,18 +915,20 @@ describe('socketSlice', () => {
 
     const gameState = {
       roomName: 'room1',
-      players: new Map([['room1_player1', {
-        playerId: 'room1_player1',
-        board: Array(20).fill(null).map(() => Array(10).fill(0)),
-        currentPiece: { shape: [[1]], type: 'I' as const, rotation: 0, x: 0, y: 0 },
-        nextPieces: [],
-        spectrum: Array(10).fill(0),
-        lines: 0,
-        score: 0,
-        level: 1,
-        isAlive: false, // Player is dead
-        penalties: 0
-      }]]),
+      players: {
+        'room1_player1': {
+          playerId: 'room1_player1',
+          board: Array(20).fill(null).map(() => Array(10).fill(0)),
+          currentPiece: { shape: [[1]], type: 'I' as const, rotation: 0, x: 0, y: 0 },
+          nextPieces: [],
+          spectrum: Array(10).fill(0),
+          lines: 0,
+          score: 0,
+          level: 1,
+          isAlive: false, // Player is dead
+          penalties: 0
+        }
+      },
       pieceSequence: [],
       currentPieceIndex: 0,
       gameOver: false,
@@ -957,7 +959,7 @@ describe('socketSlice', () => {
       playerId: 'room1_player1',
       gamestate: {
         roomName: 'room1',
-        players: new Map(),
+        players: {},
         pieceSequence: [],
         currentPieceIndex: 0,
         gameOver: false,
@@ -973,18 +975,20 @@ describe('socketSlice', () => {
 
     const gameState = {
       roomName: 'room1',
-      players: new Map([['room1_player1', {
-        playerId: 'room1_player1',
-        board: Array(20).fill(null).map(() => Array(10).fill(0)),
-        currentPiece: { shape: [[1]], type: 'I' as const, rotation: 0, x: 0, y: 0 },
-        nextPieces: [],
-        spectrum: Array(10).fill(0),
-        lines: 0,
-        score: 0,
-        level: 1,
-        isAlive: true,
-        penalties: 0
-      }]]),
+      players: {
+        'room1_player1': {
+          playerId: 'room1_player1',
+          board: Array(20).fill(null).map(() => Array(10).fill(0)),
+          currentPiece: { shape: [[1]], type: 'I' as const, rotation: 0, x: 0, y: 0 },
+          nextPieces: [],
+          spectrum: Array(10).fill(0),
+          lines: 0,
+          score: 0,
+          level: 1,
+          isAlive: true,
+          penalties: 0
+        }
+      },
       pieceSequence: [],
       currentPieceIndex: 0,
       gameOver: false,
@@ -1285,8 +1289,7 @@ describe('socketSlice', () => {
 
       const reconnectionData = {
         room: { gameState: 'playing' },
-        player: { isReady: true, score: 150, level: 3 },
-        id: 'room1_player1',
+        player: { isReady: true, score: 150, level: 3, id: 'room1_player1' },
         gameState: {
           ...defaultGameState,
           players: {
@@ -1556,14 +1559,13 @@ describe('socketSlice', () => {
         .find(call => call[0] === 'game-state-update')?.[1];
 
       if (gameStateUpdateCallback) {
-        // Note: The original logic has a bug - it checks (playerState.isAlive && playerState.isAlive === false)
-        // which is impossible. The test reflects this flawed logic that doesn't actually trigger onGameOver.
+        // Player is dead, should trigger onGameOver
         const gameStateWithDeadPlayer = {
           ...defaultGameState,
           players: {
             'room1_player1': {
               playerId: 'room1_player1',
-              isAlive: false, // Player is dead but due to the flawed logic, onGameOver won't be called
+              isAlive: false, // Player is dead
               score: 200,
               level: 2
             }
@@ -1574,8 +1576,8 @@ describe('socketSlice', () => {
         gameStateUpdateCallback(gameStateWithDeadPlayer);
 
         const state = store.getState().socket;
-        // Due to the flawed logic in socketSlice.tsx line 212, gameOver won't be true
-        expect(state.gameOver).toBe(false);
+        // Now that the logic is fixed, gameOver should be true
+        expect(state.gameOver).toBe(true);
         expect(state.score).toBe(200);
         expect(state.level).toBe(2);
       }
@@ -1658,8 +1660,8 @@ describe('socketSlice', () => {
         roomInfoCallback(roomInfoWithDeadPlayer);
 
         const state = store.getState().socket;
-        // Due to the same flawed logic, gameOver won't be true
-        expect(state.gameOver).toBe(false);
+        // Now that the logic is fixed, gameOver should be true
+        expect(state.gameOver).toBe(true);
         expect(state.score).toBe(300);
         expect(state.level).toBe(3);
       }
@@ -1794,11 +1796,11 @@ describe('socketSlice', () => {
           }
         };
 
-        // This should trigger the error due to missing null check in the original code
-        // The test verifies that this is a known issue
+        // This should be handled gracefully now that the code has been improved
+        // No exception should be thrown when the current player is missing
         expect(() => {
           gameStateUpdateCallback(gameStateWithoutCurrentPlayer);
-        }).toThrow();
+        }).not.toThrow();
       }
     });
 
