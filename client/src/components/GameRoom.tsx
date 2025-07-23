@@ -14,6 +14,7 @@ function GameRoom() {
   const dispatch = useDispatch<AppDispatch>();
   const connected = useSelector((state: RootState) => state.socket.connected);
   const joined = useSelector((state: RootState) => state.socket.joined);
+  const isHost = useSelector((state: RootState) => state.socket.isHost);
   const playerReady = useSelector((state: RootState) => state.socket.playerReady);
   const started = useSelector((state: RootState) => state.socket.started);
   const gameOver = useSelector((state: RootState) => state.socket.gameOver);
@@ -27,7 +28,6 @@ function GameRoom() {
   const gamestate = useSelector((state: RootState) => state.socket.gamestate);
   const score = useSelector((state: RootState) => state.socket.score);
   const level = useSelector((state: RootState) => state.socket.level);
-  const reconnectionToken = useSelector((state: RootState) => state.socket.reconnectionToken);
   const boardRef = useRef<HTMLDivElement>(null);
   const nextRef = useRef<HTMLDivElement>(null);
   const board1Ref = useRef<HTMLDivElement>(null);
@@ -83,13 +83,10 @@ function GameRoom() {
 
 
   useEffect(() => {
-    
+
     dispatch(connectSocket({ room: roomName!, playerName: playerName! }));
     
     const handleBeforeUnload = () => {
-      if (reconnectionToken) {
-        localStorage.setItem('redtetris_reconnection_token', reconnectionToken);
-      }
       dispatch(disconnectSocket());
     };
 
@@ -99,7 +96,7 @@ function GameRoom() {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       dispatch(disconnectSocket());
     };
-  }, [roomName, playerName, dispatch, reconnectionToken]);
+  }, [roomName, playerName, dispatch]);
 
 
   // Memoized render functions for board and spectrums
@@ -334,6 +331,7 @@ function GameRoom() {
         <div className="status-indicator">
           <p>Connected: {connected ? 'Yes' : 'No'}</p>
           <p>Joined: {joined ? 'Yes' : 'No'}</p>
+          <p>Host: {isHost ? 'Yes' : 'No'}</p>
           <p>Ready: {playerReady ? 'Yes' : 'No'}</p>
           <p><br /></p>
           {started && <p>Score: {score}</p>}
