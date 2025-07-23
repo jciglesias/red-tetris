@@ -25,7 +25,7 @@ jest.mock('socket.io-client', () => ({
 
 const defaultGameState: GameState = {
   roomName: 'room1',
-  players: new Map(),
+  players: {}, // Changed from new Map() to {}
   pieceSequence: [],
   currentPieceIndex: 0,
   gameOver: false,
@@ -247,8 +247,8 @@ describe('GameRoom component', () => {
     it('handles game state updates with player data', () => {
       const gameStateWithPlayers = {
         ...defaultGameState,
-        players: new Map([
-          ['room1_player1', {
+        players: {
+          'room1_player1': {
             playerId: 'room1_player1',
             board: Array(20).fill(Array(10).fill(0)),
             currentPiece: {
@@ -271,8 +271,8 @@ describe('GameRoom component', () => {
             level: 1,
             isAlive: true,
             penalties: 0
-          }]
-        ])
+          }
+        }
       };
 
       renderWithState({ ...defaultState, gamestate: gameStateWithPlayers });
@@ -306,8 +306,8 @@ describe('GameRoom component', () => {
     it('renders game board with player pieces', () => {
       const gameStateWithPieces = {
         ...defaultGameState,
-        players: new Map([
-          ['room1_player1', {
+        players: {
+          'room1_player1': {
             playerId: 'room1_player1',
             board: Array(20).fill(null).map(() => Array(10).fill(0)),
             currentPiece: {
@@ -330,8 +330,8 @@ describe('GameRoom component', () => {
             level: 1,
             isAlive: true,
             penalties: 0
-          }]
-        ])
+          }
+        }
       };
 
       const stateWithGame = {
@@ -350,8 +350,8 @@ describe('GameRoom component', () => {
     it('handles game state updates with complex player data', () => {
       const complexGameState = {
         ...defaultGameState,
-        players: new Map([
-          ['room1_player1', {
+        players: {
+          'room1_player1': {
             playerId: 'room1_player1',
             board: Array(20).fill(null).map((_, i) => 
               Array(10).fill(null).map((_, j) => (i > 15 && j < 3) ? 1 : 0)
@@ -373,8 +373,8 @@ describe('GameRoom component', () => {
             level: 2,
             isAlive: true,
             penalties: 2
-          }]
-        ])
+          }
+        }
       };
 
       const stateWithComplexGame = {
@@ -395,8 +395,8 @@ describe('GameRoom component', () => {
         started: true,
         gamestate: {
           ...defaultGameState,
-          players: new Map([
-            ['room1_player1', {
+          players: {
+            'room1_player1': {
               playerId: 'room1_player1',
               board: Array(20).fill(null).map(() => Array(10).fill(0)),
               currentPiece: { 
@@ -419,8 +419,8 @@ describe('GameRoom component', () => {
               level: 1,
               isAlive: true,
               penalties: 0
-            }]
-          ])
+            }
+          }
         }
       };
 
@@ -436,8 +436,8 @@ describe('GameRoom component', () => {
     it('handles multiple game states and opponent rendering', () => {
       const multiPlayerGameState = {
         ...defaultGameState,
-        players: new Map([
-          ['room1_player1', {
+        players: {
+          'room1_player1': {
             playerId: 'room1_player1',
             board: Array(20).fill(null).map(() => Array(10).fill(0)),
             currentPiece: null,
@@ -448,8 +448,8 @@ describe('GameRoom component', () => {
             level: 1,
             isAlive: true,
             penalties: 0
-          }],
-          ['room1_player2', {
+          },
+          'room1_player2': {
             playerId: 'room1_player2',
             board: Array(20).fill(null).map(() => Array(10).fill(0)),
             currentPiece: null,
@@ -460,8 +460,8 @@ describe('GameRoom component', () => {
             level: 1,
             isAlive: true,
             penalties: 1
-          }]
-        ])
+          }
+        }
       };
 
       const stateWithOpponents = {
@@ -615,7 +615,7 @@ describe('GameRoom component', () => {
       const gameStateWithBoard = {
         ...defaultGameState,
         roomName: 'room1',
-        players: new Map([['room1_player1', playerState]])
+        players: { 'room1_player1': playerState }
       };
 
       const testState = {
@@ -638,7 +638,7 @@ describe('GameRoom component', () => {
       const gameStateEmpty = {
         ...defaultGameState,
         roomName: 'room1',
-        players: new Map()
+        players: {}
       };
 
       const testState = {
@@ -662,7 +662,7 @@ describe('GameRoom component', () => {
       const gameStateNoBoardData = {
         ...defaultGameState,
         roomName: 'room1',
-        players: new Map([['room1_player1', playerState]])
+        players: { 'room1_player1': playerState }
       };
 
       const testState = {
@@ -692,7 +692,7 @@ describe('GameRoom component', () => {
       const gameStateWithNextPiece = {
         ...defaultGameState,
         roomName: 'room1',
-        players: new Map([['room1_player1', playerState]])
+        players: { 'room1_player1': playerState }
       };
 
       const testState = {
@@ -723,7 +723,7 @@ describe('GameRoom component', () => {
       const gameStateWithOpponents = {
         ...defaultGameState,
         roomName: 'room1',
-        players: new Map([['room1_player1', playerState]])
+        players: { 'room1_player1': playerState }
       };
 
       const testState = {
@@ -1109,7 +1109,7 @@ describe('GameRoom component', () => {
 
       const gameStateWithNoPiece = {
         ...defaultGameState,
-        players: new Map([['room1_player1', playerWithNoPiece]])
+        players: { 'room1_player1': playerWithNoPiece }
       };
 
       const store = configureStore({
@@ -1228,7 +1228,7 @@ describe('GameRoom component', () => {
 
       const gameStateWithAllTypes = {
         ...defaultGameState,
-        players: new Map([['room1_player1', playerStateWithAllTypes]])
+        players: { 'room1_player1': playerStateWithAllTypes }
       };
 
       const store = configureStore({
@@ -1300,7 +1300,7 @@ describe('GameRoom component', () => {
 
       const gameStateWithPieces = {
         ...defaultGameState,
-        players: new Map([['room1_player1', playerStateWithPieces]])
+        players: { 'room1_player1': playerStateWithPieces }
       };
 
       const store = configureStore({
@@ -1356,7 +1356,7 @@ describe('GameRoom component', () => {
 
       const gameStateWithMovingPiece = {
         ...defaultGameState,
-        players: new Map([['room1_player1', playerStateWithMovingPiece]])
+        players: { 'room1_player1': playerStateWithMovingPiece }
       };
 
       const store = configureStore({
@@ -1427,7 +1427,7 @@ describe('GameRoom component', () => {
 
       const gameStateWithTypedNextPiece = {
         ...defaultGameState,
-        players: new Map([['room1_player1', playerStateWithTypedNextPiece]])
+        players: { 'room1_player1': playerStateWithTypedNextPiece }
       };
 
       const store = configureStore({
