@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { connectSocket, disconnectSocket, joinRoom, readyPlayer, startGame, gameAction, getRoomInfo, relaunchGame, sendMessage, requestReconnection } from '../store/socketSlice';
+import { connectSocket, disconnectSocket, joinRoom, readyPlayer, startGame, gameAction, getRoomInfo, relaunchGame, sendMessage } from '../store/socketSlice';
 import { RootState, AppDispatch } from '../store';
 import './GameRoom.css';
 import LeaderboardModal from './LeaderboardModal';
@@ -260,23 +260,6 @@ function GameRoom() {
     console.log('send-message');
   }
 
-  function handleReconnect() {
-    if (roomName && playerName) {
-      const storedToken = localStorage.getItem('redtetris_reconnection_token');
-      dispatch(requestReconnection({
-        room: roomName,
-        playerName: playerName,
-        reconnectionToken: storedToken || reconnectionToken || undefined
-      }));
-    }
-    console.log('request-reconnection');
-  }
-
-    function handleDisconnect() {
-    dispatch(disconnectSocket());
-    console.log('disconnect-socket');
-  }
-    
   function initializeNextPiece() {
     const nextPiece = nextRef.current;
     if (!nextPiece) return;
@@ -358,8 +341,6 @@ function GameRoom() {
         </div>
       </div>
       <div className="button-group">
-        {joined && <button onClick={handleDisconnect}>Disconnect</button>}
-        {!connected && !joined && <button onClick={handleReconnect}>Reconnect</button>}
         {!joined && !gameOver && !gameWon && <button onClick={handleJoin}>Join Room</button>}
         {joined && !playerReady && <button onClick={handleReady}>Set Ready</button>}
         {playerReady && !started && <button onClick={handleStart}>Start Game</button>}

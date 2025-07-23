@@ -410,8 +410,11 @@ const socketSlice = createSlice({
       state.joined = true;
       state.isError = false;
       state.contentError = '';
-      if (action.payload.reconnectionToken) {
-        state.reconnectionToken = action.payload.reconnectionToken;
+      if (action.payload.room.gameState) {
+        state.started = (action.payload.room.gameState == 'playing' ? true : false);
+      }
+      if (action.payload.player.reconnectionToken) {
+        state.reconnectionToken = action.payload.player.reconnectionToken;
       }
       // Restaurer l'état du jeu si fourni
       if (action.payload.gameState) {
