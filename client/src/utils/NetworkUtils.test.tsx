@@ -1,4 +1,4 @@
-import { NetworkUtils } from './NetworkUtils';
+import { testConnection, findWorkingServerUrl } from './NetworkUtils';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -21,7 +21,7 @@ Object.defineProperty(window, 'location', {
 // Mock setTimeout and clearTimeout
 jest.useFakeTimers();
 
-describe('NetworkUtils', () => {
+describe('NetworkUtils functions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockFetch.mockClear();
@@ -48,7 +48,7 @@ describe('NetworkUtils', () => {
         ok: true
       } as Response);
 
-      const result = await NetworkUtils.testConnection('http://localhost:3001');
+      const result = await testConnection('http://localhost:3001');
 
       expect(result).toBe(true);
       expect(mockFetch).toHaveBeenCalledWith('http://localhost:3001/health', {
@@ -62,7 +62,7 @@ describe('NetworkUtils', () => {
         ok: false
       } as Response);
 
-      const result = await NetworkUtils.testConnection('http://localhost:3001');
+      const result = await testConnection('http://localhost:3001');
 
       expect(result).toBe(false);
       expect(mockFetch).toHaveBeenCalledWith('http://localhost:3001/health', {
@@ -75,7 +75,7 @@ describe('NetworkUtils', () => {
       const mockError = new Error('Network error');
       mockFetch.mockRejectedValueOnce(mockError);
 
-      const result = await NetworkUtils.testConnection('http://localhost:3001');
+      const result = await testConnection('http://localhost:3001');
 
       expect(result).toBe(false);
       expect(mockConsoleWarn).toHaveBeenCalledWith(
@@ -97,7 +97,7 @@ describe('NetworkUtils', () => {
         });
       });
 
-      const testPromise = NetworkUtils.testConnection('http://localhost:3001');
+      const testPromise = testConnection('http://localhost:3001');
 
       // Fast-forward time to trigger the timeout
       jest.advanceTimersByTime(5000);
@@ -118,7 +118,7 @@ describe('NetworkUtils', () => {
         ok: true
       } as Response);
 
-      await NetworkUtils.testConnection('http://localhost:3001');
+      await testConnection('http://localhost:3001');
 
       expect(clearTimeoutSpy).toHaveBeenCalled();
       
@@ -130,7 +130,7 @@ describe('NetworkUtils', () => {
         ok: true
       } as Response);
 
-      await NetworkUtils.testConnection('https://example.com:3001');
+      await testConnection('https://example.com:3001');
 
       expect(mockFetch).toHaveBeenCalledWith('https://example.com:3001/health', {
         method: 'GET',
@@ -149,7 +149,7 @@ describe('NetworkUtils', () => {
         .mockResolvedValueOnce({ ok: true } as Response) // localhost:3001
         .mockResolvedValueOnce({ ok: false } as Response); // 127.0.0.1:3001
 
-      const result = await NetworkUtils.findWorkingServerUrl();
+      const result = await findWorkingServerUrl();
 
       expect(result).toBe('http://localhost:3001');
       expect(mockFetch).toHaveBeenCalledWith('http://localhost:3001/health', {
@@ -167,7 +167,7 @@ describe('NetworkUtils', () => {
         .mockResolvedValueOnce({ ok: false } as Response) // localhost:3001 fails
         .mockResolvedValueOnce({ ok: true } as Response); // 127.0.0.1:3001 succeeds
 
-      const result = await NetworkUtils.findWorkingServerUrl();
+      const result = await findWorkingServerUrl();
 
       expect(result).toBe('http://127.0.0.1:3001');
       expect(mockFetch).toHaveBeenCalledTimes(2);
@@ -180,7 +180,7 @@ describe('NetworkUtils', () => {
       // Mock testConnection to succeed for example.com
       mockFetch.mockResolvedValueOnce({ ok: true } as Response);
 
-      const result = await NetworkUtils.findWorkingServerUrl();
+      const result = await findWorkingServerUrl();
 
       expect(result).toBe('https://example.com:3001');
       expect(mockFetch).toHaveBeenCalledWith('https://example.com:3001/health', {
@@ -196,7 +196,7 @@ describe('NetworkUtils', () => {
       // Mock testConnection to succeed for localhost
       mockFetch.mockResolvedValueOnce({ ok: true } as Response);
 
-      const result = await NetworkUtils.findWorkingServerUrl();
+      const result = await findWorkingServerUrl();
 
       expect(result).toBe('http://localhost:3001');
       // Should not try the hostname URL since it's 127.0.0.1
@@ -212,7 +212,7 @@ describe('NetworkUtils', () => {
         .mockResolvedValueOnce({ ok: false } as Response) // localhost:3001
         .mockResolvedValueOnce({ ok: false } as Response); // 127.0.0.1:3001
 
-      const result = await NetworkUtils.findWorkingServerUrl();
+      const result = await findWorkingServerUrl();
 
       expect(result).toBe('http://localhost:3001');
       expect(mockFetch).toHaveBeenCalledTimes(2);
@@ -228,7 +228,7 @@ describe('NetworkUtils', () => {
         .mockResolvedValueOnce({ ok: false } as Response) // localhost:3001
         .mockResolvedValueOnce({ ok: false } as Response); // 127.0.0.1:3001
 
-      const result = await NetworkUtils.findWorkingServerUrl();
+      const result = await findWorkingServerUrl();
 
       expect(result).toBe('http://localhost:3001');
       
@@ -253,7 +253,7 @@ describe('NetworkUtils', () => {
 
       mockFetch.mockResolvedValueOnce({ ok: true } as Response);
 
-      const result = await NetworkUtils.findWorkingServerUrl();
+      const result = await findWorkingServerUrl();
 
       expect(result).toBe('https://secure.example.com:3001');
       expect(mockFetch).toHaveBeenCalledWith('https://secure.example.com:3001/health', {
@@ -269,7 +269,7 @@ describe('NetworkUtils', () => {
       // Mock first URL to succeed
       mockFetch.mockResolvedValueOnce({ ok: true } as Response);
 
-      const result = await NetworkUtils.findWorkingServerUrl();
+      const result = await findWorkingServerUrl();
 
       expect(result).toBe('http://example.com:3001');
       // Should only call fetch once since first URL works
@@ -285,7 +285,7 @@ describe('NetworkUtils', () => {
         .mockRejectedValueOnce(new Error('Connection error'))
         .mockResolvedValueOnce({ ok: true } as Response);
 
-      const result = await NetworkUtils.findWorkingServerUrl();
+      const result = await findWorkingServerUrl();
 
       expect(result).toBe('http://127.0.0.1:3001');
       expect(mockFetch).toHaveBeenCalledTimes(2);
@@ -306,7 +306,7 @@ describe('NetworkUtils', () => {
         .mockRejectedValueOnce(new Error('Invalid URL')) // http://:3001/health will fail
         .mockResolvedValueOnce({ ok: true } as Response); // localhost succeeds
 
-      const result = await NetworkUtils.findWorkingServerUrl();
+      const result = await findWorkingServerUrl();
 
       expect(result).toBe('http://localhost:3001');
       expect(mockFetch).toHaveBeenCalledTimes(2);
@@ -325,7 +325,7 @@ describe('NetworkUtils', () => {
         .mockRejectedValueOnce(new TypeError('Invalid URL'))
         .mockResolvedValueOnce({ ok: true } as Response);
 
-      const result = await NetworkUtils.findWorkingServerUrl();
+      const result = await findWorkingServerUrl();
 
       expect(result).toBe('http://localhost:3001');
       expect(mockConsoleWarn).toHaveBeenCalled();
@@ -337,7 +337,7 @@ describe('NetworkUtils', () => {
 
       mockFetch.mockResolvedValueOnce({ ok: true } as Response);
 
-      const result = await NetworkUtils.findWorkingServerUrl();
+      const result = await findWorkingServerUrl();
 
       expect(result).toBe('http://example.com:3001');
     });

@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { io, Socket } from 'socket.io-client';
 import { GameState, ChatMessage } from '../components/Interfaces';
-import { NetworkUtils } from '../utils/NetworkUtils';
+import { findWorkingServerUrl } from '../utils/NetworkUtils';
 
 let socket: Socket | null = null;
 
@@ -86,7 +86,7 @@ export const requestReconnection = createAsyncThunk(
   'socket/requestReconnection',
   async (payload: ReconnectPayload, { dispatch }) => {
     if (!socket) {
-      const serverUrl = await NetworkUtils.findWorkingServerUrl();
+      const serverUrl = await findWorkingServerUrl();
       socket = io(serverUrl);
     }
 
@@ -125,7 +125,7 @@ export const connectSocket = createAsyncThunk(
       socket.disconnect();
     }
 
-    const serverUrl = await NetworkUtils.findWorkingServerUrl();
+    const serverUrl = await findWorkingServerUrl();
     socket = io(serverUrl);
 
     //console.log('Attempting Connection...');

@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import LeaderboardModal from './LeaderboardModal';
-import { NetworkUtils } from '../utils/NetworkUtils';
+import { findWorkingServerUrl } from '../utils/NetworkUtils';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -14,12 +14,10 @@ const mockConsoleError = jest.spyOn(console, 'error').mockImplementation(() => {
 
 // Mock NetworkUtils
 jest.mock('../utils/NetworkUtils', () => ({
-  NetworkUtils: {
-    findWorkingServerUrl: jest.fn()
-  }
+  findWorkingServerUrl: jest.fn()
 }));
 
-const mockFindWorkingServerUrl = NetworkUtils.findWorkingServerUrl as jest.MockedFunction<typeof NetworkUtils.findWorkingServerUrl>;
+const mockFindWorkingServerUrl = findWorkingServerUrl as jest.MockedFunction<typeof findWorkingServerUrl>;
 
 // Mock the Modal component
 jest.mock('./Modal', () => {

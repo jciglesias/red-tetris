@@ -46,10 +46,8 @@ jest.mock('socket.io-client', () => ({
 
 // Mock NetworkUtils to avoid real network calls
 jest.mock('../utils/NetworkUtils', () => ({
-  NetworkUtils: {
-    findWorkingServerUrl: jest.fn().mockResolvedValue('http://localhost:3001'),
-    testConnection: jest.fn().mockResolvedValue(true),
-  },
+  findWorkingServerUrl: jest.fn().mockResolvedValue('http://localhost:3001'),
+  testConnection: jest.fn().mockResolvedValue(true),
 }));
 
 const defaultGameState: GameState = {

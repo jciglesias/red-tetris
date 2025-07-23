@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Modal from './Modal';
 import { LeaderboardStats } from './Interfaces';
-import { NetworkUtils } from '../utils/NetworkUtils';
+import { findWorkingServerUrl } from '../utils/NetworkUtils';
 
 const LeaderboardStatsModal = () => {
   const [statsData, setStatsData] = useState<LeaderboardStats | null>(null);
@@ -9,7 +9,7 @@ const LeaderboardStatsModal = () => {
 
   const fetchStats = async () => {
     try {
-      const serverUrl = await NetworkUtils.findWorkingServerUrl();
+      const serverUrl = await findWorkingServerUrl();
       const response = await fetch(`${serverUrl}/api/leaderboard/stats`);
       
       if (!response.ok) {
