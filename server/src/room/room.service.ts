@@ -23,6 +23,11 @@ export interface Room {
   gameState: 'waiting' | 'playing' | 'finished';
   maxPlayers: number;
   hostId?: string;
+  finalGameResult?: {
+    winner: string | null;
+    finalState: any;
+    endTime: number;
+  };
 }
 
 @Injectable()
@@ -179,6 +184,16 @@ export class RoomService {
       return false;
     }
 
+    // Capture final game state before deleting it
+    const finalGameState = this.gameService.getGameState(roomName);
+    if (finalGameState) {
+      room.finalGameResult = {
+        winner: finalGameState.winner,
+        finalState: finalGameState,
+        endTime: Date.now(),
+      };
+    }
+
     // Save player statistics to leaderboard before ending the game
     await this.saveGameResults(roomName);
 
@@ -266,6 +281,7 @@ export class RoomService {
     }
 
     room.gameState = 'waiting';
+    room.finalGameResult = undefined; // Clear final game result
     room.players.forEach(player => {
       player.isReady = false;
       player.score = 0;

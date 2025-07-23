@@ -386,17 +386,34 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (reconnectedPlayer) {
       client.join(roomName);
       
-      const gameState = room.gameState === 'playing' ? this.gameService.getGameState(roomName) : null;
+      const gameState = this.gameService.getGameState(roomName);
+      const serializedGameState = this.serializeGameState(gameState);
       
-      client.emit('reconnection-success', {
+      // Prepare reconnection success data
+      const reconnectionData: any = {
         player: reconnectedPlayer,
         room: {
           name: roomName,
           players: this.roomService.getRoomPlayers(roomName),
           gameState: room.gameState,
         },
-        gameState: this.serializeGameState(gameState),
-      });
+        gameState: serializedGameState,
+      };
+
+      // If the game is finished, use the stored final game result
+      if (room.gameState === 'finished' && room.finalGameResult) {
+        reconnectionData.winner = room.finalGameResult.winner;
+        reconnectionData.finalState = this.serializeGameState(room.finalGameResult.finalState);
+        reconnectionData.gameFinished = true;
+        reconnectionData.gameState = this.serializeGameState(room.finalGameResult.finalState);
+      } else if (gameState && gameState.gameOver) {
+        // If the game is over but still in memory, include that information
+        reconnectionData.winner = gameState.winner;
+        reconnectionData.finalState = serializedGameState;
+        reconnectionData.gameFinished = true;
+      }
+      
+      client.emit('reconnection-success', reconnectionData);
 
       // Notify other players
       this.server.to(roomName).emit('player-reconnected', {
