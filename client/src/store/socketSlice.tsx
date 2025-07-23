@@ -460,7 +460,6 @@ const socketSlice = createSlice({
           state.playerReady = false;
           state.started = false;
         }
-        //console.log('TEST WINNER: ' + action.payload.gameState.winner);
         if (action.payload.gameState.winner && action.payload.gameState.winner === action.payload.player.id) {
           state.gameWon = true;
           state.joined = false;

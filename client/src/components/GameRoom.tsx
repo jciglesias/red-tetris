@@ -341,8 +341,8 @@ function GameRoom() {
       <div className="button-group">
         {!joined && !gameOver && !gameWon && <button onClick={handleJoin}>Join Room</button>}
         {joined && !playerReady && <button onClick={handleReady}>Set Ready</button>}
-        {playerReady && !started && <button onClick={handleStart}>Start Game</button>}
-        {playerReady && !started && <button onClick={handleFastStart}>Start Fast Game</button>}
+        {isHost && playerReady && !started && <button onClick={handleStart}>Start Game</button>}
+        {isHost && playerReady && !started && <button onClick={handleFastStart}>Start Fast Game</button>}
         {(gameOver || gameWon) && <button onClick={handleRelaunch}>Relaunch Game</button>}
       </div>
       {isError && (
