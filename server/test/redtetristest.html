@@ -643,10 +643,6 @@
                 addMessage(`Player ${playerId} sees player joined: ` + JSON.stringify(data, null, 2));
             });
 
-            socket.on('player-left', (data) => {
-                addMessage(`Player ${playerId} sees player left: ` + JSON.stringify(data, null, 2));
-            });
-
             socket.on('player-ready-changed', (data) => {
                 addMessage(`Player ${playerId} sees ready changed: ` + JSON.stringify(data, null, 2));
                 
