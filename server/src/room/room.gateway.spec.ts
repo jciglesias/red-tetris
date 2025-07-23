@@ -91,17 +91,25 @@ describe('RoomGateway', () => {
     it('should handle client disconnection with player data', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
       const mockPlayerData = {
-        player: { id: 'player1', name: 'Test Player' },
+        player: { id: 'player1', name: 'Test Player', isHost: false },
         room: { name: 'test-room', gameState: 'waiting', players: new Map() }
       };
       
       (roomService.markPlayerDisconnected as jest.Mock).mockReturnValue(mockPlayerData);
+      (roomService.removePlayerFromRoom as jest.Mock).mockReturnValue(true);
       (roomService.getRoomPlayers as jest.Mock).mockReturnValue([]);
       
       gateway.handleDisconnect(mockClient as Socket);
       
       expect(roomService.markPlayerDisconnected).toHaveBeenCalledWith('test-socket-id');
+      expect(roomService.removePlayerFromRoom).toHaveBeenCalledWith('test-room', 'player1');
       expect(mockServer.to).toHaveBeenCalledWith('test-room');
+      expect(mockServer.emit).toHaveBeenCalledWith('player-left', expect.objectContaining({
+        playerId: 'player1',
+        playerName: 'Test Player',
+        canReconnect: false,
+        reason: 'Player disconnected before game started'
+      }));
       consoleSpy.mockRestore();
     });
   });
@@ -567,22 +575,25 @@ describe('RoomGateway', () => {
 
     it('should handle disconnection with reconnection data', () => {
       const mockDisconnectionData = {
-        player: { id: 'player1', name: 'testPlayer' },
+        player: { id: 'player1', name: 'testPlayer', isHost: false },
         room: { name: 'test-room', gameState: 'waiting' }
       };
       const mockPlayers = [{ id: 'player2', isConnected: true }];
       
       (roomService.markPlayerDisconnected as jest.Mock).mockReturnValue(mockDisconnectionData);
+      (roomService.removePlayerFromRoom as jest.Mock).mockReturnValue(true);
       (roomService.getRoomPlayers as jest.Mock).mockReturnValue(mockPlayers);
       
       gateway.handleDisconnect(mockClient as Socket);
       
       expect(roomService.markPlayerDisconnected).toHaveBeenCalledWith(mockClient.id);
+      expect(roomService.removePlayerFromRoom).toHaveBeenCalledWith('test-room', 'player1');
       expect(mockServer.to).toHaveBeenCalledWith('test-room');
-      expect(mockServer.emit).toHaveBeenCalledWith('player-disconnected', expect.objectContaining({
+      expect(mockServer.emit).toHaveBeenCalledWith('player-left', expect.objectContaining({
         playerId: 'player1',
         playerName: 'testPlayer',
-        canReconnect: true
+        canReconnect: false,
+        reason: 'Player disconnected before game started'
       }));
     });
 
