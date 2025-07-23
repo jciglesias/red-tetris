@@ -758,6 +758,7 @@ describe('socketSlice', () => {
       joined: true,
       playerReady: true,
       started: true,
+      isHost: false,
       isError: false,
       contentError: '',
       opponent1: 'player2',
@@ -778,8 +779,7 @@ describe('socketSlice', () => {
       gameWon: false,
       score: 0,
       level: 1,
-      messages: [],
-      reconnectionToken: ''
+      messages: []
     };
 
     const finalGameState = {
@@ -808,6 +808,7 @@ describe('socketSlice', () => {
       joined: true,
       playerReady: true,
       started: true,
+      isHost: false,
       isError: false,
       contentError: '',
       opponent1: 'player2',
@@ -828,8 +829,7 @@ describe('socketSlice', () => {
       gameWon: false,
       score: 0,
       level: 1,
-      messages: [],
-      reconnectionToken: ''
+      messages: []
     };
 
     const finalGameState = {
@@ -859,6 +859,7 @@ describe('socketSlice', () => {
       joined: true,
       playerReady: false,
       started: true,
+      isHost: false,
       isError: false,
       contentError: '',
       opponent1: '',
@@ -879,8 +880,7 @@ describe('socketSlice', () => {
       gameWon: false,
       score: 0,
       level: 1,
-      messages: [],
-      reconnectionToken: ''
+      messages: []
     };
 
     const gameState = {
@@ -917,6 +917,7 @@ describe('socketSlice', () => {
       joined: true,
       playerReady: false,
       started: true,
+      isHost: false,
       isError: false,
       contentError: '',
       opponent1: '',
@@ -937,8 +938,7 @@ describe('socketSlice', () => {
       gameWon: false,
       score: 0,
       level: 1,
-      messages: [],
-      reconnectionToken: ''
+      messages: []
     };
 
     const gameState = {

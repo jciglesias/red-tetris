@@ -143,10 +143,9 @@ export const connectSocket = createAsyncThunk(
     });
 
     socket.on('join-room-success', (data) => {
-      //console.log('Join room success: ' + JSON.stringify(data, null, 2));
+      console.log('Join room success: ' + JSON.stringify(data, null, 2));
       dispatch(onJoinRoomSuccess(data.player.isHost ? { isHost: true } : { isHost: false }));
       // Sauvegarder le token de reconnexion si fourni
-      //console.log('reconnectionToken: ' + data.player.reconnectionToken);
       if (data.player.reconnectionToken) {
         saveReconnectionToken(payload.room, payload.playerName, data.player.reconnectionToken);
       }
@@ -179,6 +178,14 @@ export const connectSocket = createAsyncThunk(
     socket.on('game-reset', (data) => {
       console.log('Game reset: ' + JSON.stringify(data, null, 2));
       dispatch(onGameReset());
+    });
+
+    socket.on('host-changed', (data) => {
+      console.log('Host changed: ' + JSON.stringify(data, null, 2));
+      if (data.newHostId === payload.room + "_" + payload.playerName) {
+        dispatch(onHostChanged());
+        console.log('Host changed! ' + data.newHostId);
+      }
     });
 
     socket.on('chat-message', (data) => {
@@ -403,6 +410,9 @@ const socketSlice = createSlice({
       state.isError = true;
       state.contentError = action.payload;
     },
+    onHostChanged(state) {
+      state.isHost = true;
+    },
     addMessage(state, action) {
       state.messages.push(action.payload)
     },
@@ -443,5 +453,5 @@ const socketSlice = createSlice({
   },
 });
 
-export const { onConnect, onDisconnect, onGameReset, onJoinRoomSuccess, onJoinRoomError, onSetReadySuccess, onStartGameSuccess, onUpdateData, onUpdatedData, onGameOver, onGameWon, onScoreUpdate, onError, addMessage, addMessages, onReconnectionSuccess, onReconnectionError } = socketSlice.actions;
+export const { onConnect, onDisconnect, onGameReset, onJoinRoomSuccess, onJoinRoomError, onSetReadySuccess, onStartGameSuccess, onUpdateData, onUpdatedData, onGameOver, onGameWon, onScoreUpdate, onHostChanged, onError, addMessage, addMessages, onReconnectionSuccess, onReconnectionError } = socketSlice.actions;
 export default socketSlice.reducer;
