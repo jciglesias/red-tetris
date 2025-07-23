@@ -574,4 +574,136 @@ describe('LeaderboardModal Component', () => {
     expect(screen.getByText('0:00')).toBeInTheDocument();
   });
 
+  it('should handle HTTP response with non-ok status', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+      json: async () => ({ error: 'Not found' }),
+    } as Response);
+
+    render(<LeaderboardModal />);
+    
+    fireEvent.click(screen.getByText('Best Scores'));
+
+    // Wait a bit to ensure the fetch completed
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled();
+    });
+
+    // Modal should not open when response is not ok
+    expect(screen.queryByTestId('modal')).not.toBeInTheDocument();
+  });
+
+  it('should display correct rank colors for positions beyond top 3', async () => {
+    const mockDataWith4Players = [
+      {
+        id: 1,
+        playerName: 'Player1',
+        score: 1000,
+        linesCleared: 10,
+        level: 1,
+        gameDuration: 60,
+        roomName: 'room1',
+        createdAt: new Date('2024-01-01T10:00:00Z')
+      },
+      {
+        id: 2,
+        playerName: 'Player2',
+        score: 900,
+        linesCleared: 9,
+        level: 1,
+        gameDuration: 55,
+        roomName: 'room2',
+        createdAt: new Date('2024-01-01T11:00:00Z')
+      },
+      {
+        id: 3,
+        playerName: 'Player3',
+        score: 800,
+        linesCleared: 8,
+        level: 1,
+        gameDuration: 50,
+        roomName: 'room3',
+        createdAt: new Date('2024-01-01T12:00:00Z')
+      },
+      {
+        id: 4,
+        playerName: 'Player4',
+        score: 700,
+        linesCleared: 7,
+        level: 1,
+        gameDuration: 45,
+        roomName: 'room4',
+        createdAt: new Date('2024-01-01T13:00:00Z')
+      }
+    ];
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockDataWith4Players,
+    } as Response);
+
+    render(<LeaderboardModal />);
+    
+    fireEvent.click(screen.getByText('Best Scores'));
+
+    await waitFor(() => {
+      expect(screen.getByText("🏆 Top 10 All Time 🏆")).toBeInTheDocument();
+    });
+
+    const rows = screen.getAllByRole('row');
+    
+    // Check fourth place (should have default color #666)
+    const fourthRankCell = rows[4].querySelector('td:first-child') as HTMLElement;
+    expect(fourthRankCell).toHaveStyle('color: #666');
+  });
+
+  it('should handle mouse leave event for odd row indices', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockLeaderboardData,
+    } as Response);
+
+    render(<LeaderboardModal />);
+    
+    fireEvent.click(screen.getByText('Best Scores'));
+
+    await waitFor(() => {
+      expect(screen.getByText("🏆 Top 10 All Time 🏆")).toBeInTheDocument();
+    });
+
+    const rows = screen.getAllByRole('row');
+    const secondDataRow = rows[2]; // Index 1 in data (odd)
+
+    // Test mouse enter event
+    fireEvent.mouseEnter(secondDataRow);
+    expect(secondDataRow).toHaveStyle('background-color: #e3f2fd');
+
+    // Test mouse leave event (should restore white background for odd rows)
+    fireEvent.mouseLeave(secondDataRow);
+    expect(secondDataRow).toHaveStyle('background-color: white');
+  });
+
+  it('should properly handle fetch with successful response but ok=false', async () => {
+    // Mock response with ok: false but valid JSON
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: 'Server error' }),
+    } as Response);
+
+    render(<LeaderboardModal />);
+    
+    fireEvent.click(screen.getByText('Best Scores'));
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:3001/api/leaderboard/top?limit=10');
+    });
+
+    // Modal should not be displayed when response is not ok
+    expect(screen.queryByTestId('modal')).not.toBeInTheDocument();
+    expect(screen.queryByText('🏆 Top 10 All Time 🏆')).not.toBeInTheDocument();
+  });
+
 });
