@@ -18,6 +18,7 @@ interface ReconnectPayload {
 export interface SocketState {
   connected: boolean;
   joined: boolean;
+  isHost: boolean;
   playerReady: boolean;
   started: boolean;
   isError: boolean;
@@ -33,12 +34,12 @@ export interface SocketState {
   score: number;
   level: number;
   messages: ChatMessage[];
-  reconnectionToken: string;
 }
 
 const initialState: SocketState = { 
   connected: false, 
   joined: false,
+  isHost: false,
   playerReady: false,
   started: false,
   isError: false,
@@ -53,8 +54,7 @@ const initialState: SocketState = {
   gameWon: false,
   score: 0,
   level: 0,
-  messages: [],
-  reconnectionToken: ''
+  messages: []
 };
 
 const saveReconnectionToken = (room: string, playerName: string, token: string) => {
@@ -143,13 +143,12 @@ export const connectSocket = createAsyncThunk(
     });
 
     socket.on('join-room-success', (data) => {
-      console.log('Join room success: ' + JSON.stringify(data, null, 2));
-      dispatch(onJoinRoomSuccess());
+      //console.log('Join room success: ' + JSON.stringify(data, null, 2));
+      dispatch(onJoinRoomSuccess(data.player.isHost ? { isHost: true } : { isHost: false }));
       // Sauvegarder le token de reconnexion si fourni
-      console.log('reconnectionToken: ' + data.player.reconnectionToken);
+      //console.log('reconnectionToken: ' + data.player.reconnectionToken);
       if (data.player.reconnectionToken) {
         saveReconnectionToken(payload.room, payload.playerName, data.player.reconnectionToken);
-        dispatch(setReconnectionToken(data.player.reconnectionToken));
       }
     });
 
@@ -179,7 +178,7 @@ export const connectSocket = createAsyncThunk(
 
     socket.on('game-reset', (data) => {
       console.log('Game reset: ' + JSON.stringify(data, null, 2));
-      dispatch(onJoinRoomSuccess());
+      dispatch(onGameReset());
     });
 
     socket.on('chat-message', (data) => {
@@ -217,7 +216,7 @@ export const connectSocket = createAsyncThunk(
     });
     
     socket.on('room-info', (data) => {
-      console.log('Room info: ' + JSON.stringify(data, null, 2));
+      //console.log('Room info: ' + JSON.stringify(data, null, 2));
       if (data && data.gameState) {
         const key = `${payload.room}_${payload.playerName}`;
         const playerState = (data.gameState.players as Record<string, any>)[key];
@@ -347,8 +346,16 @@ const socketSlice = createSlice({
       state.isError = true;
       state.contentError = action.payload;
     },
-    onJoinRoomSuccess(state) {
+    onGameReset(state) {
       state.joined = true;
+      state.isError = false;
+      state.contentError = '';
+      state.gameOver = false;
+      state.gameWon = false;
+    },
+    onJoinRoomSuccess(state, action) {
+      state.joined = true;
+      state.isHost = action.payload.isHost;
       state.isError = false;
       state.contentError = '';
       state.gameOver = false;
@@ -402,9 +409,6 @@ const socketSlice = createSlice({
     addMessages(state, action) {
       state.messages = [...state.messages, ...action.payload]
     },
-    setReconnectionToken(state, action) {
-      state.reconnectionToken = action.payload;
-    },
     onReconnectionSuccess(state, action) {
       state.connected = true;
       state.joined = true;
@@ -412,9 +416,6 @@ const socketSlice = createSlice({
       state.contentError = '';
       if (action.payload.room.gameState) {
         state.started = (action.payload.room.gameState === 'playing' ? true : false);
-      }
-      if (action.payload.player.reconnectionToken) {
-        state.reconnectionToken = action.payload.player.reconnectionToken;
       }
       if (action.payload.player) {
           state.playerReady = action.payload.player.isReady || false;
@@ -438,10 +439,9 @@ const socketSlice = createSlice({
     onReconnectionError(state, action) {
       state.isError = true;
       state.contentError = `Reconnection failed: ${action.payload}`;
-      state.reconnectionToken = '';
     },
   },
 });
 
-export const { onConnect, onDisconnect, onJoinRoomSuccess, onJoinRoomError, onSetReadySuccess, onStartGameSuccess, onUpdateData, onUpdatedData, onGameOver, onGameWon, onScoreUpdate, onError, addMessage, addMessages, setReconnectionToken, onReconnectionSuccess, onReconnectionError } = socketSlice.actions;
+export const { onConnect, onDisconnect, onGameReset, onJoinRoomSuccess, onJoinRoomError, onSetReadySuccess, onStartGameSuccess, onUpdateData, onUpdatedData, onGameOver, onGameWon, onScoreUpdate, onError, addMessage, addMessages, onReconnectionSuccess, onReconnectionError } = socketSlice.actions;
 export default socketSlice.reducer;

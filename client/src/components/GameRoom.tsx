@@ -14,6 +14,7 @@ function GameRoom() {
   const dispatch = useDispatch<AppDispatch>();
   const connected = useSelector((state: RootState) => state.socket.connected);
   const joined = useSelector((state: RootState) => state.socket.joined);
+  const isHost = useSelector((state: RootState) => state.socket.isHost);
   const playerReady = useSelector((state: RootState) => state.socket.playerReady);
   const started = useSelector((state: RootState) => state.socket.started);
   const gameOver = useSelector((state: RootState) => state.socket.gameOver);
@@ -330,6 +331,7 @@ function GameRoom() {
         <div className="status-indicator">
           <p>Connected: {connected ? 'Yes' : 'No'}</p>
           <p>Joined: {joined ? 'Yes' : 'No'}</p>
+          <p>Host: {isHost ? 'Yes' : 'No'}</p>
           <p>Ready: {playerReady ? 'Yes' : 'No'}</p>
           <p><br /></p>
           {started && <p>Score: {score}</p>}
