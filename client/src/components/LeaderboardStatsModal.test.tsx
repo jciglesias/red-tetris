@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import LeaderboardStatsModal from './LeaderboardStatsModal';
+import { NetworkUtils } from '../utils/NetworkUtils';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -9,6 +10,15 @@ const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
 
 // Mock console methods
 const mockConsoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+// Mock NetworkUtils
+jest.mock('../utils/NetworkUtils', () => ({
+  NetworkUtils: {
+    findWorkingServerUrl: jest.fn()
+  }
+}));
+
+const mockFindWorkingServerUrl = NetworkUtils.findWorkingServerUrl as jest.MockedFunction<typeof NetworkUtils.findWorkingServerUrl>;
 
 describe('LeaderboardStatsModal Component', () => {
   const mockStatsData = {
@@ -24,6 +34,7 @@ describe('LeaderboardStatsModal Component', () => {
   beforeEach(() => {
     mockFetch.mockClear();
     mockConsoleError.mockClear();
+    mockFindWorkingServerUrl.mockResolvedValue('http://localhost:3001');
   });
 
   afterAll(() => {
@@ -55,13 +66,13 @@ describe('LeaderboardStatsModal Component', () => {
     const button = screen.getByText('World Records');
     fireEvent.click(button);
 
-    // Verify fetch was called with correct URL
-    expect(mockFetch).toHaveBeenCalledWith('http://localhost:3001/api/leaderboard/stats');
-
-    // Wait for modal to appear
+    // Wait for modal to appear first
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /world records/i })).toBeInTheDocument();
     });
+
+    // Verify fetch was called with correct URL
+    expect(mockFetch).toHaveBeenCalledWith('http://localhost:3001/api/leaderboard/stats');
   });
 
   it('should display all statistics sections correctly', async () => {
