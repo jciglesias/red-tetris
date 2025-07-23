@@ -104,12 +104,6 @@ describe('RoomGateway', () => {
       expect(roomService.markPlayerDisconnected).toHaveBeenCalledWith('test-socket-id');
       expect(roomService.removePlayerFromRoom).toHaveBeenCalledWith('test-room', 'player1');
       expect(mockServer.to).toHaveBeenCalledWith('test-room');
-      expect(mockServer.emit).toHaveBeenCalledWith('player-left', expect.objectContaining({
-        playerId: 'player1',
-        playerName: 'Test Player',
-        canReconnect: false,
-        reason: 'Player disconnected before game started'
-      }));
       consoleSpy.mockRestore();
     });
   });
@@ -589,12 +583,6 @@ describe('RoomGateway', () => {
       expect(roomService.markPlayerDisconnected).toHaveBeenCalledWith(mockClient.id);
       expect(roomService.removePlayerFromRoom).toHaveBeenCalledWith('test-room', 'player1');
       expect(mockServer.to).toHaveBeenCalledWith('test-room');
-      expect(mockServer.emit).toHaveBeenCalledWith('player-left', expect.objectContaining({
-        playerId: 'player1',
-        playerName: 'testPlayer',
-        canReconnect: false,
-        reason: 'Player disconnected before game started'
-      }));
     });
 
     it('should detect reconnection in join-room handler', () => {

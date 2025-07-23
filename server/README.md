@@ -208,7 +208,6 @@ For production deployments:
 | `join-room-success` | `{ player: object, room: object, gameState?: object, isReconnection: boolean }` | Successfully joined room | See example below |
 | `join-room-error` | `{ message: string }` | Failed to join room | `{ message: "Room name and player name are required" }` |
 | `player-joined` | `{ player: object, players: object[] }` | Player joined room | See example below |
-| `player-left` | `{ player: object, players: object[] }` | Player left room | See example below |
 | `player-disconnected` | `{ playerId: string, playerName: string, players: object[], canReconnect: boolean, hostChanged?: boolean, newHost?: { id: string, name: string } }` | Player disconnected with optional host transfer info | `{ playerId: "room1_player1", playerName: "Player 1", players: [...], canReconnect: true, hostChanged: true, newHost: { id: "room1_player2", name: "Player 2" } }` |
 | `host-changed` | `{ newHostId: string, newHostName: string, previousHostId: string, previousHostName: string, players: object[] }` | Host transferred to another player | `{ newHostId: "room1_player2", newHostName: "Player 2", previousHostId: "room1_player1", previousHostName: "Player 1", players: [...] }` |
 | `player-ready-changed` | `{ playerId: string, ready: boolean, players: object[], canStart: boolean }` | Player ready state changed | `{ playerId: "room1_player1", ready: true, players: [...], canStart: true }` |
@@ -938,15 +937,6 @@ Fired when another player joins the room.
 socket.on('player-joined', (data) => {
   console.log('Player joined:', data.player);
   console.log('All players:', data.players);
-});
-```
-
-#### `player-left`
-Fired when a player leaves the room.
-```javascript
-socket.on('player-left', (data) => {
-  console.log('Player left:', data.player);
-  console.log('Remaining players:', data.players);
 });
 ```
 
