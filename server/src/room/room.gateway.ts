@@ -95,12 +95,31 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (disconnectionData) {
       const { player, room } = disconnectionData;
       
+      // Check if the disconnected player was the host and transfer host if needed
+      let newHost: Player | null = null;
+      if (player.isHost) {
+        newHost = this.roomService.transferHostOnDisconnect(room.name, player.id);
+        
+        if (newHost) {
+          // Notify all players about the host change
+          this.server.to(room.name).emit('host-changed', {
+            newHostId: newHost.id,
+            newHostName: newHost.name,
+            previousHostId: player.id,
+            previousHostName: player.name,
+            players: this.roomService.getRoomPlayers(room.name),
+          });
+        }
+      }
+      
       // Notify other players that this player disconnected
       this.server.to(room.name).emit('player-disconnected', {
         playerId: player.id,
         playerName: player.name,
         players: this.roomService.getRoomPlayers(room.name),
         canReconnect: true,
+        hostChanged: !!newHost,
+        newHost: newHost ? { id: newHost.id, name: newHost.name } : null,
       });
 
       // If game was in progress and all players are disconnected, pause the game

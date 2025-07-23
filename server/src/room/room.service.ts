@@ -449,4 +449,51 @@ export class RoomService {
       return false;
     }
   }
+
+  /**
+   * Transfer host to another connected player when current host disconnects
+   * Returns the new host player if transfer was successful, null otherwise
+   */
+  transferHostOnDisconnect(roomName: string, disconnectedPlayerId: string): Player | null {
+    const room = this.getRoom(roomName);
+    if (!room) return null;
+
+    const disconnectedPlayer = room.players.get(disconnectedPlayerId);
+    if (!disconnectedPlayer || !disconnectedPlayer.isHost) {
+      return null; // Not the host or player not found
+    }
+
+    // Find the next connected player to become host
+    // Prioritize players who are ready and connected
+    let newHost: Player | null = null;
+    
+    // First, look for ready and connected players
+    for (const player of room.players.values()) {
+      if (player.id !== disconnectedPlayerId && player.isConnected && player.isReady) {
+        newHost = player;
+        break;
+      }
+    }
+    
+    // If no ready players, just find any connected player
+    if (!newHost) {
+      for (const player of room.players.values()) {
+        if (player.id !== disconnectedPlayerId && player.isConnected) {
+          newHost = player;
+          break;
+        }
+      }
+    }
+
+    if (newHost) {
+      // Transfer host status
+      disconnectedPlayer.isHost = false;
+      newHost.isHost = true;
+      room.hostId = newHost.id;
+      
+      return newHost;
+    }
+
+    return null; // No suitable player found to become host
+  }
 }
