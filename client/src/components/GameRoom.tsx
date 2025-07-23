@@ -210,21 +210,21 @@ function GameRoom() {
 
   function handleBlindMode() {
     setBlindMode(!blindMode);
-    console.log('toggle blind mode', blindMode);
+    //console.log('toggle blind mode', blindMode);
   }
 
   function handleJoin() {
     if (roomName && playerName) {
       dispatch(joinRoom({ room: roomName, playerName }));
     }
-    console.log('joinRoom')
+    //console.log('joinRoom')
   }
 
   function handleReady() {
     if (joined) {
       dispatch(readyPlayer());
     }
-    console.log('player-ready')
+    //console.log('player-ready')
   }
 
   function handleStart() {

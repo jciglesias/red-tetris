@@ -103,8 +103,14 @@ describe('LeaderboardModal Component', () => {
       expect(screen.getByText("🏆 Top 10 All Time 🏆")).toBeInTheDocument();
     });
 
-    // Verify console.log was called
-    expect(mockConsoleLog).toHaveBeenCalledWith('Fetched leaderboard data:', mockLeaderboardData);
+    // Verify fetch was called correctly and modal shows data
+    expect(mockFetch).toHaveBeenCalledWith('http://localhost:3001/api/leaderboard/top?limit=10');
+    
+    // Verify the leaderboard data is displayed in the modal
+    await waitFor(() => {
+      expect(screen.getByText('Player1')).toBeInTheDocument();
+      expect(screen.getByText('15,000')).toBeInTheDocument();
+    });
   });
 
   it('should display leaderboard data in table format', async () => {

@@ -21,7 +21,7 @@ export interface PlayerGameState {
 
 export interface GameState {
   roomName: string;
-  players: Map<string, PlayerGameState>;
+  players: Record<string, PlayerGameState>;
   pieceSequence: Piece[];
   currentPieceIndex: number;
   gameOver: boolean;

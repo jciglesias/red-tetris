@@ -17,7 +17,7 @@ const LeaderboardModal = () => {
     try {
       const response = await fetch('http://localhost:3001/api/leaderboard/top?limit=10');
       const data = await response.json();
-      console.log('Fetched leaderboard data:', data); // Debugging line
+      //console.log('Fetched leaderboard data:', data); // Debugging line
       setLeaderboardData(data);
       setIsModalOpen(true);
     } catch (error) {
