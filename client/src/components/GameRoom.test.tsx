@@ -38,6 +38,7 @@ const defaultState: SocketState = {
   joined: false,
   playerReady: false,
   started: false,
+  isHost: false,
   isError: false,
   contentError: '',
   opponent1: '',
@@ -50,8 +51,7 @@ const defaultState: SocketState = {
   gameWon: false,
   score: 0,
   level: 1,
-  messages: [],
-  reconnectionToken: ''
+  messages: []
 };
 
 // Helper function to create complete player state
