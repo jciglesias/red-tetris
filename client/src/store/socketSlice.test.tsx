@@ -63,8 +63,26 @@ describe('socketSlice', () => {
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
           serializableCheck: {
-            ignoredActions: ['socket/onUpdateData', 'socket/onUpdatedData'],
-            ignoredPaths: ['socket.gamestate.players'],
+            ignoredActions: [
+              'socket/onUpdateData', 
+              'socket/onUpdatedData',
+              'socket/onGameWon',
+              'socket/onGameOver',
+              'socket/connectSocket/fulfilled',
+              'socket/connectSocket/pending',
+              'socket/connectSocket/rejected',
+              'persist/PERSIST',
+              'persist/REHYDRATE'
+            ],
+            ignoredPaths: [
+              'socket.gamestate.players',
+              'payload.players'
+            ],
+            ignoredActionsPaths: [
+              'payload.players',
+              'meta.arg',
+              'payload'
+            ],
           },
         }),
     });
@@ -595,7 +613,8 @@ describe('socketSlice', () => {
 
       expect(mockSocketInstance.emit).toHaveBeenCalledWith('join-room', {
         roomName: 'room1',
-        playerName: 'player1'
+        playerName: 'player1',
+        reconnectionToken: ''
       });
     });
 

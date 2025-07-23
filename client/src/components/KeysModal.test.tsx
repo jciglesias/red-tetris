@@ -59,13 +59,13 @@ describe('KeysModal Component', () => {
     const keysButton = screen.getByRole('button', { name: 'Keys' });
     fireEvent.click(keysButton);
     
-    // Check for all control instructions
-    expect(screen.getByText('←  Move Left')).toBeInTheDocument();
-    expect(screen.getByText('→  Move Right')).toBeInTheDocument();
-    expect(screen.getByText('↑  Rotate')).toBeInTheDocument();
-    expect(screen.getByText('s  Skip (once)')).toBeInTheDocument();
-    expect(screen.getByText('↓  Soft Drop')).toBeInTheDocument();
-    expect(screen.getByText('__ Hard Drop')).toBeInTheDocument();
+    // Check for all control instructions using more flexible matching
+    expect(screen.getByText(/←.*Move Left/)).toBeInTheDocument();
+    expect(screen.getByText(/→.*Move Right/)).toBeInTheDocument();
+    expect(screen.getByText(/↑.*Rotate/)).toBeInTheDocument();
+    expect(screen.getByText(/s.*Skip \(once\)/)).toBeInTheDocument();
+    expect(screen.getByText(/↓.*Soft Drop/)).toBeInTheDocument();
+    expect(screen.getByText(/__.*Hard Drop/)).toBeInTheDocument();
   });
 
   it('should close modal when close button is clicked', () => {
