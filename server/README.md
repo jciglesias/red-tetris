@@ -29,10 +29,16 @@ Red Tetris is a real-time multiplayer Tetris game built with NestJS and Socket.I
 
 - **Real-time multiplayer gameplay** with Socket.IO
 - **Room-based system** for multiple concurrent games
+- **In-room chat** - simple, non-persistent messaging within each room
+- **Live scoring system** - see player scores, levels, and lines cleared in real-time
+- **Comprehensive leaderboard** with player statistics, win rates, and all-time records
 - **Penalty system** - clearing multiple lines sends penalty blocks to opponents
+- **Skip piece action** - each player can skip one piece per game strategically
+- **Fast mode support** - games with 2x speed for experienced players
 - **Reconnection support** with game state restoration
 - **Spectrum view** showing opponent's board height profile
 - **Full game state synchronization** across all clients
+- **Solo and multiplayer game support** with different win conditions
 
 ## Project setup
 
@@ -173,6 +179,8 @@ For production deployments:
 | `restart-game` | `{}` | Restart current game | `{}` |
 | `get-room-info` | `{}` | Get room information | `{}` |
 | `heartbeat` | `{}` | Send heartbeat | `{}` |
+| `chat-message` | `{ message: string }` | Send chat message to room | `{ message: "Hello everyone!" }` |
+| `quit-game` | `{}` | Quit current game (saves progress for solo games) | `{}` |
 | `request-reconnection` | `{ roomName: string, playerName: string, reconnectionToken?: string }` | Request reconnection | `{ roomName: "room1", playerName: "player1", reconnectionToken: "abc123" }` |
 
 #### Server → Client Events
@@ -186,15 +194,17 @@ For production deployments:
 | `player-disconnected` | `{ playerId: string, playerName: string, players: object[], canReconnect: boolean }` | Player disconnected | `{ playerId: "room1_player1", playerName: "Player 1", players: [...], canReconnect: true }` |
 | `player-ready-changed` | `{ playerId: string, ready: boolean, players: object[], canStart: boolean }` | Player ready state changed | `{ playerId: "room1_player1", ready: true, players: [...], canStart: true }` |
 | `game-started` | `{ gameState: object, players: object[] }` | Game started | See GameState structure |
-| `game-state-update` | `gameState: object` | Game state updated | See GameState structure |
+| `game-state-update` | `{ gameState: object, players: object[] }` | Game state updated with live player scores | See GameState structure |
 | `game-ended` | `{ winner: string, finalState: object }` | Game ended | `{ winner: "room1_player1", finalState: {...} }` |
 | `game-paused` | `{ reason: string }` | Game paused | `{ reason: "All players disconnected" }` |
 | `game-reset` | `{ players: object[] }` | Game reset | `{ players: [...] }` |
+| `player-quit` | `{ playerId: string, playerName: string }` | Player quit mid-game | `{ playerId: "room1_player1", playerName: "Player1" }` |
 | `player-reconnected` | `{ player: object, players: object[] }` | Player reconnected | See example below |
 | `room-info` | `{ room: object, gameState?: object }` | Room information response | See example below |
 | `reconnection-success` | `{ player: object, room: object, gameState?: object }` | Reconnection successful | See example below |
 | `reconnection-error` | `{ message: string }` | Reconnection failed | `{ message: "Invalid reconnection token" }` |
 | `heartbeat-ack` | `{}` | Heartbeat acknowledged | `{}` |
+| `chat-message` | `{ playerId: string, playerName: string, message: string, timestamp: string }` | Chat message from player | See example below |
 | `error` | `{ message: string }` | Error occurred | `{ message: "Player not found in any room" }` |
 
 ### Game Actions (WebSocket)
@@ -208,6 +218,7 @@ The `game-action` event accepts the following action types:
 | `rotate` | Rotate current piece clockwise | During active game | `{ action: "rotate" }` |
 | `soft-drop` | Accelerate piece downward | During active game | `{ action: "soft-drop" }` |
 | `hard-drop` | Instantly drop piece to bottom | During active game | `{ action: "hard-drop" }` |
+| `skip-piece` | Skip current piece (one use per game) | During active game | `{ action: "skip-piece" }` |
 
 **Usage:**
 ```javascript
@@ -215,6 +226,7 @@ The `game-action` event accepts the following action types:
 socket.emit('game-action', { action: 'move-left' });
 socket.emit('game-action', { action: 'rotate' });
 socket.emit('game-action', { action: 'hard-drop' });
+socket.emit('game-action', { action: 'skip-piece' }); // Can only be used once per game
 ```
 
 ### REST API Endpoints
@@ -225,8 +237,9 @@ socket.emit('game-action', { action: 'hard-drop' });
 |--------|----------|------------|-------------|----------|
 | `GET` | `/api/leaderboard/top` | `?limit=10` (optional) | Get top scores | `LeaderboardEntry[]` |
 | `GET` | `/api/leaderboard/player` | `?name=playerName` (required) | Get player's best score | `LeaderboardEntry \| null` |
+| `GET` | `/api/leaderboard/player-stats` | `?name=playerName` (required) | Get player's detailed statistics | `PlayerStatistics` |
+| `GET` | `/api/leaderboard/top-winners` | `?limit=10` (optional) | Get top winners by win rate | `TopWinnerEntry[]` |
 | `GET` | `/api/leaderboard/stats` | None | Get all-time statistics | `LeaderboardStats` |
-| `POST` | `/api/leaderboard` | See LeaderboardEntry body | Submit new score | `LeaderboardEntry` |
 
 #### Health Check
 
@@ -247,6 +260,9 @@ interface Player {
   isConnected: boolean;
   lastSeen: Date;
   reconnectionToken: string;
+  score: number;        // Live player score (updated during gameplay)
+  level: number;        // Current game level
+  linesCleared: number; // Lines cleared so far
 }
 ```
 
@@ -262,6 +278,8 @@ interface GameState {
       nextPieces: Piece[];
       spectrum: number[];
       lines: number;
+      score: number;        // Player's current score
+      level: number;        // Current level (affects drop speed)
       isAlive: boolean;
       penalties: number;
     };
@@ -269,7 +287,7 @@ interface GameState {
   gameOver: boolean;
   winner: string | null;
   startTime: number;
-  fastMode: boolean; // true for fast mode (pieces fall 4x faster), false for normal mode
+  fastMode: boolean; // true for fast mode (pieces fall 2x faster), false for normal mode
 }
 ```
 
@@ -287,7 +305,7 @@ interface Piece {
 #### GameActionMessage Object (WebSocket)
 ```typescript
 interface GameActionMessage {
-  action: 'move-left' | 'move-right' | 'rotate' | 'soft-drop' | 'hard-drop';
+  action: 'move-left' | 'move-right' | 'rotate' | 'soft-drop' | 'hard-drop' | 'skip-piece';
 }
 ```
 
@@ -307,6 +325,13 @@ interface PlayerReadyMessage {
 }
 ```
 
+#### ChatMessage Object (WebSocket)
+```typescript
+interface ChatMessage {
+  message: string; // Max 500 characters, will be trimmed
+}
+```
+
 #### LeaderboardEntry Object
 ```typescript
 interface LeaderboardEntry {
@@ -316,8 +341,32 @@ interface LeaderboardEntry {
   linesCleared: number;
   level: number;
   gameDuration: number; // in milliseconds
+  fastMode: boolean;    // true for fast mode games
+  isWin: boolean;       // whether this was a winning game
   roomName?: string;
   createdAt: Date;
+}
+```
+
+#### PlayerStatistics Object
+```typescript
+interface PlayerStatistics {
+  totalGames: number;
+  gamesWon: number;
+  bestScore: number;
+  totalLinesCleared: number;
+  averageGameDuration: number; // in milliseconds
+  winRate: number; // percentage (0-100)
+}
+```
+
+#### TopWinnerEntry Object
+```typescript
+interface TopWinnerEntry {
+  playerName: string;
+  gamesWon: number;
+  winRate: number;    // percentage (0-100)
+  bestScore: number;
 }
 ```
 
@@ -342,6 +391,8 @@ interface CreateLeaderboardEntryDto {
   linesCleared: number;
   level: number;
   gameDuration: number; // in milliseconds
+  fastMode?: boolean;   // optional - game mode
+  isWin?: boolean;      // optional - whether this was a winning game
   roomName?: string;    // optional
 }
 ```
@@ -390,9 +441,47 @@ curl "http://localhost:3001/api/leaderboard/player?name=Player1"
   "linesCleared": 150,
   "level": 8,
   "gameDuration": 600000,
+  "fastMode": false,
+  "isWin": true,
   "roomName": "room1",
   "createdAt": "2025-07-21T10:30:00.000Z"
 }
+```
+
+#### Get Player Statistics
+```bash
+curl "http://localhost:3001/api/leaderboard/player-stats?name=Player1"
+```
+```json
+{
+  "totalGames": 15,
+  "gamesWon": 8,
+  "bestScore": 15000,
+  "totalLinesCleared": 1200,
+  "averageGameDuration": 450000,
+  "winRate": 53.33
+}
+```
+
+#### Get Top Winners
+```bash
+curl "http://localhost:3001/api/leaderboard/top-winners?limit=5"
+```
+```json
+[
+  {
+    "playerName": "ChampionPlayer",
+    "gamesWon": 25,
+    "winRate": 83.33,
+    "bestScore": 22000
+  },
+  {
+    "playerName": "ProGamer",
+    "gamesWon": 18,
+    "winRate": 75.0,
+    "bestScore": 18500
+  }
+]
 ```
 
 #### Get All-Time Statistics
@@ -458,7 +547,6 @@ curl "http://localhost:3001/health"
 | `"Could not join room. Room may be full, game in progress, or name taken."` | Cannot join room | Try different room or wait for game to end |
 | `"Player not found in any room"` | Player not connected to any room | Join a room first |
 | `"Only host can start the game"` | Non-host tried to start game | Wait for host to start |
-| `"Waiting for more players (X/Y)"` | Not enough players to start game | Wait for more players to join |
 | `"Waiting for all players to be ready (X/Y ready)"` | Not all players are ready | Wait for all players to mark themselves ready |
 | `"Cannot start game. Unknown reason."` | Game start failed for unknown reason | Contact support |
 | `"Game is not currently in progress"` | Game action sent when game not playing | Wait for game to start |
@@ -543,7 +631,10 @@ curl "http://localhost:3001/health"
         "name": "Player 1",
         "isHost": true,
         "isReady": true,
-        "isConnected": true
+        "isConnected": true,
+        "score": 1250,
+        "level": 2,
+        "linesCleared": 8
       }
     ]
   },
@@ -563,6 +654,8 @@ curl "http://localhost:3001/health"
         "nextPieces": [...],
         "spectrum": [0,0,0,0,0,0,0,0,0,0],
         "lines": 5,
+        "score": 1250,
+        "level": 2,
         "isAlive": true,
         "penalties": 0
       }
@@ -577,28 +670,45 @@ curl "http://localhost:3001/health"
 #### game-state-update
 ```json
 {
-  "roomName": "room1",
-  "players": {
-    "room1_player1": {
-      "playerId": "room1_player1",
-      "board": [[0,0,0,0,0,0,0,0,0,0], ...],
-      "currentPiece": {
-        "type": "I",
-        "x": 4,
-        "y": 0,
-        "rotation": 0,
-        "shape": [[1,1,1,1]]
-      },
-      "nextPieces": [...],
-      "spectrum": [0,0,0,0,0,0,0,0,0,0],
-      "lines": 5,
-      "isAlive": true,
-      "penalties": 0
-    }
+  "gameState": {
+    "roomName": "room1",
+    "players": {
+      "room1_player1": {
+        "playerId": "room1_player1",
+        "board": [[0,0,0,0,0,0,0,0,0,0], ...],
+        "currentPiece": {
+          "type": "I",
+          "x": 4,
+          "y": 0,
+          "rotation": 0,
+          "shape": [[1,1,1,1]]
+        },
+        "nextPieces": [...],
+        "spectrum": [0,0,0,0,0,0,0,0,0,0],
+        "lines": 5,
+        "score": 1250,
+        "level": 2,
+        "isAlive": true,
+        "penalties": 0
+      }
+    },
+    "gameOver": false,
+    "winner": null,
+    "startTime": 1234567890,
+    "fastMode": false
   },
-  "gameOver": false,
-  "winner": null,
-  "startTime": 1234567890
+  "players": [
+    {
+      "id": "room1_player1",
+      "name": "Player1",
+      "score": 1250,
+      "level": 2,
+      "linesCleared": 5,
+      "isHost": true,
+      "isReady": true,
+      "isConnected": true
+    }
+  ]
 }
 ```
 
@@ -678,6 +788,16 @@ curl "http://localhost:3001/health"
 }
 ```
 
+#### chat-message
+```json
+{
+  "playerId": "room1_player1",
+  "playerName": "Player1",
+  "message": "Good luck everyone!",
+  "timestamp": "2025-07-22T14:30:00.000Z"
+}
+```
+
 ### WebSocket API Documentation
 
 The Red Tetris server uses Socket.IO for real-time communication. Below is the complete WebSocket API reference:
@@ -715,7 +835,7 @@ Start the game (only works if all players are ready). Supports normal and fast m
 // Start normal game
 socket.emit('start-game', { fast: false });
 
-// Start fast game (pieces fall 4x faster)
+// Start fast game (pieces fall 2x faster)
 socket.emit('start-game', { fast: true });
 
 // Default behavior (normal mode)
@@ -726,7 +846,7 @@ socket.emit('start-game');
 Send game actions (movement, rotation, dropping).
 ```javascript
 socket.emit('game-action', {
-  action: 'move-left' | 'move-right' | 'rotate' | 'soft-drop' | 'hard-drop'
+  action: 'move-left' | 'move-right' | 'rotate' | 'soft-drop' | 'hard-drop' | 'skip-piece'
 });
 ```
 
@@ -748,6 +868,14 @@ Send heartbeat to maintain connection.
 socket.emit('heartbeat');
 ```
 
+#### `chat-message`
+Send a chat message to all players in the current room.
+```javascript
+socket.emit('chat-message', {
+  message: 'Hello everyone!'
+});
+```
+
 #### `request-reconnection`
 Request reconnection with a token.
 ```javascript
@@ -756,6 +884,12 @@ socket.emit('request-reconnection', {
   playerName: 'player1',
   reconnectionToken: 'your-token'
 });
+```
+
+#### `quit-game`
+Quit the current game (saves score for solo games).
+```javascript
+socket.emit('quit-game');
 ```
 
 ### Server Events (Listen from Server)
@@ -813,16 +947,17 @@ Fired when the game starts.
 socket.on('game-started', (data) => {
   console.log('Game started with state:', data.gameState);
   console.log('Players:', data.players);
-  console.log('Fast mode:', data.gameState.fastMode); // true for fast mode (4x speed), false for normal
+  console.log('Fast mode:', data.gameState.fastMode); // true for fast mode (2x speed), false for normal
 });
 ```
 
 #### `game-state-update`
-Fired when the game state changes (piece movement, line clears, etc.).
+Fired when the game state changes (piece movement, line clears, etc.). Now includes live player scores.
 ```javascript
-socket.on('game-state-update', (gameState) => {
-  console.log('Game state updated:', gameState);
-  // Update your game display with new state
+socket.on('game-state-update', (data) => {
+  console.log('Game state updated:', data.gameState);
+  console.log('Live player scores:', data.players);
+  // Update your game display with new state and scores
 });
 ```
 
@@ -856,6 +991,14 @@ Fired when a player reconnects.
 ```javascript
 socket.on('player-reconnected', (data) => {
   console.log('Player reconnected:', data.player);
+});
+```
+
+#### `player-quit`
+Fired when a player quits mid-game.
+```javascript
+socket.on('player-quit', (data) => {
+  console.log('Player quit:', data.playerId, data.playerName);
 });
 ```
 
@@ -901,6 +1044,15 @@ socket.on('heartbeat-ack', () => {
 });
 ```
 
+#### `chat-message`
+Fired when a player sends a chat message.
+```javascript
+socket.on('chat-message', (data) => {
+  console.log(`${data.playerName}: ${data.message}`);
+  console.log('Timestamp:', data.timestamp);
+});
+```
+
 #### `error`
 Fired when an error occurs.
 ```javascript
@@ -930,6 +1082,8 @@ interface GameState {
       nextPieces: Piece[]; // Array of upcoming pieces
       spectrum: number[]; // Height profile of columns
       lines: number; // Lines cleared
+      score: number; // Player's current score
+      level: number; // Current level (affects drop speed)
       isAlive: boolean;
       penalties: number; // Pending penalty lines
     };
@@ -937,6 +1091,7 @@ interface GameState {
   gameOver: boolean;
   winner: string | null;
   startTime: number;
+  fastMode: boolean; // true for fast mode (2x speed), false for normal
 }
 ```
 
@@ -1039,8 +1194,12 @@ class TetrisClient {
       console.log('Connected to server');
     });
 
-    this.socket.on('game-state-update', (gameState) => {
-      this.updateGameState(gameState);
+    this.socket.on('game-state-update', (data) => {
+      this.updateGameState(data.gameState, data.players);
+    });
+
+    this.socket.on('chat-message', (data) => {
+      this.displayChatMessage(data);
     });
 
     this.socket.on('error', (error) => {
@@ -1054,6 +1213,10 @@ class TetrisClient {
 
   sendGameAction(action) {
     this.socket.emit('game-action', { action });
+  }
+
+  sendChatMessage(message) {
+    this.socket.emit('chat-message', { message });
   }
 
   // Leaderboard methods
@@ -1080,11 +1243,18 @@ class TetrisClient {
     });
   }
 
-  updateGameState(gameState) {
-    // Update your game display
+  updateGameState(gameState, players) {
+    // Update your game display with game state and live scores
     this.renderBoard(gameState.players[this.playerId].board);
     this.renderNextPiece(gameState.players[this.playerId].nextPieces[0]);
     this.updateSpectrum(gameState.players);
+    this.updateLiveScores(players); // Show live player scores
+  }
+
+  displayChatMessage(chatData) {
+    // Display chat message in your UI
+    console.log(`[${chatData.timestamp}] ${chatData.playerName}: ${chatData.message}`);
+    // Add to chat display, scroll to bottom, etc.
   }
 }
 ```
@@ -1098,6 +1268,7 @@ import io from 'socket.io-client';
 const TetrisGame = () => {
   const [socket, setSocket] = useState(null);
   const [gameState, setGameState] = useState(null);
+  const [players, setPlayers] = useState([]);
   const [playerId, setPlayerId] = useState(null);
 
   useEffect(() => {
@@ -1108,8 +1279,9 @@ const TetrisGame = () => {
       setPlayerId(data.player.id);
     });
 
-    newSocket.on('game-state-update', (state) => {
-      setGameState(state);
+    newSocket.on('game-state-update', (data) => {
+      setGameState(data.gameState);
+      setPlayers(data.players); // Live player scores
     });
 
     return () => newSocket.close();
@@ -1124,6 +1296,7 @@ const TetrisGame = () => {
   return (
     <div>
       <TetrisBoard gameState={gameState} playerId={playerId} />
+      <LiveScoreboard players={players} />
       <GameControls onMove={handleMove} />
     </div>
   );

@@ -187,22 +187,6 @@
         }
 
         // Test Scenarios
-        async function runTestScenario1() {
-            addMessage('=== TEST 1: Try to start with only 1 player ===', 'warning');
-            clearConnections();
-            await sleep(500);
-            
-            // Connect and join player 1 only
-            connectPlayer1();
-            await sleep(500);
-            joinRoomPlayer1();
-            await sleep(500);
-            setReadyPlayer1(); // Make ready
-            await sleep(500);
-            startGamePlayer1(); // Try to start (should fail)
-            
-            addMessage('Expected: Error "Waiting for more players (1/2)"', 'warning');
-        }
 
         async function runTestScenario2() {
             addMessage('=== TEST 2: Start with 2 ready players ===', 'warning');

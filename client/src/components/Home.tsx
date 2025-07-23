@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import './Home.css';
 
 function Home() {
   const [roomName, setRoomName] = useState('');
@@ -14,7 +15,9 @@ function Home() {
 
   return (
     <div className="home">
-      <h1>Red Tetris</h1>
+      <div className="title">
+        <h1>Red Tetris</h1>
+      </div>
       <div className="join-form">
         <input
           type="text"

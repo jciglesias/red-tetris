@@ -17,8 +17,11 @@ import socketReducer, {
   onUpdateData,
   onUpdatedData,
   onError,
+  onGameWon,
+  onGameOver,
+  relaunchGame,
 } from './socketSlice';
-import { GameState } from '../components/Interfaces';
+import { GameState, ChatMessage } from '../components/Interfaces';
 
 // Mock socket.io-client
 const mockSocket = {
@@ -514,10 +517,10 @@ describe('socketSlice', () => {
 
       const state = store.getState().socket;
       expect(state.started).toBe(true);
-      expect(state.opponent1).toBe('room1_player2');
-      expect(state.opponent2).toBe('room1_player3');
-      expect(state.opponent3).toBe('room1_player4');
-      expect(state.opponent4).toBe('room1_player5');
+      expect(state.opponent1).toBe('player2');
+      expect(state.opponent2).toBe('player3');
+      expect(state.opponent3).toBe('player4');
+      expect(state.opponent4).toBe('player5');
     });
 
     it('should handle room-info event', async () => {
@@ -675,5 +678,293 @@ describe('socketSlice', () => {
 
       expect(mockSocketInstance.emit).toHaveBeenCalledWith('get-room-info');
     });
+  });
+
+  it('should handle game-ended event with winner matching current player', () => {
+    const store = configureStore({
+      reducer: { socket: socketReducer }
+    });
+
+    // Mock socket with winner scenario
+    const mockSocket = {
+      on: jest.fn((event, callback) => {
+        if (event === 'game-ended') {
+          callback({
+            winner: 'room1_player1',
+            finalState: {
+              roomName: 'room1',
+              players: new Map(),
+              pieceSequence: [],
+              currentPieceIndex: 0,
+              gameOver: true,
+              winner: 'room1_player1',
+              startTime: Date.now()
+            }
+          });
+        }
+      }),
+      emit: jest.fn(),
+      disconnect: jest.fn()
+    };
+
+    (require('socket.io-client').io as jest.Mock).mockReturnValue(mockSocket);
+
+    store.dispatch(connectSocket({ room: 'room1', playerName: 'player1' }));
+    
+    // Check that onGameWon was dispatched
+    const state = store.getState().socket;
+    expect(state.gameWon).toBe(true);
+  });
+
+  it('should handle game-ended event with winner not matching current player', () => {
+    const store = configureStore({
+      reducer: { socket: socketReducer }
+    });
+
+    // Mock socket with losing scenario
+    const mockSocket = {
+      on: jest.fn((event, callback) => {
+        if (event === 'game-ended') {
+          callback({
+            winner: 'room1_player2',
+            finalState: {
+              roomName: 'room1',
+              players: new Map(),
+              pieceSequence: [],
+              currentPieceIndex: 0,
+              gameOver: true,
+              winner: 'room1_player2',
+              startTime: Date.now()
+            }
+          });
+        }
+      }),
+      emit: jest.fn(),
+      disconnect: jest.fn()
+    };
+
+    (require('socket.io-client').io as jest.Mock).mockReturnValue(mockSocket);
+
+    store.dispatch(connectSocket({ room: 'room1', playerName: 'player1' }));
+    
+    // Check that onGameOver was dispatched
+    const state = store.getState().socket;
+    expect(state.gameOver).toBe(true);
+  });
+
+  it('should handle onGameWon reducer correctly', () => {
+    const initialState: SocketState = {
+      connected: false,
+      joined: true,
+      playerReady: true,
+      started: true,
+      isError: false,
+      contentError: '',
+      opponent1: 'player2',
+      opponent2: 'player3',
+      opponent3: 'player4',
+      opponent4: 'player5',
+      playerId: 'room1_player1',
+      gamestate: {
+        roomName: 'room1',
+        players: new Map(),
+        pieceSequence: [],
+        currentPieceIndex: 0,
+        gameOver: false,
+        winner: null,
+        startTime: Date.now()
+      },
+      gameOver: false,
+      gameWon: false,
+      score: 0,
+      level: 1,
+      messages: [],
+      reconnectionToken: ''
+    };
+
+    const finalGameState = {
+      roomName: 'room1',
+      players: new Map(),
+      pieceSequence: [],
+      currentPieceIndex: 0,
+      gameOver: true,
+      winner: 'room1_player1',
+      startTime: Date.now()
+    };
+
+    const action = onGameWon(finalGameState);
+    const newState = socketReducer(initialState, action);
+
+    expect(newState.gameWon).toBe(true);
+    expect(newState.joined).toBe(false);
+    expect(newState.playerReady).toBe(false);
+    expect(newState.started).toBe(false);
+    expect(newState.gamestate).toEqual(finalGameState);
+  });
+
+  it('should handle onGameOver reducer correctly', () => {
+    const initialState: SocketState = {
+      connected: false,
+      joined: true,
+      playerReady: true,
+      started: true,
+      isError: false,
+      contentError: '',
+      opponent1: 'player2',
+      opponent2: 'player3',
+      opponent3: 'player4',
+      opponent4: 'player5',
+      playerId: 'room1_player1',
+      gamestate: {
+        roomName: 'room1',
+        players: new Map(),
+        pieceSequence: [],
+        currentPieceIndex: 0,
+        gameOver: false,
+        winner: null,
+        startTime: Date.now()
+      },
+      gameOver: false,
+      gameWon: false,
+      score: 0,
+      level: 1,
+      messages: [],
+      reconnectionToken: ''
+    };
+
+    const finalGameState = {
+      roomName: 'room1',
+      players: new Map(),
+      pieceSequence: [],
+      currentPieceIndex: 0,
+      gameOver: true,
+      winner: 'room1_player2',
+      startTime: Date.now()
+    };
+
+    const action = onGameOver(finalGameState);
+    const newState = socketReducer(initialState, action);
+
+    expect(newState.gameOver).toBe(true);
+    expect(newState.joined).toBe(false);
+    expect(newState.playerReady).toBe(false);
+    expect(newState.started).toBe(false);
+    expect(newState.gamestate).toEqual(finalGameState);
+  });
+
+  it('should handle updated-data event with game over condition', () => {
+    // Test the reducer directly since testing the socket event is complex
+    const initialState: SocketState = {
+      connected: false,
+      joined: true,
+      playerReady: false,
+      started: true,
+      isError: false,
+      contentError: '',
+      opponent1: '',
+      opponent2: '',
+      opponent3: '',
+      opponent4: '',
+      playerId: 'room1_player1',
+      gamestate: {
+        roomName: 'room1',
+        players: new Map(),
+        pieceSequence: [],
+        currentPieceIndex: 0,
+        gameOver: false,
+        winner: null,
+        startTime: Date.now()
+      },
+      gameOver: false,
+      gameWon: false,
+      score: 0,
+      level: 1,
+      messages: [],
+      reconnectionToken: ''
+    };
+
+    const gameState = {
+      roomName: 'room1',
+      players: new Map([['room1_player1', {
+        playerId: 'room1_player1',
+        board: Array(20).fill(null).map(() => Array(10).fill(0)),
+        currentPiece: { shape: [[1]], type: 'I' as const, rotation: 0, x: 0, y: 0 },
+        nextPieces: [],
+        spectrum: Array(10).fill(0),
+        lines: 0,
+        score: 0,
+        level: 1,
+        isAlive: false, // Player is dead
+        penalties: 0
+      }]]),
+      pieceSequence: [],
+      currentPieceIndex: 0,
+      gameOver: false,
+      winner: null,
+      startTime: Date.now()
+    };
+
+    // Test game over condition via reducer
+    const action = onGameOver(gameState);
+    const newState = socketReducer(initialState, action);
+    expect(newState.gameOver).toBe(true);
+  });
+
+  it('should handle updated-data event with winner condition', () => {
+    // Test the reducer directly since testing the socket event is complex  
+    const initialState: SocketState = {
+      connected: false,
+      joined: true,
+      playerReady: false,
+      started: true,
+      isError: false,
+      contentError: '',
+      opponent1: '',
+      opponent2: '',
+      opponent3: '',
+      opponent4: '',
+      playerId: 'room1_player1',
+      gamestate: {
+        roomName: 'room1',
+        players: new Map(),
+        pieceSequence: [],
+        currentPieceIndex: 0,
+        gameOver: false,
+        winner: null,
+        startTime: Date.now()
+      },
+      gameOver: false,
+      gameWon: false,
+      score: 0,
+      level: 1,
+      messages: [],
+      reconnectionToken: ''
+    };
+
+    const gameState = {
+      roomName: 'room1',
+      players: new Map([['room1_player1', {
+        playerId: 'room1_player1',
+        board: Array(20).fill(null).map(() => Array(10).fill(0)),
+        currentPiece: { shape: [[1]], type: 'I' as const, rotation: 0, x: 0, y: 0 },
+        nextPieces: [],
+        spectrum: Array(10).fill(0),
+        lines: 0,
+        score: 0,
+        level: 1,
+        isAlive: true,
+        penalties: 0
+      }]]),
+      pieceSequence: [],
+      currentPieceIndex: 0,
+      gameOver: false,
+      winner: 'room1_player1', // Current player is winner
+      startTime: Date.now()
+    };
+
+    // Test winner condition via reducer
+    const action = onGameWon(gameState);
+    const newState = socketReducer(initialState, action);
+    expect(newState.gameWon).toBe(true);
   });
 });

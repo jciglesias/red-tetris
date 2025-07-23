@@ -2,6 +2,11 @@ import { Injectable, OnModuleInit, OnModuleDestroy, Inject, forwardRef } from '@
 import { GameService } from '../game/game.service';
 import { RoomService } from '../room/room.service';
 
+// Interface to avoid circular dependency issues with the gateway
+interface GameEndEventEmitter {
+  emitGameEnded(roomName: string, winner: string | null, finalState: any): void;
+}
+
 @Injectable()
 export class GameLoopService implements OnModuleInit, OnModuleDestroy {
   private intervalId: NodeJS.Timeout | null = null;
@@ -15,6 +20,13 @@ export class GameLoopService implements OnModuleInit, OnModuleDestroy {
     private gameService: GameService,
     @Inject(forwardRef(() => RoomService)) private roomService: RoomService,
   ) {}
+
+  private gameEndEventEmitter: GameEndEventEmitter | null = null;
+
+  // Method to set the event emitter (will be called by the gateway)
+  setGameEndEventEmitter(emitter: GameEndEventEmitter) {
+    this.gameEndEventEmitter = emitter;
+  }
 
   onModuleInit() {
     this.startGameLoop();
@@ -40,8 +52,8 @@ export class GameLoopService implements OnModuleInit, OnModuleDestroy {
   }
 
   private startGameLoop() {
-    this.intervalId = setInterval(() => {
-      this.tick();
+    this.intervalId = setInterval(async () => {
+      await this.tick();
     }, this.tickInterval);
   }
 
@@ -65,15 +77,59 @@ export class GameLoopService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private tick() {
+  private async tick() {
     // Process each active game
     for (const roomName of this.activeGames) {
       const gameState = this.gameService.getGameState(roomName);
-      if (gameState && !gameState.gameOver) {
-        const isFastMode = this.fastModeGames.has(roomName);
-        this.gameService.tick(roomName, isFastMode);
+      if (gameState) {
+        if (!gameState.gameOver) {
+          // Game is still running, tick it
+          const isFastMode = this.fastModeGames.has(roomName);
+          this.gameService.tick(roomName, isFastMode);
+          
+          // Check if the game ended during this tick
+          if (gameState.gameOver) {
+            // Capture final state before ending the game
+            const finalGameState = this.gameService.getGameState(roomName);
+            const winner = finalGameState?.winner || null;
+            
+            // Game just ended, save results to leaderboard
+            await this.roomService.endGame(roomName);
+            
+            // Emit game-ended event to clients
+            if (this.gameEndEventEmitter) {
+              this.gameEndEventEmitter.emitGameEnded(
+                roomName,
+                winner,
+                finalGameState
+              );
+            }
+            
+            this.activeGames.delete(roomName);
+            this.fastModeGames.delete(roomName);
+          }
+        } else {
+          // Game is already over, save results and remove from active games
+          // Capture final state before ending the game
+          const finalGameState = this.gameService.getGameState(roomName);
+          const winner = finalGameState?.winner || null;
+          
+          await this.roomService.endGame(roomName);
+          
+          // Emit game-ended event to clients if not already sent
+          if (this.gameEndEventEmitter) {
+            this.gameEndEventEmitter.emitGameEnded(
+              roomName,
+              winner,
+              finalGameState
+            );
+          }
+          
+          this.activeGames.delete(roomName);
+          this.fastModeGames.delete(roomName);
+        }
       } else {
-        // Remove inactive games
+        // Remove games with null state
         this.activeGames.delete(roomName);
         this.fastModeGames.delete(roomName);
       }

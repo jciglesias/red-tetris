@@ -15,9 +15,12 @@ export interface PlayerGameState {
   nextPieces: Piece[];
   spectrum: number[]; // Height of each column for spectrum view
   lines: number; // Lines cleared
+  score: number; // Player's score
+  level: number; // Current level (affects drop speed)
   isAlive: boolean;
   penalties: number;
   pieceIndex: number; // Individual piece index for this player
+  skipPieceUsed: boolean; // Whether player has used their one skip piece per game
 }
 
 export interface GameState {
@@ -91,9 +94,12 @@ export class GameService {
         nextPieces: [],
         spectrum: new Array(this.BOARD_WIDTH).fill(0),
         lines: 0,
+        score: 0,
+        level: 1,
         isAlive: true,
         penalties: 0,
         pieceIndex: 0, // Each player starts at the beginning of the sequence
+        skipPieceUsed: false, // Each player gets one skip per game
       });
     });
 
@@ -172,6 +178,15 @@ export class GameService {
         this.lockPiece(game, player);
         moved = true;
         break;
+
+      case 'skip-piece':
+        // Skip piece action: can only be used once per game per player
+        if (!player.skipPieceUsed) {
+          player.skipPieceUsed = true;
+          this.skipCurrentPiece(game, player);
+          moved = true;
+        }
+        break;
     }
 
     return moved;
@@ -191,7 +206,7 @@ export class GameService {
       if (!player.isAlive || !player.currentPiece) continue;
 
       // In fast mode, move pieces down much faster per tick
-      const movesPerTick = fastMode ? 4 : 1; // 4x faster instead of 2x
+      const movesPerTick = fastMode ? 2 : 1; // 2x faster
       
       for (let i = 0; i < movesPerTick; i++) {
         // Try to move piece down
@@ -358,7 +373,56 @@ export class GameService {
       }
     }
     
+    // Calculate score based on lines cleared simultaneously
+    if (linesCleared > 0) {
+      const game = this.findGameByPlayer(player.playerId);
+      const fastMode = game?.fastMode || false;
+      const scoreAwarded = this.calculateScore(linesCleared, player.level, fastMode);
+      player.score += scoreAwarded;
+      
+      // Update level based on lines cleared (every 10 lines = level up)
+      const newLevel = Math.floor(player.lines / 10) + 1;
+      if (newLevel > player.level) {
+        player.level = newLevel;
+      }
+    }
+    
     return linesCleared;
+  }
+
+  /**
+   * Calculate score based on lines cleared simultaneously and level
+   * Scoring system based on original Tetris with bonuses for multiple lines
+   */
+  private calculateScore(linesCleared: number, level: number, fastMode: boolean = false): number {
+    const baseScores = {
+      1: 40,    // Single
+      2: 100,   // Double  
+      3: 300,   // Triple
+      4: 1200,  // Tetris
+    };
+    
+    const baseScore = baseScores[linesCleared] || 0;
+    let finalScore = baseScore * level;
+    
+    // Apply fast mode multiplier (1.5x points in fast mode)
+    if (fastMode) {
+      finalScore = Math.floor(finalScore * 1.5);
+    }
+    
+    return finalScore;
+  }
+
+  /**
+   * Find the game that contains a specific player
+   */
+  private findGameByPlayer(playerId: string): GameState | null {
+    for (const game of this.games.values()) {
+      if (game.players.has(playerId)) {
+        return game;
+      }
+    }
+    return null;
   }
 
   private applyPenalties(player: PlayerGameState): void {
@@ -431,5 +495,104 @@ export class GameService {
       game.winner = alivePlayers[0].playerId;
     }
     // Single player games (totalPlayers === 1) continue until player loses
+  }
+
+  /**
+   * Manually trigger game over check (useful for quit scenarios)
+   */
+  checkForGameOver(roomName: string): boolean {
+    const game = this.games.get(roomName);
+    if (!game) {
+      return false;
+    }
+    
+    this.checkGameOver(game);
+    return game.gameOver;
+  }
+
+  /**
+   * Get final player statistics for leaderboard storage
+   */
+  getPlayerStats(roomName: string, playerId: string): {
+    playerName: string;
+    score: number;
+    linesCleared: number;
+    level: number;
+    gameDuration: number;
+    fastMode: boolean;
+  } | null {
+    const game = this.games.get(roomName);
+    const player = game?.players.get(playerId);
+    
+    if (!game || !player) {
+      return null;
+    }
+    
+    const gameDuration = (Date.now() - game.startTime) / 1000; // Convert to seconds
+    
+    return {
+      playerName: playerId, // This will be the actual player name from room service
+      score: player.score,
+      linesCleared: player.lines,
+      level: player.level,
+      gameDuration,
+      fastMode: game.fastMode,
+    };
+  }
+
+  /**
+   * Get all players' final statistics for a game
+   */
+  getAllPlayersStats(roomName: string): Array<{
+    playerId: string;
+    playerName: string;
+    score: number;
+    linesCleared: number;
+    level: number;
+    gameDuration: number;
+    fastMode: boolean;
+  }> {
+    const game = this.games.get(roomName);
+    if (!game) {
+      return [];
+    }
+    
+    const gameDuration = (Date.now() - game.startTime) / 1000;
+    const stats: Array<any> = [];
+    
+    for (const [playerId, player] of game.players) {
+      stats.push({
+        playerId,
+        playerName: playerId, // This will be updated with actual names from room service
+        score: player.score,
+        linesCleared: player.lines,
+        level: player.level,
+        gameDuration,
+        fastMode: game.fastMode,
+      });
+    }
+    
+    return stats;
+  }
+
+  private skipCurrentPiece(game: GameState, player: PlayerGameState): void {
+    if (!player.currentPiece) return;
+
+    // Advance to next piece in sequence
+    player.pieceIndex = (player.pieceIndex + 1) % game.pieceSequence.length;
+    const nextPiece = { ...game.pieceSequence[player.pieceIndex] };
+
+    // Check if player topped out with the new piece
+    if (!this.canSpawnPiece(player, nextPiece)) {
+      player.isAlive = false;
+      return;
+    }
+
+    player.currentPiece = nextPiece;
+    
+    // Update next pieces queue
+    player.nextPieces.shift();
+    const nextPieceIndex = (player.pieceIndex + this.PIECES_AHEAD) % game.pieceSequence.length;
+    player.nextPieces.push({ ...game.pieceSequence[nextPieceIndex] });
   }
 }

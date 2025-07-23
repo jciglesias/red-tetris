@@ -1,6 +1,7 @@
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { GameService } from '../game/game.service';
 import { GameLoopService } from '../game/game-loop.service';
+import { LeaderboardService } from '../leaderboard/leaderboard.service';
 
 export interface Player {
   id: string;
@@ -11,6 +12,9 @@ export interface Player {
   isConnected: boolean;
   lastSeen: Date;
   reconnectionToken?: string;
+  score: number;
+  level: number;
+  linesCleared: number;
 }
 
 export interface Room {
@@ -19,6 +23,11 @@ export interface Room {
   gameState: 'waiting' | 'playing' | 'finished';
   maxPlayers: number;
   hostId?: string;
+  finalGameResult?: {
+    winner: string | null;
+    finalState: any;
+    endTime: number;
+  };
 }
 
 @Injectable()
@@ -31,6 +40,7 @@ export class RoomService {
   constructor(
     private gameService: GameService,
     @Inject(forwardRef(() => GameLoopService)) private gameLoopService: GameLoopService,
+    private leaderboardService: LeaderboardService,
   ) {}
 
   createRoom(roomName: string): Room {
@@ -88,6 +98,9 @@ export class RoomService {
       isConnected: true,
       lastSeen: new Date(),
       reconnectionToken: this.generateReconnectionToken(),
+      score: 0,
+      level: 1,
+      linesCleared: 0,
     };
 
     if (player.isHost) {
@@ -137,12 +150,7 @@ export class RoomService {
 
   canStartGame(roomName: string): boolean {
     const room = this.getRoom(roomName);
-    if (!room || room.gameState !== 'waiting' || room.players.size === 0) {
-      return false;
-    }
-
-    // At least 1 player must be in the room
-    if (room.players.size < 1) {
+    if (!room || room.gameState !== 'waiting' || room.players.size < 1) {
       return false;
     }
 
@@ -170,11 +178,24 @@ export class RoomService {
     return true;
   }
 
-  endGame(roomName: string): boolean {
+  async endGame(roomName: string): Promise<boolean> {
     const room = this.getRoom(roomName);
     if (!room) {
       return false;
     }
+
+    // Capture final game state before deleting it
+    const finalGameState = this.gameService.getGameState(roomName);
+    if (finalGameState) {
+      room.finalGameResult = {
+        winner: finalGameState.winner,
+        finalState: finalGameState,
+        endTime: Date.now(),
+      };
+    }
+
+    // Save player statistics to leaderboard before ending the game
+    await this.saveGameResults(roomName);
 
     room.gameState = 'finished';
     
@@ -192,6 +213,67 @@ export class RoomService {
     return true;
   }
 
+  /**
+   * Save game results to the leaderboard database
+   */
+  private async saveGameResults(roomName: string): Promise<void> {
+    try {
+      const room = this.getRoom(roomName);
+      if (!room) {
+        console.error(`Room ${roomName} not found when trying to save game results`);
+        return;
+      }
+
+      // Get all player stats from the game service
+      const playersStats = this.gameService.getAllPlayersStats(roomName);
+      const gameState = this.gameService.getGameState(roomName);
+      
+      // Update player names with actual names from room data and determine winners
+      const updatedStats = playersStats.map(stat => {
+        const player = room.players.get(stat.playerId);
+        const playerName = player?.name || stat.playerId;
+        
+        // Determine if this player won
+        let isWin = false;
+        if (gameState?.winner === stat.playerId) {
+          // Explicit winner in multiplayer games
+          isWin = true;
+        } else if (room.players.size === 1) {
+          // Solo player - consider wins based on performance
+          // A "win" in solo mode is achieving a decent score or clearing lines
+          isWin = stat.score >= 100 || stat.linesCleared >= 5;
+        }
+        
+        return {
+          ...stat,
+          playerName,
+          isWin,
+        };
+      });
+
+      // Save each player's stats to the database
+      const savePromises = updatedStats.map(stat => 
+        this.leaderboardService.addEntry({
+          playerName: stat.playerName,
+          score: stat.score,
+          linesCleared: stat.linesCleared,
+          level: stat.level,
+          gameDuration: stat.gameDuration,
+          fastMode: stat.fastMode,
+          isWin: stat.isWin,
+          roomName: roomName,
+        })
+      );
+
+      await Promise.all(savePromises);
+      console.log(`Successfully saved game results for room ${roomName}`, 
+        `- ${updatedStats.filter(s => s.isWin).length} winner(s)`);
+    } catch (error) {
+      console.error(`Failed to save game results for room ${roomName}:`, error);
+      // Don't throw the error to prevent game ending from failing
+    }
+  }
+
   resetRoom(roomName: string): boolean {
     const room = this.getRoom(roomName);
     if (!room) {
@@ -199,8 +281,12 @@ export class RoomService {
     }
 
     room.gameState = 'waiting';
+    room.finalGameResult = undefined; // Clear final game result
     room.players.forEach(player => {
       player.isReady = false;
+      player.score = 0;
+      player.level = 1;
+      player.linesCleared = 0;
     });
 
     return true;
@@ -329,5 +415,38 @@ export class RoomService {
     if (!room || !player) return null;
 
     return { player, room };
+  }
+
+  /**
+   * Update player scores and stats from the game service
+   */
+  updatePlayerStats(roomName: string): boolean {
+    const room = this.getRoom(roomName);
+    if (!room || room.gameState !== 'playing') {
+      return false;
+    }
+
+    try {
+      // Get current game state from the game service
+      const gameState = this.gameService.getGameState(roomName);
+      if (!gameState) {
+        return false;
+      }
+
+      // Update each player's stats from the game state
+      for (const [playerId, gamePlayer] of gameState.players) {
+        const roomPlayer = room.players.get(playerId);
+        if (roomPlayer) {
+          roomPlayer.score = gamePlayer.score;
+          roomPlayer.level = gamePlayer.level;
+          roomPlayer.linesCleared = gamePlayer.lines;
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error(`Error updating player stats for room ${roomName}:`, error);
+      return false;
+    }
   }
 }

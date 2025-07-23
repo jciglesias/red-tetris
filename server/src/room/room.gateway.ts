@@ -8,9 +8,10 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { RoomService, Player } from './room.service';
 import { GameService, GameState } from '../game/game.service';
+import { GameLoopService } from '../game/game-loop.service';
 
 interface JoinRoomMessage {
   roomName: string;
@@ -27,7 +28,11 @@ interface StartGameMessage {
 }
 
 interface GameActionMessage {
-  action: 'move-left' | 'move-right' | 'rotate' | 'soft-drop' | 'hard-drop';
+  action: 'move-left' | 'move-right' | 'rotate' | 'soft-drop' | 'hard-drop' | 'skip-piece';
+}
+
+interface ChatMessage {
+  message: string;
 }
 
 @Injectable()
@@ -44,7 +49,27 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private roomService: RoomService,
     private gameService: GameService,
-  ) {}
+    @Optional() private gameLoopService?: GameLoopService,
+  ) {
+    // Register this gateway as the game end event emitter
+    // Use setTimeout to ensure all services are fully initialized
+    setTimeout(() => {
+      if (this.gameLoopService && this.gameLoopService.setGameEndEventEmitter) {
+        this.gameLoopService.setGameEndEventEmitter(this);
+      }
+    }, 0);
+  }
+
+  /**
+   * Emit game-ended event to all players in a room
+   * Called by GameLoopService when a game ends naturally
+   */
+  emitGameEnded(roomName: string, winner: string | null, finalState: any) {
+    this.server.to(roomName).emit('game-ended', {
+      winner: winner,
+      finalState: this.serializeGameState(finalState),
+    });
+  }
 
   /**
    * Helper function to serialize GameState for JSON transmission
@@ -189,10 +214,12 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const readyPlayers = connectedPlayers.filter(p => p.isReady);
       
       let message = '';
-      if (connectedPlayers.length < room.maxPlayers) {
-        message = `Waiting for more players (${connectedPlayers.length}/${room.maxPlayers})`;
-      } else if (readyPlayers.length < connectedPlayers.length) {
+      if (readyPlayers.length < connectedPlayers.length) {
         message = `Waiting for all players to be ready (${readyPlayers.length}/${connectedPlayers.length} ready)`;
+      } else if (connectedPlayers.length < room.players.size) {
+        message = `Waiting for all players to connect (${connectedPlayers.length}/${room.players.size} connected)`;
+      } else if (room.gameState && room.gameState !== 'waiting') {
+        message = `Cannot start game. game state: ${room.gameState}.`;
       } else {
         message = 'Cannot start game. Unknown reason.';
       }
@@ -220,7 +247,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('game-action')
-  handleGameAction(
+  async handleGameAction(
     @MessageBody() data: GameActionMessage,
     @ConnectedSocket() client: Socket,
   ) {
@@ -241,6 +268,9 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const result = this.gameService.processPlayerAction(room.name, player.id, data.action);
     
     if (result) {
+      // Update player stats from game state
+      this.roomService.updatePlayerStats(room.name);
+      
       // Broadcast updated game state to all players in room
       const gameState = this.gameService.getGameState(room.name);
       if (gameState) {
@@ -248,7 +278,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         // Check if game ended
         if (gameState.gameOver) {
-          this.roomService.endGame(room.name);
+          await this.roomService.endGame(room.name);
           this.server.to(room.name).emit('game-ended', {
             winner: gameState.winner,
             finalState: this.serializeGameState(gameState),
@@ -356,17 +386,34 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (reconnectedPlayer) {
       client.join(roomName);
       
-      const gameState = room.gameState === 'playing' ? this.gameService.getGameState(roomName) : null;
+      const gameState = this.gameService.getGameState(roomName);
+      const serializedGameState = this.serializeGameState(gameState);
       
-      client.emit('reconnection-success', {
+      // Prepare reconnection success data
+      const reconnectionData: any = {
         player: reconnectedPlayer,
         room: {
           name: roomName,
           players: this.roomService.getRoomPlayers(roomName),
           gameState: room.gameState,
         },
-        gameState: this.serializeGameState(gameState),
-      });
+        gameState: serializedGameState,
+      };
+
+      // If the game is finished, use the stored final game result
+      if (room.gameState === 'finished' && room.finalGameResult) {
+        reconnectionData.winner = room.finalGameResult.winner;
+        reconnectionData.finalState = this.serializeGameState(room.finalGameResult.finalState);
+        reconnectionData.gameFinished = true;
+        reconnectionData.gameState = this.serializeGameState(room.finalGameResult.finalState);
+      } else if (gameState && gameState.gameOver) {
+        // If the game is over but still in memory, include that information
+        reconnectionData.winner = gameState.winner;
+        reconnectionData.finalState = serializedGameState;
+        reconnectionData.gameFinished = true;
+      }
+      
+      client.emit('reconnection-success', reconnectionData);
 
       // Notify other players
       this.server.to(roomName).emit('player-reconnected', {
@@ -376,5 +423,95 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } else {
       client.emit('reconnection-error', { message: 'Failed to reconnect player' });
     }
+  }
+
+  @SubscribeMessage('quit-game')
+  async handleQuitGame(@ConnectedSocket() client: Socket) {
+    const playerData = this.roomService.getPlayerBySocketId(client.id);
+    if (!playerData) {
+      client.emit('error', { message: 'Player not found in any room' });
+      return;
+    }
+
+    const { player, room } = playerData;
+    
+    if (room.gameState !== 'playing') {
+      client.emit('error', { message: 'No game in progress to quit' });
+      return;
+    }
+
+    // Mark player as not alive (quit)
+    const gameState = this.gameService.getGameState(room.name);
+    if (gameState) {
+      const gamePlayer = gameState.players.get(player.id);
+      if (gamePlayer) {
+        gamePlayer.isAlive = false;
+      }
+      
+      // For solo games, always end the game when the player quits
+      // For multiplayer, check if this causes game over
+      const isSoloGame = room.players.size === 1;
+      
+      if (isSoloGame) {
+        // Solo game: player quitting means game ends
+        gameState.gameOver = true;
+        await this.roomService.endGame(room.name);
+        this.server.to(room.name).emit('game-ended', {
+          winner: null, // Solo quit doesn't have a winner
+          finalState: this.serializeGameState(gameState),
+          reason: 'Player quit',
+        });
+      } else {
+        // Multiplayer: check if this causes game over
+        const gameEnded = this.gameService.checkForGameOver(room.name);
+        
+        if (gameEnded) {
+          // Game ended, save results
+          const finalGameState = this.gameService.getGameState(room.name);
+          await this.roomService.endGame(room.name);
+          this.server.to(room.name).emit('game-ended', {
+            winner: finalGameState?.winner,
+            finalState: this.serializeGameState(finalGameState),
+            reason: 'Player quit',
+          });
+        } else {
+          // Just notify about the quit
+          this.server.to(room.name).emit('player-quit', {
+            playerId: player.id,
+            playerName: player.name,
+          });
+        }
+      }
+    }
+  }
+
+  @SubscribeMessage('chat-message')
+  handleChatMessage(
+    @MessageBody() data: ChatMessage,
+    @ConnectedSocket() client: Socket,
+  ) {
+    const playerData = this.roomService.getPlayerBySocketId(client.id);
+    if (!playerData) {
+      client.emit('error', { message: 'Player not found in any room' });
+      return;
+    }
+
+    const { player, room } = playerData;
+    
+    if (!data.message || !data.message.trim()) {
+      client.emit('error', { message: 'Message cannot be empty' });
+      return;
+    }
+
+    // Limit message length to prevent spam
+    const trimmedMessage = data.message.trim().substring(0, 500);
+    
+    // Broadcast chat message to all players in the room
+    this.server.to(room.name).emit('chat-message', {
+      playerId: player.id,
+      playerName: player.name,
+      message: trimmedMessage,
+      timestamp: new Date().toISOString(),
+    });
   }
 }

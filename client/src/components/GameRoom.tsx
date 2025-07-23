@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { connectSocket, disconnectSocket, joinRoom, readyPlayer, startGame, gameAction, getRoomInfo } from '../store/socketSlice';
+import { connectSocket, disconnectSocket, joinRoom, readyPlayer, startGame, gameAction, getRoomInfo, relaunchGame, sendMessage } from '../store/socketSlice';
 import { RootState, AppDispatch } from '../store';
 import './GameRoom.css';
+import LeaderboardModal from './LeaderboardModal';
+import LeaderboardStatsModal from './LeaderboardStatsModal';
+import KeysModal from './KeysModal';
 
 function GameRoom() {
   const { roomName } = useParams<{ roomName: string }>();
@@ -13,6 +16,8 @@ function GameRoom() {
   const joined = useSelector((state: RootState) => state.socket.joined);
   const playerReady = useSelector((state: RootState) => state.socket.playerReady);
   const started = useSelector((state: RootState) => state.socket.started);
+  const gameOver = useSelector((state: RootState) => state.socket.gameOver);
+  const gameWon = useSelector((state: RootState) => state.socket.gameWon);
   const isError = useSelector((state: RootState) => state.socket.isError);
   const contentError = useSelector((state: RootState) => state.socket.contentError);
   const opponent1 = useSelector((state: RootState) => state.socket.opponent1);
@@ -20,6 +25,9 @@ function GameRoom() {
   const opponent3 = useSelector((state: RootState) => state.socket.opponent3);
   const opponent4 = useSelector((state: RootState) => state.socket.opponent4);
   const gamestate = useSelector((state: RootState) => state.socket.gamestate);
+  const score = useSelector((state: RootState) => state.socket.score);
+  const level = useSelector((state: RootState) => state.socket.level);
+  const reconnectionToken = useSelector((state: RootState) => state.socket.reconnectionToken);
   const boardRef = useRef<HTMLDivElement>(null);
   const nextRef = useRef<HTMLDivElement>(null);
   const board1Ref = useRef<HTMLDivElement>(null);
@@ -27,6 +35,9 @@ function GameRoom() {
   const board3Ref = useRef<HTMLDivElement>(null);
   const board4Ref = useRef<HTMLDivElement>(null);
   const [blindMode, setBlindMode] = useState(false);
+  const [messageVar, setMessageVar] = useState('')
+  const messages = useSelector((state: RootState) => state.socket.messages)
+  const chatMessagesRef = useRef<HTMLUListElement>(null);
 
   initializeNextPiece();
   initializeBoards();
@@ -54,23 +65,41 @@ function GameRoom() {
             event.preventDefault();
             dispatch(gameAction({action: 'hard-drop'}));
             break;
+        case 's':
+            event.preventDefault();
+            dispatch(gameAction({action: 'skip-piece'}));
+            break;
       }
     };
-    document.addEventListener('keydown', handleKey);
+    if (started) {
+      document.addEventListener('keydown', handleKey);
+    } else {
+      document.removeEventListener('keydown', handleKey);
+    }
     return () => {
       document.removeEventListener('keydown', handleKey);
     };
-  }, [dispatch]);
+  }, [dispatch, started]);
 
 
   useEffect(() => {
-
+    
     dispatch(connectSocket({ room: roomName!, playerName: playerName! }));
-    return () => {
+    
+    const handleBeforeUnload = () => {
+      if (reconnectionToken) {
+        localStorage.setItem('redtetris_reconnection_token', reconnectionToken);
+      }
       dispatch(disconnectSocket());
     };
 
-  }, [roomName, playerName, dispatch]);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      dispatch(disconnectSocket());
+    };
+  }, [roomName, playerName, dispatch, reconnectionToken]);
 
 
   // Memoized render functions for board and spectrums
@@ -142,7 +171,7 @@ function GameRoom() {
       }
     }
 
-  }, [gamestate, roomName, playerName]);
+  }, [gamestate, roomName, playerName, blindMode]);
 
   useEffect(() => {
     renderBoard();
@@ -158,6 +187,13 @@ function GameRoom() {
     return () => clearInterval(intervalId);
   }, [started, dispatch]);
   
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (chatMessagesRef.current) {
+      chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   function renderSpectrum(opponentState: any, boardReference: HTMLDivElement | null, number: number) {
     const board = boardReference;
@@ -207,7 +243,23 @@ function GameRoom() {
     }
     console.log('start-fast-game')
   }
-    
+
+  function handleRelaunch() {
+    if (gameOver || gameWon) {
+      dispatch(relaunchGame());
+    }
+    console.log('relaunch-game');
+  }
+
+  function handleMessage(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (joined && !started && messageVar.trim()) {
+      dispatch(sendMessage({ message: messageVar.trim() }));
+      setMessageVar('');
+    }
+    console.log('send-message');
+  }
+
   function initializeNextPiece() {
     const nextPiece = nextRef.current;
     if (!nextPiece) return;
@@ -222,7 +274,7 @@ function GameRoom() {
     }
   }
 
-    function initializePlayerBoard(ref: HTMLDivElement | null) {
+  function initializePlayerBoard(ref: HTMLDivElement | null) {
     const board = ref;
     if (!board) return;
     board.innerHTML = '';
@@ -262,11 +314,16 @@ function GameRoom() {
     <div className="game-room">
        <div className="score-panel">
         <div className="score-indicator">
-          <p>Blind mode</p>
-          <label className="switch">
-            <input type="checkbox" checked={blindMode} onChange={handleBlindMode} />
-            <span className="slider round"></span>
-          </label>
+          <div className="blind-mode-container">
+            <p>Blind mode</p>
+            <label className="switch">
+              <input type="checkbox" checked={blindMode} onChange={handleBlindMode} />
+              <span className="slider round"></span>
+            </label>
+          </div>
+          <LeaderboardModal />
+          <LeaderboardStatsModal />
+          <KeysModal />
         </div>
       </div>
       <div className="room-header">
@@ -278,18 +335,104 @@ function GameRoom() {
           <p>Connected: {connected ? 'Yes' : 'No'}</p>
           <p>Joined: {joined ? 'Yes' : 'No'}</p>
           <p>Ready: {playerReady ? 'Yes' : 'No'}</p>
+          <p><br /></p>
+          {started && <p>Score: {score}</p>}
+          {started && <p>Level: {level}</p>}
         </div>
       </div>
       <div className="button-group">
-        {!joined && <button onClick={handleJoin}>Join Room</button>}
+        {!joined && !gameOver && !gameWon && <button onClick={handleJoin}>Join Room</button>}
         {joined && !playerReady && <button onClick={handleReady}>Set Ready</button>}
         {playerReady && !started && <button onClick={handleStart}>Start Game</button>}
         {playerReady && !started && <button onClick={handleFastStart}>Start Fast Game</button>}
+        {(gameOver || gameWon) && <button onClick={handleRelaunch}>Relaunch Game</button>}
       </div>
       {isError && (
         <div className="error-container">
           <p>Error :</p>
           <p>{contentError}</p>
+        </div>
+      )}
+      {gameOver && (
+        <div className="error-container">
+          <p>GAME OVER</p>
+          <p>Wait for the game to end and the host to relaunch the game</p>
+        </div>
+      )}
+      {gameWon && (
+        <div className="success-container">
+          <p>VICTORY !!!</p>
+          <p>Congratulations! You are the champion!</p>
+        </div>
+      )}
+      {joined && !started && (
+        <div className="game-container chat-mode">
+            <div className="chat-container">
+              <div className="chat-header">
+                <h3 style={{ 
+                  margin: '0 0 12px 0', 
+                  color: 'white', 
+                  textAlign: 'center',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                  fontSize: '18px',
+                  fontWeight: '600'
+                }}>
+                  💬 Chat 💬
+                </h3>
+              </div>
+              <ul ref={chatMessagesRef}>
+                {messages.length === 0 ? (
+                  <li className="welcome-message" style={{ 
+                    textAlign: 'center', 
+                    fontStyle: 'italic', 
+                    color: '#666',
+                    background: 'linear-gradient(135deg, #f0f2f5 0%, #e4e6ea 100%)',
+                    borderLeft: '4px solid #ddd'
+                  }}>
+                    🎮 Welcome to the chat! Start a conversation while waiting for the game 🎮 
+                  </li>
+                ) : (
+                  messages.map((message) => {
+                    const isCurrentPlayer = message.playerName === playerName;
+                    return (
+                      <li 
+                        key={message.playerId + '-' + message.timestamp}
+                        className={isCurrentPlayer ? 'current-player-message' : 'other-message'}
+                      >
+                        <strong>{isCurrentPlayer ? 'You' : message.playerName}:</strong> {message.message}
+                        <span 
+                          className="timestamp"
+                          style={{ 
+                            fontSize: '0.75em', 
+                            float: 'right',
+                            marginTop: '2px',
+                            opacity: 0.8,
+                            marginLeft: '8px'
+                          }}
+                        >
+                          {new Date(message.timestamp).toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </span>
+                      </li>
+                    );
+                  })
+                )}
+              </ul>
+              <form onSubmit={handleMessage}>
+                <input
+                  type="text"
+                  value={messageVar}
+                  onChange={(e) => setMessageVar(e.target.value)}
+                  placeholder="Type your message here ..."
+                  maxLength={200}
+                />
+                <button type="submit" disabled={!messageVar.trim()}>
+                  🚀 Send
+                </button>
+              </form>
+            </div>
         </div>
       )}
       <div className="game-container">

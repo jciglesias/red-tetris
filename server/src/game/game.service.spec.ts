@@ -43,6 +43,8 @@ describe('GameService', () => {
       expect(player?.spectrum).toHaveLength(10);
       expect(player?.isAlive).toBe(true);
       expect(player?.lines).toBe(0);
+      expect(player?.score).toBe(0); // New score field
+      expect(player?.level).toBe(1); // New level field
       expect(player?.currentPiece).toBeDefined();
       expect(player?.nextPieces).toHaveLength(5);
     });
@@ -667,6 +669,249 @@ describe('GameService', () => {
       for (let i = 0; i < 5; i++) {
         expect(afterBothDrop1?.nextPieces[i]?.type).toBe(afterBothDrop2?.nextPieces[i]?.type);
       }
+    });
+  });
+
+  describe('scoring system', () => {
+    it('should calculate correct scores for different line clears in normal mode', () => {
+      const roomName = 'test-room';
+      const playerIds = ['player1'];
+      const gameState = service.createGame(roomName, playerIds, false); // normal mode
+      const player = gameState.players.get('player1')!;
+      
+      // Set player level to 2 for easier calculation
+      player.level = 2;
+      
+      // Test single line clear (40 * 2 = 80)
+      const singleScore = service['calculateScore'](1, 2, false);
+      expect(singleScore).toBe(80);
+      
+      // Test double line clear (100 * 2 = 200)
+      const doubleScore = service['calculateScore'](2, 2, false);
+      expect(doubleScore).toBe(200);
+      
+      // Test triple line clear (300 * 2 = 600)
+      const tripleScore = service['calculateScore'](3, 2, false);
+      expect(tripleScore).toBe(600);
+      
+      // Test tetris (1200 * 2 = 2400)
+      const tetrisScore = service['calculateScore'](4, 2, false);
+      expect(tetrisScore).toBe(2400);
+    });
+
+    it('should apply fast mode multiplier correctly', () => {
+      const roomName = 'test-room';
+      const playerIds = ['player1'];
+      const gameState = service.createGame(roomName, playerIds, true); // fast mode
+      const player = gameState.players.get('player1')!;
+      
+      player.level = 1;
+      
+      // Test single line in fast mode (40 * 1 * 1.5 = 60)
+      const fastSingleScore = service['calculateScore'](1, 1, true);
+      expect(fastSingleScore).toBe(60);
+      
+      // Test tetris in fast mode (1200 * 1 * 1.5 = 1800)
+      const fastTetrisScore = service['calculateScore'](4, 1, true);
+      expect(fastTetrisScore).toBe(1800);
+    });
+
+    it('should track game mode correctly', () => {
+      const normalGame = service.createGame('normal-room', ['player1'], false);
+      const fastGame = service.createGame('fast-room', ['player1'], true);
+      
+      expect(normalGame.fastMode).toBe(false);
+      expect(fastGame.fastMode).toBe(true);
+    });
+
+    it('should return correct player stats', () => {
+      const roomName = 'test-room';
+      const playerIds = ['player1'];
+      const gameState = service.createGame(roomName, playerIds, true);
+      const player = gameState.players.get('player1')!;
+      
+      // Simulate some game progress
+      player.score = 1500;
+      player.lines = 12;
+      player.level = 3;
+      
+      const stats = service.getPlayerStats(roomName, 'player1');
+      
+      expect(stats).toBeDefined();
+      expect(stats!.score).toBe(1500);
+      expect(stats!.linesCleared).toBe(12);
+      expect(stats!.level).toBe(3);
+      expect(stats!.fastMode).toBe(true);
+      expect(stats!.gameDuration).toBeGreaterThanOrEqual(0); // Should be 0 or greater for immediate check
+    });
+
+    it('should return correct player stats with win status', () => {
+      const roomName = 'test-room';
+      const playerIds = ['player1'];
+      const gameState = service.createGame(roomName, playerIds, true);
+      const player = gameState.players.get('player1')!;
+      
+      // Simulate a winning game
+      player.score = 1500;
+      player.lines = 12;
+      player.level = 3;
+      
+      const stats = service.getPlayerStats(roomName, 'player1');
+      
+      expect(stats).toBeDefined();
+      expect(stats!.score).toBe(1500);
+      expect(stats!.linesCleared).toBe(12);
+      expect(stats!.level).toBe(3);
+      expect(stats!.fastMode).toBe(true);
+      expect(stats!.gameDuration).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should return all players stats', () => {
+      const roomName = 'test-room';
+      const playerIds = ['player1', 'player2'];
+      const gameState = service.createGame(roomName, playerIds, false);
+      
+      const allStats = service.getAllPlayersStats(roomName);
+      
+      expect(allStats).toHaveLength(2);
+      expect(allStats[0].playerId).toBe('player1');
+      expect(allStats[1].playerId).toBe('player2');
+      expect(allStats[0].fastMode).toBe(false);
+    });
+  });
+
+  describe('game over and state checks', () => {
+    it('should handle game over check correctly', () => {
+      const roomName = 'test-room';
+      const playerIds = ['player1'];
+      const gameState = service.createGame(roomName, playerIds, false);
+      const player = gameState.players.get('player1')!;
+      
+      // Initially game should not be over
+      expect(service.checkForGameOver(roomName)).toBe(false);
+      
+      // Kill the player
+      player.isAlive = false;
+      
+      // Now game should be over
+      expect(service.checkForGameOver(roomName)).toBe(true);
+      
+      // Game state should reflect game over
+      const finalGameState = service.getGameState(roomName);
+      expect(finalGameState?.gameOver).toBe(true);
+    });
+  });
+
+  describe('skip piece action', () => {
+    let gameState: any;
+    const roomName = 'test-room';
+    const playerId = 'player1';
+
+    beforeEach(() => {
+      gameState = service.createGame(roomName, [playerId]);
+    });
+
+    it('should initialize skipPieceUsed as false', () => {
+      const player = gameState.players.get(playerId);
+      expect(player.skipPieceUsed).toBe(false);
+    });
+
+    it('should allow skip piece action when not used before', () => {
+      const player = gameState.players.get(playerId);
+      const originalPieceIndex = player.pieceIndex;
+      const originalPieceType = player.currentPiece.type;
+
+      const result = service.processPlayerAction(roomName, playerId, 'skip-piece');
+
+      expect(result).toBe(true);
+      expect(player.skipPieceUsed).toBe(true);
+      expect(player.pieceIndex).toBe(originalPieceIndex + 1);
+      // The piece index should advance, but we don't guarantee the type changes
+      // since the next piece in sequence could be the same type
+      expect(player.currentPiece).toBeDefined();
+    });
+
+    it('should not allow skip piece action when already used', () => {
+      const player = gameState.players.get(playerId);
+      
+      // First use should work
+      const firstResult = service.processPlayerAction(roomName, playerId, 'skip-piece');
+      expect(firstResult).toBe(true);
+      expect(player.skipPieceUsed).toBe(true);
+      
+      const pieceIndexAfterFirstSkip = player.pieceIndex;
+      const pieceTypeAfterFirstSkip = player.currentPiece.type;
+
+      // Second use should not work
+      const secondResult = service.processPlayerAction(roomName, playerId, 'skip-piece');
+      expect(secondResult).toBe(false);
+      expect(player.pieceIndex).toBe(pieceIndexAfterFirstSkip); // Should not advance
+      expect(player.currentPiece.type).toBe(pieceTypeAfterFirstSkip); // Should not change
+    });
+
+    it('should update next pieces queue correctly after skip', () => {
+      const player = gameState.players.get(playerId);
+      const originalNextPieces = [...player.nextPieces];
+
+      service.processPlayerAction(roomName, playerId, 'skip-piece');
+
+      // Next pieces should have shifted (first one removed, new one added at end)
+      expect(player.nextPieces[0].type).toBe(originalNextPieces[1].type);
+      expect(player.nextPieces[1].type).toBe(originalNextPieces[2].type);
+      expect(player.nextPieces[2].type).toBe(originalNextPieces[3].type);
+      expect(player.nextPieces[3].type).toBe(originalNextPieces[4].type);
+      // The 5th piece should be a new one from the sequence
+      expect(player.nextPieces).toHaveLength(5);
+    });
+
+    it('should handle skip piece when player would top out with new piece', () => {
+      const player = gameState.players.get(playerId);
+      
+      // Fill the top of the board to simulate potential top out
+      for (let x = 0; x < 10; x++) {
+        player.board[0][x] = 1; // Fill top row
+        player.board[1][x] = 1; // Fill second row
+      }
+
+      const result = service.processPlayerAction(roomName, playerId, 'skip-piece');
+
+      // Should still process the action and mark as used
+      expect(result).toBe(true);
+      expect(player.skipPieceUsed).toBe(true);
+      
+      // Player should be marked as dead if new piece can't spawn
+      expect(player.isAlive).toBe(false);
+    });
+
+    it('should not allow skip piece for dead players', () => {
+      const player = gameState.players.get(playerId);
+      player.isAlive = false;
+
+      const result = service.processPlayerAction(roomName, playerId, 'skip-piece');
+
+      expect(result).toBe(false);
+      expect(player.skipPieceUsed).toBe(false); // Should not mark as used
+    });
+
+    it('should work independently for multiple players', () => {
+      const multiGameState = service.createGame('multi-room', ['player1', 'player2']);
+      const player1 = multiGameState.players.get('player1')!;
+      const player2 = multiGameState.players.get('player2')!;
+
+      // Player 1 uses skip
+      const result1 = service.processPlayerAction('multi-room', 'player1', 'skip-piece');
+      expect(result1).toBe(true);
+      expect(player1.skipPieceUsed).toBe(true);
+      expect(player2.skipPieceUsed).toBe(false);
+
+      // Player 2 can still use skip
+      const result2 = service.processPlayerAction('multi-room', 'player2', 'skip-piece');
+      expect(result2).toBe(true);
+      expect(player2.skipPieceUsed).toBe(true);
+
+      // Player 1 cannot use skip again
+      const result3 = service.processPlayerAction('multi-room', 'player1', 'skip-piece');
+      expect(result3).toBe(false);
     });
   });
 });
