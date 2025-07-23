@@ -210,42 +210,42 @@ function GameRoom() {
 
   function handleBlindMode() {
     setBlindMode(!blindMode);
-    console.log('toggle blind mode', blindMode);
+    //console.log('toggle blind mode', blindMode);
   }
 
   function handleJoin() {
     if (roomName && playerName) {
       dispatch(joinRoom({ room: roomName, playerName }));
     }
-    console.log('joinRoom')
+    //console.log('joinRoom')
   }
 
   function handleReady() {
     if (joined) {
       dispatch(readyPlayer());
     }
-    console.log('player-ready')
+    //console.log('player-ready')
   }
 
   function handleStart() {
     if (playerReady) {
       dispatch(startGame({ fast: false }));
     }
-    console.log('start-game')
+    //console.log('start-game')
   }
 
   function handleFastStart() {
     if (playerReady) {
       dispatch(startGame({ fast: true }));
     }
-    console.log('start-fast-game')
+    //console.log('start-fast-game')
   }
 
   function handleRelaunch() {
     if (gameOver || gameWon) {
       dispatch(relaunchGame());
     }
-    console.log('relaunch-game');
+    //console.log('relaunch-game');
   }
 
   function handleMessage(event: React.FormEvent<HTMLFormElement>) {
@@ -254,7 +254,7 @@ function GameRoom() {
       dispatch(sendMessage({ message: messageVar.trim() }));
       setMessageVar('');
     }
-    console.log('send-message');
+    //console.log('send-message');
   }
 
   function initializeNextPiece() {

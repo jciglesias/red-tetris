@@ -80,7 +80,7 @@ export const requestReconnection = createAsyncThunk(
       socket = io("http://localhost:3001");
     }
 
-    console.log('request-reconnection: ' + payload.room + ' ' + payload.playerName + ' ' + payload.reconnectionToken);
+    //console.log('request-reconnection: ' + payload.room + ' ' + payload.playerName + ' ' + payload.reconnectionToken);
 
     socket.emit('request-reconnection', {
       roomName: payload.room,
@@ -90,7 +90,7 @@ export const requestReconnection = createAsyncThunk(
 
     // Gérer les événements de reconnexion
     socket.on('reconnection-success', (data) => {
-      console.log('Reconnection success: ' + JSON.stringify(data, null, 2));
+      //console.log('Reconnection success: ' + JSON.stringify(data, null, 2));
       dispatch(onReconnectionSuccess(data));
       if (data.reconnectionToken) {
         saveReconnectionToken(payload.room, payload.playerName, data.reconnectionToken);
@@ -98,7 +98,7 @@ export const requestReconnection = createAsyncThunk(
     });
 
     socket.on('reconnection-error', (data) => {
-      console.log('Reconnection error: ' + JSON.stringify(data, null, 2));
+      //console.log('Reconnection error: ' + JSON.stringify(data, null, 2));
       const message = typeof data === 'object' && data !== null && 'message' in data
         ? (data as any).message
         : String(data);
@@ -117,16 +117,16 @@ export const connectSocket = createAsyncThunk(
 
     socket = io("http://localhost:3001");
 
-    console.log('Attempting Connection...');
+    //console.log('Attempting Connection...');
 
     // Tenter une reconnexion automatique si des données existent
     const reconnectiontoken = getReconnectionData(payload.room, payload.playerName);
 
-    console.log('Data reconnectionData.token: ' + reconnectiontoken);
+    //console.log('Data reconnectionData.token: ' + reconnectiontoken);
     //console.log('Data state.reconnectionToken: ' + payload.reconnectionToken);
 
     if (reconnectiontoken) {
-      console.log('Attempting automatic reconnection...');
+      //console.log('Attempting automatic reconnection...');
       dispatch(requestReconnection({
         room: payload.room,
         playerName: payload.playerName,
@@ -143,7 +143,7 @@ export const connectSocket = createAsyncThunk(
     });
 
     socket.on('join-room-success', (data) => {
-      console.log('Join room success: ' + JSON.stringify(data, null, 2));
+      //console.log('Join room success: ' + JSON.stringify(data, null, 2));
       dispatch(onJoinRoomSuccess(data.player.isHost ? { isHost: true } : { isHost: false }));
       // Sauvegarder le token de reconnexion si fourni
       if (data.player.reconnectionToken) {
@@ -152,7 +152,7 @@ export const connectSocket = createAsyncThunk(
     });
 
     socket.on('join-room-error', (data) => {
-      console.log('Join room error: ' + JSON.stringify(data, null, 2));
+      //console.log('Join room error: ' + JSON.stringify(data, null, 2));
       const message = typeof data === 'object' && data !== null && 'message' in data
         ? (data as any).message
         : String(data);
@@ -160,15 +160,15 @@ export const connectSocket = createAsyncThunk(
     });
 
     socket.on('player-ready-changed', (data) => {
-      console.log('Player ready changed: ' + JSON.stringify(data, null, 2));
+      //console.log('Player ready changed: ' + JSON.stringify(data, null, 2));
       if (data.playerId === payload.room + "_" + payload.playerName) {
         dispatch(onSetReadySuccess());
-        console.log('Player ready changed! ' + data.ready);
+        //console.log('Player ready changed! ' + data.ready);
       }
     });
 
     socket.on('error', (data) => {
-      console.log('Error: ' + JSON.stringify(data, null, 2));
+      //console.log('Error: ' + JSON.stringify(data, null, 2));
       const message = typeof data === 'object' && data !== null && 'message' in data
         ? (data as any).message
         : String(data);
@@ -176,7 +176,7 @@ export const connectSocket = createAsyncThunk(
     });
 
     socket.on('game-reset', (data) => {
-      console.log('Game reset: ' + JSON.stringify(data, null, 2));
+      //console.log('Game reset: ' + JSON.stringify(data, null, 2));
       dispatch(onGameReset());
     });
 
@@ -189,12 +189,12 @@ export const connectSocket = createAsyncThunk(
     });
 
     socket.on('chat-message', (data) => {
-      console.log('Chat message: ' + JSON.stringify(data, null, 2));
+      //console.log('Chat message: ' + JSON.stringify(data, null, 2));
       dispatch(addMessage(data));
     });
 
     socket.on('game-started', (data) => {
-      console.log('Game started: ' + JSON.stringify(data, null, 2));
+      //console.log('Game started: ' + JSON.stringify(data, null, 2));
       const playersMap = data.gameState.players as Record<string, any>;
       const keys = Object.keys(playersMap).filter(k => k !== `${payload.room}_${payload.playerName}`);
       // Extract player names from the full keys
@@ -242,7 +242,7 @@ export const connectSocket = createAsyncThunk(
     });
 
     socket.on('game-ended', (data) => {
-      console.log('Game ended: ' + JSON.stringify(data, null, 2));
+      //console.log('Game ended: ' + JSON.stringify(data, null, 2));
       if (data.winner && data.winner === `${payload.room}_${payload.playerName}`) 
       {
         dispatch(onGameWon(data.finalState));
@@ -446,7 +446,6 @@ const socketSlice = createSlice({
           if (playerNames[3]) state.opponent4 = playerNames[3];
         }
         const playerState = (action.payload.gameState.players as Record<string, any>)[action.payload.player.id];
-        console.log('Reconnection playerState: ' + JSON.stringify(playerState, null, 2));
         if (playerState && playerState.isAlive === false) {
           state.gameOver = true;
           state.joined = false;

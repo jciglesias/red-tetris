@@ -109,6 +109,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
             
             if (newHost) {
               // Notify all players about the host change
+              console.log(`Host changed from ${player.name} to ${newHost.name} in room ${room.name}`);
               this.server.to(room.name).emit('host-changed', {
                 newHostId: newHost.id,
                 newHostName: newHost.name,
@@ -139,6 +140,7 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
           
           if (newHost) {
             // Notify all players about the host change
+            console.log(`INGAME Host changed from ${player.name} to ${newHost.name} in room ${room.name}`);
             this.server.to(room.name).emit('host-changed', {
               newHostId: newHost.id,
               newHostName: newHost.name,
