@@ -11,6 +11,11 @@ const LeaderboardStatsModal = () => {
     try {
       const serverUrl = await NetworkUtils.findWorkingServerUrl();
       const response = await fetch(`${serverUrl}/api/leaderboard/stats`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       setStatsData(data);
       setIsModalOpen(true);
