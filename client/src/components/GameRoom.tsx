@@ -83,11 +83,23 @@ function GameRoom() {
 
 
   useEffect(() => {
+    
     dispatch(connectSocket({ room: roomName!, playerName: playerName! }));
-    return () => {
+    
+    const handleBeforeUnload = () => {
+      if (reconnectionToken) {
+        localStorage.setItem('redtetris_reconnection_token', reconnectionToken);
+      }
       dispatch(disconnectSocket());
     };
-  }, [roomName, playerName, dispatch]);
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      dispatch(disconnectSocket());
+    };
+  }, [roomName, playerName, dispatch, reconnectionToken]);
 
 
   // Memoized render functions for board and spectrums
