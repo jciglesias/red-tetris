@@ -231,21 +231,21 @@ function GameRoom() {
     if (playerReady) {
       dispatch(startGame({ fast: false }));
     }
-    //console.log('start-game')
+    console.log('start-game')
   }
 
   function handleFastStart() {
     if (playerReady) {
       dispatch(startGame({ fast: true }));
     }
-    //console.log('start-fast-game')
+    console.log('start-fast-game')
   }
 
   function handleRelaunch() {
     if (gameOver || gameWon) {
       dispatch(relaunchGame());
     }
-    //console.log('relaunch-game');
+    console.log('relaunch-game');
   }
 
   function handleMessage(event: React.FormEvent<HTMLFormElement>) {
@@ -254,7 +254,7 @@ function GameRoom() {
       dispatch(sendMessage({ message: messageVar.trim() }));
       setMessageVar('');
     }
-    //console.log('send-message');
+    console.log('send-message');
   }
 
   function initializeNextPiece() {
@@ -341,8 +341,8 @@ function GameRoom() {
       <div className="button-group">
         {!joined && !gameOver && !gameWon && <button onClick={handleJoin}>Join Room</button>}
         {joined && !playerReady && <button onClick={handleReady}>Set Ready</button>}
-        {isHost && playerReady && !started && <button onClick={handleStart}>Start Game</button>}
-        {isHost && playerReady && !started && <button onClick={handleFastStart}>Start Fast Game</button>}
+        {playerReady && !started && <button onClick={handleStart}>Start Game</button>}
+        {playerReady && !started && <button onClick={handleFastStart}>Start Fast Game</button>}
         {(gameOver || gameWon) && <button onClick={handleRelaunch}>Relaunch Game</button>}
       </div>
       {isError && (

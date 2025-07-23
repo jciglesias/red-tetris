@@ -95,83 +95,50 @@ export class RoomGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (disconnectionData) {
       const { player, room } = disconnectionData;
       
+      // Game is in progress or finished - keep player for potential reconnection
+      // Check if the disconnected player was the host and transfer host if needed
+      let newHost: Player | null = null;
+      if (player.isHost) {
+        newHost = this.roomService.transferHostOnDisconnect(room.name, player.id);
+        
+        if (newHost) {
+          // Notify all players about the host change
+          this.server.to(room.name).emit('host-changed', {
+            newHostId: newHost.id,
+            newHostName: newHost.name,
+            previousHostId: player.id,
+            previousHostName: player.name,
+            players: this.roomService.getRoomPlayers(room.name),
+          });
+        }
+      }
       // If there's no game state or game state is waiting, remove player completely
       // This allows others to start a new game without waiting for reconnection
       if (!room.gameState || room.gameState === 'waiting') {
         // Remove player from room completely
-        const removedPlayer = this.roomService.removePlayerFromRoom(room.name, player.id);
-        
-        if (removedPlayer) {
-          // Check if we need to assign a new host
-          let newHost: Player | null = null;
-          if (player.isHost) {
-            newHost = this.roomService.transferHostOnDisconnect(room.name, player.id);
-            
-            if (newHost) {
-              // Notify all players about the host change
-              console.log(`Host changed from ${player.name} to ${newHost.name} in room ${room.name}`);
-              this.server.to(room.name).emit('host-changed', {
-                newHostId: newHost.id,
-                newHostName: newHost.name,
-                previousHostId: player.id,
-                previousHostName: player.name,
-                players: this.roomService.getRoomPlayers(room.name),
-              });
-            }
-          }
-          
-          // Notify other players that this player left the room
-          this.server.to(room.name).emit('player-left', {
-            playerId: player.id,
-            playerName: player.name,
-            players: this.roomService.getRoomPlayers(room.name),
-            canReconnect: false,
-            hostChanged: !!newHost,
-            newHost: newHost ? { id: newHost.id, name: newHost.name } : null,
-            reason: 'Player disconnected before game started',
-          });
-        }
-      } else {
-        // Game is in progress or finished - keep player for potential reconnection
-        // Check if the disconnected player was the host and transfer host if needed
-        let newHost: Player | null = null;
-        if (player.isHost) {
-          newHost = this.roomService.transferHostOnDisconnect(room.name, player.id);
-          
-          if (newHost) {
-            // Notify all players about the host change
-            console.log(`INGAME Host changed from ${player.name} to ${newHost.name} in room ${room.name}`);
-            this.server.to(room.name).emit('host-changed', {
-              newHostId: newHost.id,
-              newHostName: newHost.name,
-              previousHostId: player.id,
-              previousHostName: player.name,
-              players: this.roomService.getRoomPlayers(room.name),
-            });
-          }
-        }
-        
-        // Notify other players that this player disconnected
-        this.server.to(room.name).emit('player-disconnected', {
-          playerId: player.id,
-          playerName: player.name,
-          players: this.roomService.getRoomPlayers(room.name),
-          canReconnect: true,
-          hostChanged: !!newHost,
-          newHost: newHost ? { id: newHost.id, name: newHost.name } : null,
-        });
+        this.roomService.removePlayerFromRoom(room.name, player.id);
+      }
+      
+      // Notify other players that this player disconnected
+      this.server.to(room.name).emit('player-disconnected', {
+        playerId: player.id,
+        playerName: player.name,
+        players: this.roomService.getRoomPlayers(room.name),
+        canReconnect: true,
+        hostChanged: !!newHost,
+        newHost: newHost ? { id: newHost.id, name: newHost.name } : null,
+      });
 
-        // If game was in progress and all players are disconnected, pause the game
-        if (room.gameState === 'playing') {
-          const connectedPlayers = this.roomService.getRoomPlayers(room.name)
-            .filter(p => p.isConnected);
-          
-          if (connectedPlayers.length === 0) {
-            // Pause the game or handle accordingly
-            this.server.to(room.name).emit('game-paused', {
-              reason: 'All players disconnected',
-            });
-          }
+      // If game was in progress and all players are disconnected, pause the game
+      if (room.gameState === 'playing') {
+        const connectedPlayers = this.roomService.getRoomPlayers(room.name)
+          .filter(p => p.isConnected);
+        
+        if (connectedPlayers.length === 0) {
+          // Pause the game or handle accordingly
+          this.server.to(room.name).emit('game-paused', {
+            reason: 'All players disconnected',
+          });
         }
       }
     }
