@@ -11,6 +11,19 @@ const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
 const mockConsoleLog = jest.spyOn(console, 'log').mockImplementation(() => {});
 const mockConsoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
 
+// Mock the Modal component
+jest.mock('./Modal', () => {
+  return function MockModal({ isOpen, onClose, children }: any) {
+    if (!isOpen) return null;
+    return (
+      <div data-testid="modal">
+        <button onClick={onClose} data-testid="close-button">×</button>
+        {children}
+      </div>
+    );
+  };
+});
+
 describe('LeaderboardModal Component', () => {
   const mockLeaderboardData = [
     {
@@ -46,6 +59,7 @@ describe('LeaderboardModal Component', () => {
   ];
 
   beforeEach(() => {
+    jest.clearAllMocks();
     mockFetch.mockClear();
     mockConsoleLog.mockClear();
     mockConsoleError.mockClear();
@@ -66,8 +80,8 @@ describe('LeaderboardModal Component', () => {
   it('should not show modal initially', () => {
     render(<LeaderboardModal />);
     
-    expect(screen.queryByText('Leaderboard')).not.toBeInTheDocument();
-    expect(screen.queryByText('Player Name')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('modal')).not.toBeInTheDocument();
+    expect(screen.queryByText('🏆 Top 10 All Time 🏆')).not.toBeInTheDocument();
   });
 
   it('should fetch data and open modal when button is clicked', async () => {
@@ -138,7 +152,7 @@ describe('LeaderboardModal Component', () => {
     });
 
     // Modal should not open on error
-    expect(screen.queryByText('Leaderboard')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('modal')).not.toBeInTheDocument();
   });
 
   it('should handle empty leaderboard data', async () => {
@@ -184,11 +198,11 @@ describe('LeaderboardModal Component', () => {
     });
 
     // Close modal
-    const closeButton = screen.getByText('×');
+    const closeButton = screen.getByTestId('close-button');
     fireEvent.click(closeButton);
 
     // Modal should be closed
-    expect(screen.queryByText('Leaderboard')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('modal')).not.toBeInTheDocument();
   });
 
   it('should handle multiple button clicks correctly', async () => {
@@ -208,8 +222,8 @@ describe('LeaderboardModal Component', () => {
     });
 
     // Close modal
-    fireEvent.click(screen.getByText('×'));
-    expect(screen.queryByText('Leaderboard')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('close-button'));
+    expect(screen.queryByTestId('modal')).not.toBeInTheDocument();
 
     // Second click
     fireEvent.click(button);
@@ -221,10 +235,23 @@ describe('LeaderboardModal Component', () => {
     expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 
-  it('should render correct table structure with proper keys', async () => {
+  it('should format scores with commas correctly', async () => {
+    const mockDataWithLargeScores = [
+      {
+        id: 1,
+        playerName: 'HighScorer',
+        score: 1234567,
+        linesCleared: 150,
+        level: 5,
+        gameDuration: 300000,
+        roomName: 'room1',
+        createdAt: new Date('2024-01-01T10:00:00Z')
+      }
+    ];
+
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => mockLeaderboardData,
+      json: async () => mockDataWithLargeScores,
     } as Response);
 
     render(<LeaderboardModal />);
@@ -235,21 +262,70 @@ describe('LeaderboardModal Component', () => {
       expect(screen.getByText("🏆 Top 10 All Time 🏆")).toBeInTheDocument();
     });
 
-    // Check if table structure is correct
-    const table = screen.getByRole('table');
-    expect(table).toBeInTheDocument();
+    // Check formatted score
+    expect(screen.getByText('1,234,567')).toBeInTheDocument();
+  });
 
-    const thead = screen.getByText('🏅 Rank').closest('thead');
-    const tbody = screen.getByText('Player1').closest('tbody');
+  it('should format duration correctly', async () => {
+    const mockDataWithDuration = [
+      {
+        id: 1,
+        playerName: 'Player1',
+        score: 1000,
+        linesCleared: 10,
+        level: 1,
+        gameDuration: 125, // 2 minutes 5 seconds
+        roomName: 'room1',
+        createdAt: new Date('2024-01-01T10:00:00Z')
+      }
+    ];
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockDataWithDuration,
+    } as Response);
+
+    render(<LeaderboardModal />);
     
-    expect(thead).toBeInTheDocument();
-    expect(tbody).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Best Scores'));
 
-    // Check that each player row has the correct data
-    const player1Row = screen.getByText('Player1').closest('tr');
-    expect(player1Row).toContainHTML('<td>1</td>');
-    expect(player1Row).toContainHTML('<td>Player1</td>');
-    expect(player1Row).toContainHTML('<td>15,000</td>'); // formatted with commas
+    await waitFor(() => {
+      expect(screen.getByText("🏆 Top 10 All Time 🏆")).toBeInTheDocument();
+    });
+
+    // Check formatted duration (125 seconds = 2:05)
+    expect(screen.getByText('2:05')).toBeInTheDocument();
+  });
+
+  it('should handle missing roomName gracefully', async () => {
+    const mockDataWithoutRoom = [
+      {
+        id: 1,
+        playerName: 'Player1',
+        score: 1000,
+        linesCleared: 10,
+        level: 1,
+        gameDuration: 125,
+        createdAt: new Date('2024-01-01T10:00:00Z')
+        // roomName is undefined
+      }
+    ];
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockDataWithoutRoom,
+    } as Response);
+
+    render(<LeaderboardModal />);
+    
+    fireEvent.click(screen.getByText('Best Scores'));
+
+    await waitFor(() => {
+      expect(screen.getByText("🏆 Top 10 All Time 🏆")).toBeInTheDocument();
+    });
+
+    // Should show 'N/A' for missing room name
+    expect(screen.getByText('N/A')).toBeInTheDocument();
   });
 
 });
