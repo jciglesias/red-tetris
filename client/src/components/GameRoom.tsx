@@ -27,7 +27,6 @@ function GameRoom() {
   const gamestate = useSelector((state: RootState) => state.socket.gamestate);
   const score = useSelector((state: RootState) => state.socket.score);
   const level = useSelector((state: RootState) => state.socket.level);
-  const reconnectionToken = useSelector((state: RootState) => state.socket.reconnectionToken);
   const boardRef = useRef<HTMLDivElement>(null);
   const nextRef = useRef<HTMLDivElement>(null);
   const board1Ref = useRef<HTMLDivElement>(null);
@@ -83,13 +82,10 @@ function GameRoom() {
 
 
   useEffect(() => {
-    
+
     dispatch(connectSocket({ room: roomName!, playerName: playerName! }));
     
     const handleBeforeUnload = () => {
-      if (reconnectionToken) {
-        localStorage.setItem('redtetris_reconnection_token', reconnectionToken);
-      }
       dispatch(disconnectSocket());
     };
 
@@ -99,7 +95,7 @@ function GameRoom() {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       dispatch(disconnectSocket());
     };
-  }, [roomName, playerName, dispatch, reconnectionToken]);
+  }, [roomName, playerName, dispatch]);
 
 
   // Memoized render functions for board and spectrums

@@ -57,26 +57,20 @@ const initialState: SocketState = {
   reconnectionToken: ''
 };
 
-// Fonction utilitaire pour sauvegarder le token de reconnexion
 const saveReconnectionToken = (room: string, playerName: string, token: string) => {
-  localStorage.setItem('redtetris_reconnection_token', token);
-  localStorage.setItem('redtetris_room', room);
-  localStorage.setItem('redtetris_player', playerName);
+  const key = 'redtetris_reconnection_token' + room + '_' + playerName;
+  localStorage.setItem(key, token);
 };
 
-// Fonction utilitaire pour récupérer le token de reconnexion
-const getReconnectionData = () => {
-  const token = localStorage.getItem('redtetris_reconnection_token');
-  const room = localStorage.getItem('redtetris_room');
-  const player = localStorage.getItem('redtetris_player');
-  return { token, room, player };
+const getReconnectionData = (room: string, playerName: string) => {
+  const key = 'redtetris_reconnection_token' + room + '_' + playerName;
+  const token = localStorage.getItem(key);
+  return token;
 };
 
-// Fonction utilitaire pour nettoyer le token de reconnexion
-const clearReconnectionData = () => {
-  localStorage.removeItem('redtetris_reconnection_token');
-  localStorage.removeItem('redtetris_room');
-  localStorage.removeItem('redtetris_player');
+const clearReconnectionData = (room: string, playerName: string) => {
+  const key = 'redtetris_reconnection_token' + room + '_' + playerName;
+  localStorage.removeItem(key);
 };
 
 export const requestReconnection = createAsyncThunk(
@@ -109,7 +103,7 @@ export const requestReconnection = createAsyncThunk(
         ? (data as any).message
         : String(data);
       dispatch(onReconnectionError(message));
-      clearReconnectionData();
+      clearReconnectionData(payload.room, payload.playerName);
     });
   }
 );
@@ -123,14 +117,20 @@ export const connectSocket = createAsyncThunk(
 
     socket = io("http://localhost:3001");
 
+    console.log('Attempting Connection...');
+
     // Tenter une reconnexion automatique si des données existent
-    const reconnectionData = getReconnectionData();
-    if (reconnectionData.token && reconnectionData.room === payload.room && reconnectionData.player === payload.playerName) {
+    const reconnectiontoken = getReconnectionData(payload.room, payload.playerName);
+
+    console.log('Data reconnectionData.token: ' + reconnectiontoken);
+    //console.log('Data state.reconnectionToken: ' + payload.reconnectionToken);
+
+    if (reconnectiontoken) {
       console.log('Attempting automatic reconnection...');
       dispatch(requestReconnection({
         room: payload.room,
         playerName: payload.playerName,
-        reconnectionToken: reconnectionData.token
+        reconnectionToken: reconnectiontoken
       }));
     }
 
@@ -255,7 +255,7 @@ export const joinRoom = createAsyncThunk(
       socket.emit('join-room', {
         roomName: payload.room,
         playerName: payload.playerName,
-        reconnectionToken: getReconnectionData().token || ''
+        reconnectionToken: getReconnectionData(payload.room, payload.playerName) || ''
       });
     }
   }
@@ -411,29 +411,28 @@ const socketSlice = createSlice({
       state.isError = false;
       state.contentError = '';
       if (action.payload.room.gameState) {
-        state.started = (action.payload.room.gameState == 'playing' ? true : false);
+        state.started = (action.payload.room.gameState === 'playing' ? true : false);
       }
       if (action.payload.player.reconnectionToken) {
         state.reconnectionToken = action.payload.player.reconnectionToken;
       }
-      // Restaurer l'état du jeu si fourni
+      if (action.payload.player) {
+          state.playerReady = action.payload.player.isReady || false;
+          state.score = action.payload.player.score || 0;
+          state.level = action.payload.player.level || 1;
+          state.playerId = action.payload.id;
+      }
       if (action.payload.gameState) {
         state.gamestate = action.payload.gameState;
-        state.gameOver = action.payload.gameState.gameOver || false;
-        state.gameWon = action.payload.gameState.gameWon || false;
-        if (action.payload.opponents) {
-          state.opponent1 = action.payload.opponents[0] || '';
-          state.opponent2 = action.payload.opponents[1] || '';
-          state.opponent3 = action.payload.opponents[2] || '';
-          state.opponent4 = action.payload.opponents[3] || '';
+        const playersMap = action.payload.gameState.players as Record<string, any>;
+        if (action.payload.player) {
+          const keys = Object.keys(playersMap).filter(k => k !== action.payload.id);
+          const playerNames = keys.map(k => k.split('_')[1]);
+          if (playerNames[0]) state.opponent1 = playerNames[0];
+          if (playerNames[1]) state.opponent2 = playerNames[1];
+          if (playerNames[2]) state.opponent3 = playerNames[2];
+          if (playerNames[3]) state.opponent4 = playerNames[3];
         }
-        if (action.payload.score !== undefined) state.score = action.payload.score;
-        if (action.payload.level !== undefined) state.level = action.payload.level;
-      }
-      if (action.payload.player) {
-        state.playerReady = action.payload.player.isReady || false;
-        state.score = action.payload.player.score || false;
-        state.level = action.payload.player.level || false;
       }
     },
     onReconnectionError(state, action) {
