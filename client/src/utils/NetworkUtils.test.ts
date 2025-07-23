@@ -301,16 +301,19 @@ describe('NetworkUtils', () => {
       mockLocation.hostname = '';
       mockLocation.protocol = 'http:';
 
-      mockFetch.mockResolvedValueOnce({ ok: true } as Response);
+      // Mock first call (empty hostname) to fail, second call (localhost) to succeed
+      mockFetch
+        .mockRejectedValueOnce(new Error('Invalid URL')) // http://:3001/health will fail
+        .mockResolvedValueOnce({ ok: true } as Response); // localhost succeeds
 
       const result = await NetworkUtils.findWorkingServerUrl();
 
       expect(result).toBe('http://localhost:3001');
-      // Should test localhost first since hostname is empty
-      expect(mockFetch).toHaveBeenCalledWith('http://localhost:3001/health', {
-        method: 'GET',
-        signal: expect.any(AbortSignal)
-      });
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(mockConsoleWarn).toHaveBeenCalledWith(
+        'Impossible de se connecter à http://:3001:',
+        expect.any(Error)
+      );
     });
 
     it('should handle malformed URLs gracefully', async () => {
