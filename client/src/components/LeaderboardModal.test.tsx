@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import LeaderboardModal from './LeaderboardModal';
+import { NetworkUtils } from '../utils/NetworkUtils';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -10,6 +11,15 @@ const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
 // Mock console methods
 const mockConsoleLog = jest.spyOn(console, 'log').mockImplementation(() => {});
 const mockConsoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+// Mock NetworkUtils
+jest.mock('../utils/NetworkUtils', () => ({
+  NetworkUtils: {
+    findWorkingServerUrl: jest.fn()
+  }
+}));
+
+const mockFindWorkingServerUrl = NetworkUtils.findWorkingServerUrl as jest.MockedFunction<typeof NetworkUtils.findWorkingServerUrl>;
 
 // Mock the Modal component
 jest.mock('./Modal', () => {
@@ -63,6 +73,7 @@ describe('LeaderboardModal Component', () => {
     mockFetch.mockClear();
     mockConsoleLog.mockClear();
     mockConsoleError.mockClear();
+    mockFindWorkingServerUrl.mockResolvedValue('http://localhost:3001');
   });
 
   afterAll(() => {
@@ -95,15 +106,12 @@ describe('LeaderboardModal Component', () => {
     const button = screen.getByText('Best Scores');
     fireEvent.click(button);
 
-    // Verify fetch was called with correct URL
-    expect(mockFetch).toHaveBeenCalledWith('http://localhost:3001/api/leaderboard/top?limit=10');
-
-    // Wait for modal to appear
+    // Wait for modal to appear first
     await waitFor(() => {
       expect(screen.getByText("🏆 Top 10 All Time 🏆")).toBeInTheDocument();
     });
 
-    // Verify fetch was called correctly and modal shows data
+    // Verify fetch was called with correct URL
     expect(mockFetch).toHaveBeenCalledWith('http://localhost:3001/api/leaderboard/top?limit=10');
     
     // Verify the leaderboard data is displayed in the modal
@@ -426,9 +434,9 @@ describe('LeaderboardModal Component', () => {
     
     fireEvent.click(screen.getByText('Best Scores'));
 
-    // Wait a bit to ensure the fetch completed
+    // Wait a bit to ensure the fetch completed and error was logged
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalled();
+      expect(mockConsoleError).toHaveBeenCalledWith('Error fetching data:', expect.any(Error));
     });
 
     // Modal should not open when response is not ok
@@ -592,9 +600,9 @@ describe('LeaderboardModal Component', () => {
     
     fireEvent.click(screen.getByText('Best Scores'));
 
-    // Wait a bit to ensure the fetch completed
+    // Wait a bit to ensure the fetch completed and error was logged
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalled();
+      expect(mockConsoleError).toHaveBeenCalledWith('Error fetching data:', expect.any(Error));
     });
 
     // Modal should not open when response is not ok
@@ -705,6 +713,11 @@ describe('LeaderboardModal Component', () => {
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith('http://localhost:3001/api/leaderboard/top?limit=10');
+    });
+
+    // Wait for error to be logged
+    await waitFor(() => {
+      expect(mockConsoleError).toHaveBeenCalledWith('Error fetching data:', expect.any(Error));
     });
 
     // Modal should not be displayed when response is not ok

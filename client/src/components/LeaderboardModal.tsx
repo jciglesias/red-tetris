@@ -18,6 +18,11 @@ const LeaderboardModal = () => {
     try {
       const serverUrl = await NetworkUtils.findWorkingServerUrl();
       const response = await fetch(`${serverUrl}/api/leaderboard/top?limit=10`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       //console.log('Fetched leaderboard data:', data); // Debugging line
       setLeaderboardData(data);
