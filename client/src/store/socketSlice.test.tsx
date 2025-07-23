@@ -102,9 +102,10 @@ describe('socketSlice', () => {
     });
 
     it('should handle onJoinRoomSuccess', () => {
-      store.dispatch(onJoinRoomSuccess());
+      store.dispatch(onJoinRoomSuccess({ isHost: true }));
       const state = store.getState().socket;
       expect(state.joined).toBe(true);
+      expect(state.isHost).toBe(true);
     });
 
     it('should handle onJoinRoomError', () => {
@@ -285,9 +286,10 @@ describe('socketSlice', () => {
       expect(state.connected).toBe(true);
       
       // Join room
-      store.dispatch(onJoinRoomSuccess());
+      store.dispatch(onJoinRoomSuccess({ isHost: false }));
       state = store.getState().socket;
       expect(state.joined).toBe(true);
+      expect(state.isHost).toBe(false);
       
       // Set ready
       store.dispatch(onSetReadySuccess());
