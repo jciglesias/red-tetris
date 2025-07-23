@@ -209,7 +209,7 @@ export const connectSocket = createAsyncThunk(
         const key = `${payload.room}_${payload.playerName}`;
         const playerState = (data.players as Record<string, any>)[key];
         //console.log('Game state update: ' + JSON.stringify(playerState, null, 2));
-        if (playerState && playerState.isAlive && playerState.isAlive === false) {
+        if (playerState && playerState.isAlive === false) {
             dispatch(onGameOver(data));
         }
         if (data.winner && data.winner === key) {
@@ -228,7 +228,7 @@ export const connectSocket = createAsyncThunk(
         const key = `${payload.room}_${payload.playerName}`;
         const playerState = (data.gameState.players as Record<string, any>)[key];
         //console.log('Game state update: ' + JSON.stringify(playerState, null, 2));
-        if (playerState && playerState.isAlive && playerState.isAlive === false) {
+        if (playerState && playerState.isAlive === false) {
           dispatch(onGameOver(data.gameState));
         }
         if (data.gameState.winner && data.gameState.winner === key) {
@@ -431,18 +431,33 @@ const socketSlice = createSlice({
           state.playerReady = action.payload.player.isReady || false;
           state.score = action.payload.player.score || 0;
           state.level = action.payload.player.level || 1;
-          state.playerId = action.payload.id;
+          state.playerId = action.payload.player.id;
+          state.isHost = action.payload.player.isHost || false;
       }
       if (action.payload.gameState) {
         state.gamestate = action.payload.gameState;
         const playersMap = action.payload.gameState.players as Record<string, any>;
         if (action.payload.player) {
-          const keys = Object.keys(playersMap).filter(k => k !== action.payload.id);
+          const keys = Object.keys(playersMap).filter(k => k !== action.payload.player.id);
           const playerNames = keys.map(k => k.split('_')[1]);
           if (playerNames[0]) state.opponent1 = playerNames[0];
           if (playerNames[1]) state.opponent2 = playerNames[1];
           if (playerNames[2]) state.opponent3 = playerNames[2];
           if (playerNames[3]) state.opponent4 = playerNames[3];
+        }
+        const playerState = (action.payload.gameState.players as Record<string, any>)[action.payload.player.id];
+        console.log('Reconnection playerState: ' + JSON.stringify(playerState, null, 2));
+        if (playerState && playerState.isAlive === false) {
+          state.gameOver = true;
+          state.joined = false;
+          state.playerReady = false;
+          state.started = false;
+        }
+        if (action.payload.gameState.winner && action.payload.gameState.winner === action.payload.player.id) {
+          state.gameWon = true;
+          state.joined = false;
+          state.playerReady = false;
+          state.started = false;
         }
       }
     },
